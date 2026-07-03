@@ -14,7 +14,250 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      appearances: {
+        Row: {
+          appearance_id: number
+          captain: boolean
+          match_id: number
+          on_the_bench: boolean
+          player_id: number
+          player_position_in_match: string | null
+          sets_played: number
+          sets_started: number
+          shirt_number: number | null
+        }
+        Insert: {
+          appearance_id?: number
+          captain?: boolean
+          match_id: number
+          on_the_bench?: boolean
+          player_id: number
+          player_position_in_match?: string | null
+          sets_played?: number
+          sets_started?: number
+          shirt_number?: number | null
+        }
+        Update: {
+          appearance_id?: number
+          captain?: boolean
+          match_id?: number
+          on_the_bench?: boolean
+          player_id?: number
+          player_position_in_match?: string | null
+          sets_played?: number
+          sets_started?: number
+          shirt_number?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appearances_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["match_id"]
+          },
+          {
+            foreignKeyName: "appearances_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["player_id"]
+          },
+        ]
+      }
+      match_sets: {
+        Row: {
+          estonia_points: number
+          match_id: number
+          match_set_id: number
+          opponent_points: number
+          set_number: number
+        }
+        Insert: {
+          estonia_points: number
+          match_id: number
+          match_set_id?: number
+          opponent_points: number
+          set_number: number
+        }
+        Update: {
+          estonia_points?: number
+          match_id?: number
+          match_set_id?: number
+          opponent_points?: number
+          set_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_sets_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["match_id"]
+          },
+        ]
+      }
+      matches: {
+        Row: {
+          additional_sets_count: number
+          city: string | null
+          coach: string | null
+          competition: string | null
+          created_at: string
+          estonia_sets: number
+          has_additional_sets: boolean
+          match_date: string
+          match_id: number
+          match_type: Database["public"]["Enums"]["match_type"]
+          opponent: string
+          opponent_sets: number
+        }
+        Insert: {
+          additional_sets_count?: number
+          city?: string | null
+          coach?: string | null
+          competition?: string | null
+          created_at?: string
+          estonia_sets?: number
+          has_additional_sets?: boolean
+          match_date: string
+          match_id?: number
+          match_type: Database["public"]["Enums"]["match_type"]
+          opponent: string
+          opponent_sets?: number
+        }
+        Update: {
+          additional_sets_count?: number
+          city?: string | null
+          coach?: string | null
+          competition?: string | null
+          created_at?: string
+          estonia_sets?: number
+          has_additional_sets?: boolean
+          match_date?: string
+          match_id?: number
+          match_type?: Database["public"]["Enums"]["match_type"]
+          opponent?: string
+          opponent_sets?: number
+        }
+        Relationships: []
+      }
+      player_match_stats: {
+        Row: {
+          appearance_id: number
+          attack_blocked: number | null
+          attack_efficiency: number | null
+          attack_errors: number | null
+          attack_kill_pct: number | null
+          attack_kills: number | null
+          attack_total: number | null
+          block_points: number | null
+          break_points: number | null
+          plus_minus: number | null
+          points: number | null
+          reception_errors: number | null
+          reception_excellent_pct: number | null
+          reception_positive_pct: number | null
+          reception_total: number | null
+          serve_aces: number | null
+          serve_errors: number | null
+          serve_total: number | null
+          stat_id: number
+          stats_version: Database["public"]["Enums"]["stats_version"]
+        }
+        Insert: {
+          appearance_id: number
+          attack_blocked?: number | null
+          attack_efficiency?: number | null
+          attack_errors?: number | null
+          attack_kill_pct?: number | null
+          attack_kills?: number | null
+          attack_total?: number | null
+          block_points?: number | null
+          break_points?: number | null
+          plus_minus?: number | null
+          points?: number | null
+          reception_errors?: number | null
+          reception_excellent_pct?: number | null
+          reception_positive_pct?: number | null
+          reception_total?: number | null
+          serve_aces?: number | null
+          serve_errors?: number | null
+          serve_total?: number | null
+          stat_id?: number
+          stats_version?: Database["public"]["Enums"]["stats_version"]
+        }
+        Update: {
+          appearance_id?: number
+          attack_blocked?: number | null
+          attack_efficiency?: number | null
+          attack_errors?: number | null
+          attack_kill_pct?: number | null
+          attack_kills?: number | null
+          attack_total?: number | null
+          block_points?: number | null
+          break_points?: number | null
+          plus_minus?: number | null
+          points?: number | null
+          reception_errors?: number | null
+          reception_excellent_pct?: number | null
+          reception_positive_pct?: number | null
+          reception_total?: number | null
+          serve_aces?: number | null
+          serve_errors?: number | null
+          serve_total?: number | null
+          stat_id?: number
+          stats_version?: Database["public"]["Enums"]["stats_version"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_match_stats_appearance_id_fkey"
+            columns: ["appearance_id"]
+            isOneToOne: false
+            referencedRelation: "appearances"
+            referencedColumns: ["appearance_id"]
+          },
+        ]
+      }
+      players: {
+        Row: {
+          birth_county: string | null
+          birth_date: string | null
+          created_at: string
+          first_name: string
+          handedness: string | null
+          height_cm: number | null
+          last_name: string
+          place_of_birth: string | null
+          player_id: number
+          position: string | null
+        }
+        Insert: {
+          birth_county?: string | null
+          birth_date?: string | null
+          created_at?: string
+          first_name: string
+          handedness?: string | null
+          height_cm?: number | null
+          last_name: string
+          place_of_birth?: string | null
+          player_id?: number
+          position?: string | null
+        }
+        Update: {
+          birth_county?: string | null
+          birth_date?: string | null
+          created_at?: string
+          first_name?: string
+          handedness?: string | null
+          height_cm?: number | null
+          last_name?: string
+          place_of_birth?: string | null
+          player_id?: number
+          position?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +266,8 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      match_type: "VM" | "AM" | "MAM"
+      stats_version: "ALL" | "AM"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +394,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      match_type: ["VM", "AM", "MAM"],
+      stats_version: ["ALL", "AM"],
+    },
   },
 } as const
