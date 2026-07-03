@@ -39,7 +39,7 @@ export type HomeSummary = {
 };
 
 async function fetchHomeSummary(): Promise<HomeSummary> {
-  const [matchesCount, playersCount, appsCount, setsCount, recent, appsByPlayer, statCoverage] =
+  const [matchesCount, playersCount, appsCount, setsCount, recent, statCoverage] =
     await Promise.all([
       supabase.from("matches").select("*", { count: "exact", head: true }),
       supabase.from("players").select("*", { count: "exact", head: true }),
@@ -52,24 +52,17 @@ async function fetchHomeSummary(): Promise<HomeSummary> {
         )
         .order("match_date", { ascending: false })
         .limit(5),
-      supabase.rpc("noop_placeholder").select().limit(0), // ignored; kept parallel shape
-      supabase
-        .from("player_match_stats")
-        .select("appearance_id", { count: "exact", head: true }),
-    ]).catch(() => [] as never);
+      supabase.from("player_match_stats").select("appearance_id", { count: "exact", head: true }),
+    ]);
 
-  // The rpc call above will error silently — we handle top appearance separately below.
-  const totalMatches = matchesCount?.count ?? 0;
-  const totalPlayers = playersCount?.count ?? 0;
-  const totalAppearances = appsCount?.count ?? 0;
-  const totalSets = setsCount?.count ?? 0;
+  const totalMatches = matchesCount.count ?? 0;
+  const totalPlayers = playersCount.count ?? 0;
+  const totalAppearances = appsCount.count ?? 0;
+  const totalSets = setsCount.count ?? 0;
 
-  // Top appearance: aggregate on the client from appearances
   let topAppearance: HomeSummary["topAppearance"] = null;
   if (totalAppearances > 0) {
-    const { data: apps } = await supabase
-      .from("appearances")
-      .select("player_id, sets_played");
+    const { data: apps } = await supabase.from("appearances").select("player_id, sets_played");
     if (apps && apps.length) {
       const agg = new Map<number, { matches: number; sets: number }>();
       for (const a of apps) {
@@ -88,17 +81,15 @@ async function fetchHomeSummary(): Promise<HomeSummary> {
     }
   }
 
-  const matchesWithStats = statCoverage?.count ?? 0;
-
   return {
     totalMatches,
     totalPlayers,
     totalAppearances,
     totalSets,
-    recentMatches: (recent?.data ?? []) as RecentMatch[],
+    recentMatches: ((recent.data ?? []) as unknown) as RecentMatch[],
     topAppearance,
     statsCoverage: {
-      matchesWithStats,
+      matchesWithStats: statCoverage.count ?? 0,
       totalMatches,
     },
   };
