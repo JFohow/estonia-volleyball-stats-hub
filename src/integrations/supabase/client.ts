@@ -43,6 +43,9 @@ function createSupabaseClient() {
     throw new Error(message);
   }
 
+  console.log("SUPABASE URL:", SUPABASE_URL);
+  console.log("SUPABASE KEY:", SUPABASE_PUBLISHABLE_KEY);
+
   return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     global: {
       fetch: createSupabaseFetch(SUPABASE_PUBLISHABLE_KEY),

@@ -67,7 +67,7 @@ function HomePage() {
       <header className="bg-estonia-dark px-6 pt-12 pb-24 text-white">
         <div className="mx-auto max-w-7xl">
           <h1 className="mb-3 font-display text-5xl uppercase italic md:text-6xl">
-            National Team <span className="text-estonia-blue">Performance Archive</span>
+            National Team <span className="text-estonia-blue">Historical Database</span>
           </h1>
           <p className="mb-12 max-w-2xl text-sm text-white/60">
             Every match, every set, every appearance of the Estonia Men's National Volleyball Team,
