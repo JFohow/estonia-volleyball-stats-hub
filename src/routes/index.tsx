@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useSuspenseQuery, useQueryErrorResetBoundary } from "@tanstack/react-query";
 import { homeSummaryOptions, type RecentMatch } from "@/lib/home.queries";
+import { useMatchFilter } from "@/lib/match-filter";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -13,9 +14,6 @@ export const Route = createFileRoute("/")({
       },
     ],
   }),
-  loader: ({ context }) => {
-    context.queryClient.ensureQueryData(homeSummaryOptions());
-  },
   component: HomePage,
   errorComponent: HomeError,
 });
@@ -48,7 +46,8 @@ function fmt(n: number) {
 }
 
 function HomePage() {
-  const { data } = useSuspenseQuery(homeSummaryOptions());
+  const { filter } = useMatchFilter();
+  const { data } = useSuspenseQuery(homeSummaryOptions(filter));
   const coveragePct =
     data.statsCoverage.totalMatches > 0
       ? Math.round((data.statsCoverage.matchesWithStats / data.statsCoverage.totalMatches) * 100)

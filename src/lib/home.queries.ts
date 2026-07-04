@@ -1,5 +1,6 @@
 import { queryOptions } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { MatchTypeFilter } from "@/lib/match-filter";
 
 export type RecentMatch = {
   match_id: number;
@@ -38,40 +39,57 @@ export type HomeSummary = {
   };
 };
 
-async function fetchHomeSummary(): Promise<HomeSummary> {
-  const [matchesCount, playersCount, appsCount, setsCount, recent, statCoverage] =
-    await Promise.all([
-      supabase.from("matches").select("*", { count: "exact", head: true }),
-      supabase.from("players").select("*", { count: "exact", head: true }),
-      supabase.from("appearances").select("*", { count: "exact", head: true }),
-      supabase.from("match_sets").select("*", { count: "exact", head: true }),
-      supabase
+async function fetchHomeSummary(filter: MatchTypeFilter): Promise<HomeSummary> {
+  const matchesQ = supabase.from("matches").select("match_id, match_type");
+  if (filter !== "ALL") matchesQ.eq("match_type", filter);
+  const { data: matchList } = await matchesQ;
+  const filteredMatchIds = (matchList ?? []).map((m) => m.match_id);
+  const totalMatches = filteredMatchIds.length;
+
+  const [playersCount, apps, sets, recent, statCoverage] = await Promise.all([
+    supabase.from("players").select("*", { count: "exact", head: true }),
+    filteredMatchIds.length
+      ? supabase.from("appearances").select("player_id, sets_played, match_id").in("match_id", filteredMatchIds)
+      : Promise.resolve({ data: [] as any[] }),
+    filteredMatchIds.length
+      ? supabase.from("match_sets").select("match_set_id", { count: "exact", head: true }).in("match_id", filteredMatchIds)
+      : Promise.resolve({ count: 0 }),
+    (() => {
+      const q = supabase
         .from("matches")
         .select(
           "match_id, match_date, opponent, competition, city, estonia_sets, opponent_sets, match_type, has_additional_sets, additional_sets_count, match_sets(set_number, estonia_points, opponent_points)",
         )
         .order("match_date", { ascending: false })
-        .limit(5),
-      supabase.from("player_match_stats").select("appearance_id", { count: "exact", head: true }),
-    ]);
+        .limit(6);
+      if (filter !== "ALL") q.eq("match_type", filter);
+      return q;
+    })(),
+    filteredMatchIds.length
+      ? supabase
+          .from("player_match_stats")
+          .select("appearance_id, appearances!inner(match_id)", { count: "exact", head: true })
+          .in("appearances.match_id", filteredMatchIds)
+      : Promise.resolve({ count: 0 }),
+  ]);
 
-  const totalMatches = matchesCount.count ?? 0;
   const totalPlayers = playersCount.count ?? 0;
-  const totalAppearances = appsCount.count ?? 0;
-  const totalSets = setsCount.count ?? 0;
+  const totalAppearances = (apps as any).data?.length ?? 0;
+  const totalSets = (sets as any).count ?? 0;
 
   let topAppearance: HomeSummary["topAppearance"] = null;
-  if (totalAppearances > 0) {
-    const { data: apps } = await supabase.from("appearances").select("player_id, sets_played");
-    if (apps && apps.length) {
-      const agg = new Map<number, { matches: number; sets: number }>();
-      for (const a of apps) {
-        const cur = agg.get(a.player_id) ?? { matches: 0, sets: 0 };
-        cur.matches += 1;
-        cur.sets += a.sets_played ?? 0;
-        agg.set(a.player_id, cur);
-      }
-      const [topId, top] = [...agg.entries()].sort((a, b) => b[1].matches - a[1].matches)[0];
+  const appsData = (apps as any).data as { player_id: number; sets_played: number | null }[] | undefined;
+  if (appsData && appsData.length) {
+    const agg = new Map<number, { matches: number; sets: number }>();
+    for (const a of appsData) {
+      const cur = agg.get(a.player_id) ?? { matches: 0, sets: 0 };
+      cur.matches += 1;
+      cur.sets += a.sets_played ?? 0;
+      agg.set(a.player_id, cur);
+    }
+    const sorted = [...agg.entries()].sort((a, b) => b[1].matches - a[1].matches);
+    if (sorted.length) {
+      const [topId, top] = sorted[0];
       const { data: p } = await supabase
         .from("players")
         .select("first_name, last_name, position")
@@ -89,14 +107,14 @@ async function fetchHomeSummary(): Promise<HomeSummary> {
     recentMatches: ((recent.data ?? []) as unknown) as RecentMatch[],
     topAppearance,
     statsCoverage: {
-      matchesWithStats: statCoverage.count ?? 0,
+      matchesWithStats: (statCoverage as any).count ?? 0,
       totalMatches,
     },
   };
 }
 
-export const homeSummaryOptions = () =>
+export const homeSummaryOptions = (filter: MatchTypeFilter = "ALL") =>
   queryOptions({
-    queryKey: ["home-summary"],
-    queryFn: fetchHomeSummary,
+    queryKey: ["home-summary", filter],
+    queryFn: () => fetchHomeSummary(filter),
   });

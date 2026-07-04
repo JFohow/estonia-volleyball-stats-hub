@@ -17,6 +17,8 @@ import { Route as OpponentsRouteImport } from './routes/opponents'
 import { Route as MatchesRouteImport } from './routes/matches'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PlayerPlayerIdRouteImport } from './routes/player.$playerId'
+import { Route as OpponentsOpponentRouteImport } from './routes/opponents.$opponent'
+import { Route as MatchesMatchIdRouteImport } from './routes/matches.$matchId'
 
 const StatisticsRoute = StatisticsRouteImport.update({
   id: '/statistics',
@@ -58,36 +60,52 @@ const PlayerPlayerIdRoute = PlayerPlayerIdRouteImport.update({
   path: '/player/$playerId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OpponentsOpponentRoute = OpponentsOpponentRouteImport.update({
+  id: '/$opponent',
+  path: '/$opponent',
+  getParentRoute: () => OpponentsRoute,
+} as any)
+const MatchesMatchIdRoute = MatchesMatchIdRouteImport.update({
+  id: '/$matchId',
+  path: '/$matchId',
+  getParentRoute: () => MatchesRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/matches': typeof MatchesRoute
-  '/opponents': typeof OpponentsRoute
+  '/matches': typeof MatchesRouteWithChildren
+  '/opponents': typeof OpponentsRouteWithChildren
   '/players': typeof PlayersRoute
   '/records': typeof RecordsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/statistics': typeof StatisticsRoute
+  '/matches/$matchId': typeof MatchesMatchIdRoute
+  '/opponents/$opponent': typeof OpponentsOpponentRoute
   '/player/$playerId': typeof PlayerPlayerIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/matches': typeof MatchesRoute
-  '/opponents': typeof OpponentsRoute
+  '/matches': typeof MatchesRouteWithChildren
+  '/opponents': typeof OpponentsRouteWithChildren
   '/players': typeof PlayersRoute
   '/records': typeof RecordsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/statistics': typeof StatisticsRoute
+  '/matches/$matchId': typeof MatchesMatchIdRoute
+  '/opponents/$opponent': typeof OpponentsOpponentRoute
   '/player/$playerId': typeof PlayerPlayerIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/matches': typeof MatchesRoute
-  '/opponents': typeof OpponentsRoute
+  '/matches': typeof MatchesRouteWithChildren
+  '/opponents': typeof OpponentsRouteWithChildren
   '/players': typeof PlayersRoute
   '/records': typeof RecordsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/statistics': typeof StatisticsRoute
+  '/matches/$matchId': typeof MatchesMatchIdRoute
+  '/opponents/$opponent': typeof OpponentsOpponentRoute
   '/player/$playerId': typeof PlayerPlayerIdRoute
 }
 export interface FileRouteTypes {
@@ -100,6 +118,8 @@ export interface FileRouteTypes {
     | '/records'
     | '/sitemap.xml'
     | '/statistics'
+    | '/matches/$matchId'
+    | '/opponents/$opponent'
     | '/player/$playerId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -110,6 +130,8 @@ export interface FileRouteTypes {
     | '/records'
     | '/sitemap.xml'
     | '/statistics'
+    | '/matches/$matchId'
+    | '/opponents/$opponent'
     | '/player/$playerId'
   id:
     | '__root__'
@@ -120,13 +142,15 @@ export interface FileRouteTypes {
     | '/records'
     | '/sitemap.xml'
     | '/statistics'
+    | '/matches/$matchId'
+    | '/opponents/$opponent'
     | '/player/$playerId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  MatchesRoute: typeof MatchesRoute
-  OpponentsRoute: typeof OpponentsRoute
+  MatchesRoute: typeof MatchesRouteWithChildren
+  OpponentsRoute: typeof OpponentsRouteWithChildren
   PlayersRoute: typeof PlayersRoute
   RecordsRoute: typeof RecordsRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
@@ -192,13 +216,50 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PlayerPlayerIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/opponents/$opponent': {
+      id: '/opponents/$opponent'
+      path: '/$opponent'
+      fullPath: '/opponents/$opponent'
+      preLoaderRoute: typeof OpponentsOpponentRouteImport
+      parentRoute: typeof OpponentsRoute
+    }
+    '/matches/$matchId': {
+      id: '/matches/$matchId'
+      path: '/$matchId'
+      fullPath: '/matches/$matchId'
+      preLoaderRoute: typeof MatchesMatchIdRouteImport
+      parentRoute: typeof MatchesRoute
+    }
   }
 }
 
+interface MatchesRouteChildren {
+  MatchesMatchIdRoute: typeof MatchesMatchIdRoute
+}
+
+const MatchesRouteChildren: MatchesRouteChildren = {
+  MatchesMatchIdRoute: MatchesMatchIdRoute,
+}
+
+const MatchesRouteWithChildren =
+  MatchesRoute._addFileChildren(MatchesRouteChildren)
+
+interface OpponentsRouteChildren {
+  OpponentsOpponentRoute: typeof OpponentsOpponentRoute
+}
+
+const OpponentsRouteChildren: OpponentsRouteChildren = {
+  OpponentsOpponentRoute: OpponentsOpponentRoute,
+}
+
+const OpponentsRouteWithChildren = OpponentsRoute._addFileChildren(
+  OpponentsRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  MatchesRoute: MatchesRoute,
-  OpponentsRoute: OpponentsRoute,
+  MatchesRoute: MatchesRouteWithChildren,
+  OpponentsRoute: OpponentsRouteWithChildren,
   PlayersRoute: PlayersRoute,
   RecordsRoute: RecordsRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,

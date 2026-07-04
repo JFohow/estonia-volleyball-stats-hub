@@ -12,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { SiteNav, SiteFooter } from "../components/site-nav";
+import { MatchFilterProvider } from "../lib/match-filter";
 
 function NotFoundComponent() {
   return (
@@ -129,13 +130,15 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="flex min-h-screen flex-col">
-        <SiteNav />
-        <div className="flex-1">
-          <Outlet />
+      <MatchFilterProvider>
+        <div className="flex min-h-screen flex-col">
+          <SiteNav />
+          <div className="flex-1">
+            <Outlet />
+          </div>
+          <SiteFooter />
         </div>
-        <SiteFooter />
-      </div>
+      </MatchFilterProvider>
     </QueryClientProvider>
   );
 }
