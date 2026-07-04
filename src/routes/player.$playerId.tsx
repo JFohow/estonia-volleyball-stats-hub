@@ -10,41 +10,74 @@ export const Route = createFileRoute("/player/$playerId")({
 function playerOptions(playerId: number) {
     return queryOptions({
         queryKey: ["player", playerId],
-        queryFn: async () => {
-            const [{ data: player }, { data: appearances }] =
-                await Promise.all([
-                    supabase
-                        .from("players")
-                        .select("*")
-                        .eq("player_id", playerId)
-                        .single(),
 
-                    supabase
-                        .from("appearances")
-                        .select(
-                            `
-              *,
-              matches (
-                match_id,
-                match_date,
-                opponent,
-                competition,
-                estonia_sets,
-                opponent_sets
-              )
-            `
-                        )
-                        .eq("player_id", playerId),
-                ]);
+        queryFn: async () => {
+            const [
+                { data: player },
+                { data: appearances },
+                { data: stats },
+            ] = await Promise.all([
+                supabase
+                    .from("players")
+                    .select("*")
+                    .eq("player_id", playerId)
+                    .single(),
+
+                supabase
+                    .from("appearances")
+                    .select(`
+            *,
+            matches (
+              match_id,
+              match_date,
+              opponent,
+              competition,
+              estonia_sets,
+              opponent_sets
+            )
+          `)
+                    .eq("player_id", playerId),
+
+                supabase
+                    .from("player_match_stats")
+                    .select(`
+            appearance_id,
+            points,
+            serve_aces,
+            block_points,
+            attack_kills
+          `),
+            ]);
 
             let captaincies = 0;
             let setsPlayed = 0;
             let setsStarted = 0;
 
-            appearances?.forEach((a) => {
-                if (a.captain) captaincies++;
-                setsPlayed += a.sets_played ?? 0;
-                setsStarted += a.sets_started ?? 0;
+            let points = 0;
+            let aces = 0;
+            let blocks = 0;
+            let kills = 0;
+
+            appearances?.forEach((appearance) => {
+                if (appearance.captain) {
+                    captaincies++;
+                }
+
+                setsPlayed += appearance.sets_played ?? 0;
+                setsStarted += appearance.sets_started ?? 0;
+            });
+
+            const appearanceIds = new Set(
+                appearances?.map((appearance) => appearance.appearance_id) ?? []
+            );
+
+            stats?.forEach((stat) => {
+                if (!appearanceIds.has(stat.appearance_id)) return;
+
+                points += stat.points ?? 0;
+                aces += stat.serve_aces ?? 0;
+                blocks += stat.block_points ?? 0;
+                kills += stat.attack_kills ?? 0;
             });
 
             return {
@@ -53,6 +86,10 @@ function playerOptions(playerId: number) {
                 captaincies,
                 setsPlayed,
                 setsStarted,
+                points,
+                aces,
+                blocks,
+                kills,
             };
         },
     });
@@ -78,7 +115,7 @@ function PlayerPage() {
     return (
         <div className="mx-auto max-w-6xl px-6 py-10">
             <div className="rounded-xl border border-slate-200 bg-white p-8">
-                <div className="flex flex-col md:flex-row gap-8">
+                <div className="flex flex-col gap-8 md:flex-row">
                     <div className="flex h-32 w-32 items-center justify-center rounded-xl bg-estonia-dark text-4xl font-bold text-white">
                         {p.first_name?.[0]}
                         {p.last_name?.[0]}
@@ -107,9 +144,15 @@ function PlayerPage() {
                                     {p.handedness}-handed
                                 </span>
                             )}
+
+                            {p.birth_date && (
+                                <span className="rounded bg-slate-100 px-3 py-1 text-sm">
+                                    Born {p.birth_date}
+                                </span>
+                            )}
                         </div>
 
-                        <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4">
+                        <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4 xl:grid-cols-8">
                             <StatCard
                                 label="Appearances"
                                 value={data.appearances.length}
@@ -128,6 +171,26 @@ function PlayerPage() {
                             <StatCard
                                 label="Captaincies"
                                 value={data.captaincies}
+                            />
+
+                            <StatCard
+                                label="Points"
+                                value={data.points}
+                            />
+
+                            <StatCard
+                                label="Aces"
+                                value={data.aces}
+                            />
+
+                            <StatCard
+                                label="Blocks"
+                                value={data.blocks}
+                            />
+
+                            <StatCard
+                                label="Kills"
+                                value={data.kills}
                             />
                         </div>
                     </div>
@@ -151,11 +214,20 @@ function PlayerPage() {
                         .map((appearance: any) => (
                             <div
                                 key={appearance.appearance_id}
-                                className="flex items-center justify-between px-6 py-4"
+                                className="flex items-center justify-between px-6 py-4 hover:bg-slate-50"
                             >
                                 <div>
                                     <div className="font-semibold">
-                                        vs {appearance.matches?.opponent}
+                                        <Link
+                                            to="/matches/$matchId"
+                                            params={{
+                                                matchId: String(
+                                                    appearance.matches?.match_id
+                                                ),
+                                            }}
+                                        >
+                                            vs {appearance.matches?.opponent}
+                                        </Link>
                                     </div>
 
                                     <div className="text-sm text-slate-500">
