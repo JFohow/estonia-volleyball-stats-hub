@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { MatchTypeFilterBar } from "@/lib/match-filter";
 
 const links = [
   { to: "/matches", label: "Matches" },
@@ -10,33 +11,33 @@ const links = [
 
 export function SiteNav() {
   return (
-    <nav className="sticky top-0 z-50 flex items-center justify-between bg-estonia-dark px-6 py-4 text-white shadow-lg">
-      <div className="flex items-center gap-8">
-        <Link to="/" className="flex items-center gap-2">
-          <div className="flex h-5 w-8 flex-col overflow-hidden rounded-sm">
-            <div className="flex-1 bg-estonia-blue" />
-            <div className="flex-1 bg-black" />
-            <div className="flex-1 bg-white" />
+    <nav className="sticky top-0 z-50 bg-estonia-dark text-white shadow-lg">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-4">
+        <div className="flex items-center gap-8">
+          <Link to="/" className="flex items-center gap-2">
+            <div className="flex h-5 w-8 flex-col overflow-hidden rounded-sm">
+              <div className="flex-1 bg-estonia-blue" />
+              <div className="flex-1 bg-black" />
+              <div className="flex-1 bg-white" />
+            </div>
+            <span className="font-display text-2xl uppercase tracking-tight">
+              Eesti Võrkpall <span className="font-light opacity-70">DB</span>
+            </span>
+          </Link>
+          <div className="hidden gap-6 text-sm font-medium uppercase tracking-wide opacity-80 md:flex">
+            {links.map((l) => (
+              <Link
+                key={l.to}
+                to={l.to}
+                className="transition-colors hover:text-estonia-blue"
+                activeProps={{ className: "text-estonia-blue" }}
+              >
+                {l.label}
+              </Link>
+            ))}
           </div>
-          <span className="font-display text-2xl uppercase tracking-tight">
-            Eesti Võrkpall <span className="font-light opacity-70">DB</span>
-          </span>
-        </Link>
-        <div className="hidden gap-6 text-sm font-medium uppercase tracking-wide opacity-80 md:flex">
-          {links.map((l) => (
-            <Link
-              key={l.to}
-              to={l.to}
-              className="transition-colors hover:text-estonia-blue"
-              activeProps={{ className: "text-estonia-blue" }}
-            >
-              {l.label}
-            </Link>
-          ))}
         </div>
-      </div>
-      <div className="hidden rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs md:block">
-        National Team Archive
+        <MatchTypeFilterBar />
       </div>
     </nav>
   );
@@ -58,48 +59,23 @@ export function SiteFooter() {
             </span>
           </div>
           <p className="max-w-xs text-xs">
-            The historical statistical repository for the Estonia Men's National
-            Volleyball Team.
+            The historical statistical repository for the Estonia Men's National Volleyball Team.
           </p>
         </div>
         <div className="grid grid-cols-2 gap-12">
           <div>
-            <h4 className="mb-4 text-xs font-bold uppercase tracking-widest text-white">
-              Database
-            </h4>
+            <h4 className="mb-4 text-xs font-bold uppercase tracking-widest text-white">Database</h4>
             <ul className="space-y-2 text-xs">
-              <li>
-                <Link to="/matches" className="hover:text-white">
-                  Match archive
-                </Link>
-              </li>
-              <li>
-                <Link to="/players" className="hover:text-white">
-                  Player index
-                </Link>
-              </li>
-              <li>
-                <Link to="/opponents" className="hover:text-white">
-                  Opponents
-                </Link>
-              </li>
+              <li><Link to="/matches" className="hover:text-white">Match archive</Link></li>
+              <li><Link to="/players" className="hover:text-white">Player index</Link></li>
+              <li><Link to="/opponents" className="hover:text-white">Opponents</Link></li>
             </ul>
           </div>
           <div>
-            <h4 className="mb-4 text-xs font-bold uppercase tracking-widest text-white">
-              Statistics
-            </h4>
+            <h4 className="mb-4 text-xs font-bold uppercase tracking-widest text-white">Statistics</h4>
             <ul className="space-y-2 text-xs">
-              <li>
-                <Link to="/records" className="hover:text-white">
-                  All-time records
-                </Link>
-              </li>
-              <li>
-                <Link to="/statistics" className="hover:text-white">
-                  Data coverage
-                </Link>
-              </li>
+              <li><Link to="/records" className="hover:text-white">All-time records</Link></li>
+              <li><Link to="/statistics" className="hover:text-white">Data coverage</Link></li>
             </ul>
           </div>
         </div>
