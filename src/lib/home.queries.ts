@@ -1,6 +1,5 @@
 import { queryOptions } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import type { MatchTypeFilter } from "@/lib/match-filter";
 
 export type RecentMatch = {
   match_id: number;
@@ -39,10 +38,8 @@ export type HomeSummary = {
   };
 };
 
-async function fetchHomeSummary(filter: MatchTypeFilter): Promise<HomeSummary> {
-  const matchesQ = supabase.from("matches").select("match_id, match_type");
-  if (filter !== "ALL") matchesQ.eq("match_type", filter);
-  const { data: matchList } = await matchesQ;
+async function fetchHomeSummary(): Promise<HomeSummary> {
+  const { data: matchList } = await supabase.from("matches").select("match_id");
   const filteredMatchIds = (matchList ?? []).map((m) => m.match_id);
   const totalMatches = filteredMatchIds.length;
 
@@ -54,17 +51,13 @@ async function fetchHomeSummary(filter: MatchTypeFilter): Promise<HomeSummary> {
     filteredMatchIds.length
       ? supabase.from("match_sets").select("match_set_id", { count: "exact", head: true }).in("match_id", filteredMatchIds)
       : Promise.resolve({ count: 0 }),
-    (() => {
-      const q = supabase
-        .from("matches")
-        .select(
-          "match_id, match_date, opponent, competition, city, estonia_sets, opponent_sets, match_type, has_additional_sets, additional_sets_count, match_sets(set_number, estonia_points, opponent_points)",
-        )
-        .order("match_date", { ascending: false })
-        .limit(6);
-      if (filter !== "ALL") q.eq("match_type", filter);
-      return q;
-    })(),
+    supabase
+      .from("matches")
+      .select(
+        "match_id, match_date, opponent, competition, city, estonia_sets, opponent_sets, match_type, has_additional_sets, additional_sets_count, match_sets(set_number, estonia_points, opponent_points)",
+      )
+      .order("match_date", { ascending: false })
+      .limit(6),
     filteredMatchIds.length
       ? supabase
           .from("player_match_stats")
@@ -113,8 +106,8 @@ async function fetchHomeSummary(filter: MatchTypeFilter): Promise<HomeSummary> {
   };
 }
 
-export const homeSummaryOptions = (filter: MatchTypeFilter = "ALL") =>
+export const homeSummaryOptions = () =>
   queryOptions({
-    queryKey: ["home-summary", filter],
-    queryFn: () => fetchHomeSummary(filter),
+    queryKey: ["home-summary"],
+    queryFn: () => fetchHomeSummary(),
   });
