@@ -12,7 +12,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { SiteNav, SiteFooter } from "../components/site-nav";
-import { MatchFilterProvider } from "../lib/match-filter";
+
 
 function NotFoundComponent() {
   return (
