@@ -1,7 +1,6 @@
-import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useSuspenseQuery, useQueryErrorResetBoundary } from "@tanstack/react-query";
 import { homeSummaryOptions, type RecentMatch } from "@/lib/home.queries";
-import { useMatchFilter } from "@/lib/match-filter";
 
 export const Route = createFileRoute("/")({
   head: () => ({
