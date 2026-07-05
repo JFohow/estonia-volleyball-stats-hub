@@ -30,6 +30,13 @@ export function SiteNav() {
           >
             Matches
           </Link>
+          <Link
+            to="/players"
+            className="transition-colors hover:text-estonia-blue"
+            activeProps={{ className: "text-estonia-blue" }}
+          >
+            Players
+          </Link>
         </div>
       </div>
     </nav>

@@ -51,6 +51,14 @@ function HomePage() {
       ? Math.round((data.statsCoverage.matchesWithStats / data.statsCoverage.totalMatches) * 100)
       : 0;
 
+  const playerCoveragePct =
+    data.playerCoverage.totalMatches > 0
+      ? Math.round(
+        (data.playerCoverage.matchesWithPlayers /
+          data.playerCoverage.totalMatches) * 100
+      )
+      : 0;
+
   const kpis = [
     { label: "Total Matches", value: data.totalMatches },
     { label: "Total Players", value: data.totalPlayers },
@@ -90,7 +98,7 @@ function HomePage() {
             <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
               <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
                 <h2 className="font-display text-xl uppercase italic">
-                  Recent International Matches
+                  Recent Matches
                 </h2>
               </div>
               <div className="divide-y divide-slate-100">
@@ -150,7 +158,12 @@ function HomePage() {
                   color="green"
                 />
                 <CoverageBar
-                  label="Individual Skill Stats"
+                  label="Matches With Player Lists"
+                  pct={playerCoveragePct}
+                  color={playerCoveragePct >= 80 ? "green" : "amber"}
+                />
+                <CoverageBar
+                  label="Full Match Statistics"
                   pct={coveragePct}
                   color={coveragePct >= 80 ? "green" : "amber"}
                 />
@@ -183,20 +196,26 @@ function HomePage() {
 
 function MatchRow({ match }: { match: RecentMatch }) {
   const won = match.estonia_sets > match.opponent_sets;
-  const typeStyles: Record<RecentMatch["match_type"], string> = {
+  const typeStyles: Record<string, string> = {
     VM: "bg-green-100 text-green-700",
     AM: "bg-slate-100 text-slate-600",
     MAM: "bg-amber-100 text-amber-700",
+    "—": "bg-slate-100 text-slate-500",
   };
-  const typeLabels: Record<RecentMatch["match_type"], string> = {
-    VM: "Official (VM)",
-    AM: "National (AM)",
-    MAM: "Friendly (MAM)",
+  const typeLabels: Record<string, string> = {
+    VM: "Competitive Game",
+    AM: "Official Game",
+    MAM: "Non-official Game",
+    "—": "Unknown",
   };
   const officialSets = match.match_sets
     .filter((s) => s.set_number <= match.estonia_sets + match.opponent_sets)
     .sort((a, b) => a.set_number - b.set_number);
-
+  const matchType =
+    match.vm ? "VM" :
+      match.am ? "AM" :
+        match.mam ? "MAM" :
+          "—";
   return (
     <div className="p-6 transition-colors hover:bg-slate-50">
       <div className="mb-4 flex items-start justify-between gap-4">
@@ -211,22 +230,21 @@ function MatchRow({ match }: { match: RecentMatch }) {
           </div>
           <div className="flex items-center gap-3 text-lg font-bold">
             ESTONIA
-            <span className={won ? "text-estonia-blue" : "text-slate-400"}>
+            <span className={won ? "text-estonia-blue" : "text-red-700"}>
               {match.estonia_sets} – {match.opponent_sets}
             </span>
             <span className="uppercase">{match.opponent}</span>
           </div>
         </div>
         <span
-          className={`shrink-0 rounded px-2 py-1 text-xs font-bold ${typeStyles[match.match_type]}`}
+          className={`shrink-0 rounded px-2 py-1 text-xs font-bold ${typeStyles[matchType]}`}
         >
-          {typeLabels[match.match_type]}
+          {typeLabels[matchType]}
         </span>
       </div>
       <div className="flex flex-wrap gap-4 text-sm text-slate-500">
         {officialSets.map((s) => (
           <div key={s.set_number} className="flex flex-col">
-            <span>Set {s.set_number}</span>
             <span className="font-medium text-slate-800">
               {s.estonia_points}-{s.opponent_points}
             </span>
@@ -241,7 +259,7 @@ function MatchRow({ match }: { match: RecentMatch }) {
           </div>
         )}
       </div>
-    </div>
+    </div >
   );
 }
 

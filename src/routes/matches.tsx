@@ -51,30 +51,46 @@ function MatchesError({ error, reset }: { error: Error; reset: () => void }) {
     </div>
   );
 }
-
-const typeStyles: Record<MatchListItem["match_type"], string> = {
+const typeStyles: Record<"VM" | "AM" | "MAM", string> = {
   VM: "bg-green-100 text-green-700",
   AM: "bg-slate-100 text-slate-600",
   MAM: "bg-amber-100 text-amber-700",
 };
-const typeLabels: Record<MatchListItem["match_type"], string> = {
+const typeLabels: Record<"VM" | "AM" | "MAM", string> = {
   VM: "VM",
   AM: "AM",
   MAM: "MAM",
 };
 
+function getMatchType(match: MatchListItem): "VM" | "AM" | "MAM" {
+  if (match.vm) return "VM";
+  if (match.am) return "AM";
+  return "MAM";
+}
+
 function MatchesPage() {
   const { data: matches } = useSuspenseQuery(allMatchesOptions());
   const [search, setSearch] = useState("");
-  const [type, setType] = useState<"ALL" | MatchListItem["match_type"]>("ALL");
+  const [type, setType] = useState<"ALL" | "VM" | "AM" | "MAM">("ALL");
   const [result, setResult] = useState<"ALL" | "W" | "L">("ALL");
+  const [year, setYear] = useState("ALL");
+
+  const years = useMemo(
+    () =>
+      [...new Set(matches.map((m) => m.match_date.slice(0, 4)))]
+        .sort()
+        .reverse(),
+    [matches]
+  );
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return matches.filter((m) => {
-      if (type !== "ALL" && m.match_type !== type) return false;
+      if (type !== "ALL" && getMatchType(m) !== type) return false;
       if (result === "W" && !(m.estonia_sets > m.opponent_sets)) return false;
       if (result === "L" && !(m.estonia_sets < m.opponent_sets)) return false;
+      if (year !== "ALL" && !m.match_date.startsWith(year))
+        return false;
       if (!q) return true;
       return (
         m.opponent.toLowerCase().includes(q) ||
@@ -82,7 +98,7 @@ function MatchesPage() {
         (m.city ?? "").toLowerCase().includes(q)
       );
     });
-  }, [matches, search, type, result]);
+  }, [matches, search, type, result, year]);
 
   const wins = matches.filter((m) => m.estonia_sets > m.opponent_sets).length;
   const losses = matches.length - wins;
@@ -91,9 +107,6 @@ function MatchesPage() {
     <div className="text-slate-900">
       <header className="bg-estonia-dark px-6 py-12 text-white">
         <div className="mx-auto max-w-7xl">
-          <div className="text-xs font-bold uppercase tracking-widest text-estonia-blue">
-            Archive
-          </div>
           <h1 className="mt-2 font-display text-4xl uppercase italic md:text-5xl">Matches</h1>
           <p className="mt-2 max-w-2xl text-sm text-white/60">
             Every recorded match of the Estonia Men's National Volleyball Team.
@@ -114,6 +127,21 @@ function MatchesPage() {
             placeholder="Search opponent, competition, city…"
             className="w-full max-w-sm rounded-md border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm outline-none focus:border-estonia-blue"
           />
+
+          <select
+            value={year}
+            onChange={(e) => setYear(e.target.value)}
+            className="h-10 rounded-md border border-slate-200 bg-white px-3 text-xs font-semibold uppercase tracking-wide text-slate-500 shadow-sm"
+          >
+            <option value="ALL">Year</option>
+
+            {years.map((y) => (
+              <option key={y} value={y}>
+                {y}
+              </option>
+            ))}
+          </select>
+
           <Segmented
             value={type}
             onChange={(v) => setType(v as typeof type)}
@@ -133,6 +161,7 @@ function MatchesPage() {
               { value: "L", label: "Losses" },
             ]}
           />
+
           <div className="ml-auto text-xs uppercase tracking-widest text-slate-400">
             {filtered.length} match{filtered.length === 1 ? "" : "es"}
           </div>
@@ -223,9 +252,8 @@ function MatchRow({ match }: { match: MatchListItem }) {
       </div>
       <div className="col-span-1 text-center">
         <span
-          className={`inline-block rounded px-2 py-0.5 font-display text-base ${
-            won ? "bg-estonia-blue/10 text-estonia-blue" : "bg-slate-100 text-slate-500"
-          }`}
+          className={`inline-block rounded px-2 py-0.5 font-display text-base ${won ? "bg-estonia-blue/10 text-estonia-blue" : "bg-slate-100 text-red-700"
+            }`}
         >
           {match.estonia_sets}–{match.opponent_sets}
         </span>
@@ -236,11 +264,17 @@ function MatchRow({ match }: { match: MatchListItem }) {
       <div className="col-span-2 truncate text-sm text-slate-500">{match.city ?? "—"}</div>
       <div className="col-span-1 flex justify-start md:justify-end">
         <span
-          className={`rounded px-2 py-0.5 text-[10px] font-bold ${typeStyles[match.match_type]}`}
+          className={`rounded px-2 py-0.5 text-[10px] font-bold ${typeStyles[getMatchType(match)]}`}
         >
-          {typeLabels[match.match_type]}
+          {typeLabels[getMatchType(match)]}
         </span>
       </div>
+
+      {match.notes && (
+        <div className="col-span-12 border-l-2 border-estonia-blue pl-3 text-sm italic text-slate-500">
+          {match.notes}
+        </div>
+      )}
     </li>
   );
 }

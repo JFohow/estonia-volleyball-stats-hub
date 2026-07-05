@@ -9,7 +9,9 @@ export type RecentMatch = {
   city: string | null;
   estonia_sets: number;
   opponent_sets: number;
-  match_type: "VM" | "AM" | "MAM";
+  vm: boolean | null;
+  am: boolean | null;
+  mam: boolean | null;
   has_additional_sets: boolean;
   additional_sets_count: number;
   match_sets: {
@@ -36,6 +38,10 @@ export type HomeSummary = {
     matchesWithStats: number;
     totalMatches: number;
   };
+  playerCoverage: {
+    matchesWithPlayers: number;
+    totalMatches: number;
+  };
 };
 
 async function fetchHomeSummary(): Promise<HomeSummary> {
@@ -54,21 +60,39 @@ async function fetchHomeSummary(): Promise<HomeSummary> {
     supabase
       .from("matches")
       .select(
-        "match_id, match_date, opponent, competition, city, estonia_sets, opponent_sets, match_type, has_additional_sets, additional_sets_count, match_sets(set_number, estonia_points, opponent_points)",
+        "match_id, match_date, opponent, competition, city, estonia_sets, opponent_sets, vm, am, mam, has_additional_sets, additional_sets_count, match_sets(set_number, estonia_points, opponent_points)",
       )
       .order("match_date", { ascending: false })
       .limit(6),
     filteredMatchIds.length
       ? supabase
-          .from("player_match_stats")
-          .select("appearance_id, appearances!inner(match_id)", { count: "exact", head: true })
-          .in("appearances.match_id", filteredMatchIds)
-      : Promise.resolve({ count: 0 }),
+        .from("player_match_stats")
+        .select(`
+        appearance_id,
+        appearances!inner(
+          match_id
+        )
+      `)
+      : Promise.resolve({ data: [] as any[] }),
   ]);
 
   const totalPlayers = playersCount.count ?? 0;
   const totalAppearances = (apps as any).data?.length ?? 0;
   const totalSets = (sets as any).count ?? 0;
+
+  const appsDataRaw = (apps as any).data ?? [];
+
+  const matchesWithPlayers = new Set(
+    appsDataRaw
+      .filter((a: any) => a.player_id != null)
+      .map((a: any) => a.match_id)
+  ).size;
+
+  const statsData = (statCoverage as any).data ?? [];
+
+  const matchesWithStats = new Set(
+    statsData.map((s: any) => s.appearances.match_id)
+  ).size;
 
   let topAppearance: HomeSummary["topAppearance"] = null;
   const appsData = (apps as any).data as { player_id: number; sets_played: number | null }[] | undefined;
@@ -100,7 +124,11 @@ async function fetchHomeSummary(): Promise<HomeSummary> {
     recentMatches: ((recent.data ?? []) as unknown) as RecentMatch[],
     topAppearance,
     statsCoverage: {
-      matchesWithStats: (statCoverage as any).count ?? 0,
+      matchesWithStats,
+      totalMatches,
+    },
+    playerCoverage: {
+      matchesWithPlayers,
       totalMatches,
     },
   };
