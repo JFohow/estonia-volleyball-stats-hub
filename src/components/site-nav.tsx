@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 export function SiteNav() {
   return (
     <nav className="sticky top-0 z-50 bg-estonia-dark text-white shadow-lg">
-      <div className="flex items-center px-6 py-4">
+      <div className="flex items-center gap-8 px-6 py-4">
         <Link to="/" className="flex items-center gap-2">
           <div className="flex h-5 w-8 flex-col overflow-hidden rounded-sm">
             <div className="flex-1 bg-estonia-blue" />
@@ -14,6 +14,23 @@ export function SiteNav() {
             Eesti Võrkpall <span className="font-light opacity-70">DB</span>
           </span>
         </Link>
+        <div className="flex gap-6 text-sm font-medium uppercase tracking-wide opacity-80">
+          <Link
+            to="/"
+            className="transition-colors hover:text-estonia-blue"
+            activeProps={{ className: "text-estonia-blue" }}
+            activeOptions={{ exact: true }}
+          >
+            Home
+          </Link>
+          <Link
+            to="/matches"
+            className="transition-colors hover:text-estonia-blue"
+            activeProps={{ className: "text-estonia-blue" }}
+          >
+            Matches
+          </Link>
+        </div>
       </div>
     </nav>
   );
