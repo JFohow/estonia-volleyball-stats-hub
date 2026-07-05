@@ -45,8 +45,7 @@ function fmt(n: number) {
 }
 
 function HomePage() {
-  const { filter } = useMatchFilter();
-  const { data } = useSuspenseQuery(homeSummaryOptions(filter));
+  const { data } = useSuspenseQuery(homeSummaryOptions());
   const coveragePct =
     data.statsCoverage.totalMatches > 0
       ? Math.round((data.statsCoverage.matchesWithStats / data.statsCoverage.totalMatches) * 100)
@@ -93,12 +92,6 @@ function HomePage() {
                 <h2 className="font-display text-xl uppercase italic">
                   Recent International Matches
                 </h2>
-                <Link
-                  to="/matches"
-                  className="text-xs font-semibold uppercase text-estonia-blue hover:underline"
-                >
-                  View all
-                </Link>
               </div>
               <div className="divide-y divide-slate-100">
                 {data.recentMatches.length === 0 ? (
