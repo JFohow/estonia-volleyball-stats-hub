@@ -295,7 +295,13 @@ function Segmented({
 }
 
 function MatchRow({ match }: { match: MatchListItem }) {
-  const won = match.estonia_sets > match.opponent_sets;
+  const resultStyle =
+    match.estonia_sets > match.opponent_sets
+      ? "bg-estonia-blue/10 text-estonia-blue"
+      : match.estonia_sets === match.opponent_sets
+        ? "bg-green-100 text-green-700"
+        : "bg-slate-100 text-red-700";
+
   return (
     <li className="grid grid-cols-1 gap-2 px-6 py-4 transition-colors hover:bg-slate-50 md:grid-cols-12 md:items-center md:gap-3">
       <div className="col-span-2 text-sm text-slate-500">
@@ -305,26 +311,33 @@ function MatchRow({ match }: { match: MatchListItem }) {
           year: "numeric",
         })}
       </div>
+
       <div className="col-span-3 flex items-center gap-2 text-sm font-semibold uppercase">
         <span className="text-slate-900">Estonia</span>
         <span className="text-slate-300">vs</span>
         <span className="text-slate-900">{match.opponent}</span>
       </div>
+
       <div className="col-span-1 text-center">
         <span
-          className={`inline-block rounded px-2 py-0.5 font-display text-base ${won ? "bg-estonia-blue/10 text-estonia-blue" : "bg-slate-100 text-red-700"
-            }`}
+          className={`inline-block rounded px-2 py-0.5 font-display text-base ${resultStyle}`}
         >
           {match.estonia_sets}–{match.opponent_sets}
         </span>
       </div>
+
       <div className="col-span-3 truncate text-sm text-slate-600">
         {match.competition ?? "—"}
       </div>
-      <div className="col-span-2 truncate text-sm text-slate-500">{match.city ?? "—"}</div>
+
+      <div className="col-span-2 truncate text-sm text-slate-500">
+        {match.city ?? "—"}
+      </div>
+
       <div className="col-span-1 flex justify-start md:justify-end">
         <span
-          className={`rounded px-2 py-0.5 text-[10px] font-bold ${typeStyles[getMatchType(match)]}`}
+          className={`rounded px-2 py-0.5 text-[10px] font-bold ${typeStyles[getMatchType(match)]
+            }`}
         >
           {typeLabels[getMatchType(match)]}
         </span>
