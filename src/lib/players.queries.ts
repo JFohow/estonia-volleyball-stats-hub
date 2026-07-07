@@ -76,3 +76,44 @@ export const playersOptions = () =>
         queryKey: ["players"],
         queryFn: fetchPlayers,
     });
+
+export async function fetchPlayer(playerId: number) {
+    const { data: player, error } = await supabase
+        .from("players")
+        .select("*")
+        .eq("player_id", playerId)
+        .single();
+
+    if (error) throw error;
+
+    const { data: appearances, error: appError } = await supabase
+        .from("appearances")
+        .select(`
+      *,
+      matches(
+        match_id,
+        match_date,
+        opponent,
+        competition,
+        estonia_sets,
+        opponent_sets,
+        vm,
+        am,
+        mam
+      )
+    `)
+        .eq("player_id", playerId);
+
+    if (appError) throw appError;
+
+    return {
+        player,
+        appearances: appearances ?? [],
+    };
+}
+
+export const playerOptions = (playerId: number) =>
+    queryOptions({
+        queryKey: ["player", playerId],
+        queryFn: () => fetchPlayer(playerId),
+    });

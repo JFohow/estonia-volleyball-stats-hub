@@ -5,8 +5,11 @@ import {
     playersOptions,
     type PlayerListItem,
 } from "@/lib/players.queries";
+import { supabase } from "@/integrations/supabase/client";
+import { Link } from "@tanstack/react-router";
+import { Outlet } from "@tanstack/react-router";
 
-export const Route = createFileRoute("/players")({
+export const Route = createFileRoute("/players/")({
     component: PlayersPage,
 });
 
@@ -14,6 +17,33 @@ function PlayersPage() {
     const { data: players } = useSuspenseQuery(playersOptions());
 
     const [search, setSearch] = useState("");
+
+    const positionOrder = ["SET", "OPP", "OH", "MB", "LIB", "Unknown"];
+
+    const positionLabels: Record<string, string> = {
+        SET: "Setters",
+        OPP: "Opposites",
+        OH: "Outside Hitters",
+        MB: "Middle Blockers",
+        LIB: "Liberos",
+        Unknown: "Unknown",
+    };
+
+    const positionCounts = useMemo(() => {
+        const counts = new Map<string, number>();
+
+        players.forEach((p) => {
+            const pos = p.position ?? "Unknown";
+            counts.set(pos, (counts.get(pos) ?? 0) + 1);
+        });
+
+
+
+        return [...counts.entries()].sort(
+            ([a], [b]) =>
+                positionOrder.indexOf(a) - positionOrder.indexOf(b)
+        );
+    }, [players]);
 
     const filtered = useMemo(() => {
         const q = search.toLowerCase().trim();
@@ -37,18 +67,33 @@ function PlayersPage() {
                     </h1>
 
                     <p className="mt-2 max-w-2xl text-sm text-white/60">
-                        Every player who has represented the Estonia Men's National Volleyball Team.
+                        All players who have represented the Estonia Men's National Volleyball Team since 1992.
                     </p>
 
-                    <div className="mt-8">
-                        <div className="border-l-2 border-estonia-blue pl-4">
-                            <div className="font-display text-3xl">
+                    <div className="mt-8 grid gap-4 md:grid-cols-6">
+                        <div className="rounded-lg border border-white/20 bg-white/5 p-4">
+                            <div className="text-center text-[10px] uppercase tracking-[0.2em] text-white/60">
+                                Total Players
+                            </div>
+                            <div className="mt-2 text-center font-display text-3xl">
                                 {players.length}
                             </div>
-                            <div className="mt-1 text-[10px] uppercase tracking-widest opacity-60">
-                                Players
-                            </div>
                         </div>
+
+                        {positionCounts.map(([position, count]) => (
+                            <div
+                                key={position}
+                                className="rounded-lg border border-white/20 bg-white/5 p-4"
+                            >
+                                <div className="text-center text-[10px] uppercase tracking-[0.2em] text-white/60">
+                                    {positionLabels[position] ?? position}
+                                </div>
+
+                                <div className="mt-2 text-center font-display text-3xl">
+                                    {count}
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 </div>
             </header>
@@ -86,9 +131,19 @@ function PlayersPage() {
                     )}
                 </div>
             </main>
+            <Outlet />
         </div>
     );
 }
+
+function getPlayerPhotoUrl(playerId: number) {
+    const { data } = supabase.storage
+        .from("player-photos")
+        .getPublicUrl(`${playerId}.jpg`);
+
+    return data.publicUrl;
+}
+
 function PlayerRow({
     player,
 }: {
@@ -97,15 +152,18 @@ function PlayerRow({
     return (
         <div className="grid grid-cols-12 gap-3 border-t border-slate-100 px-6 py-4 transition-colors hover:bg-slate-50">
             <div className="col-span-5 flex items-center gap-3">
-                <div className="grid h-10 w-10 place-items-center rounded-full bg-estonia-dark text-sm font-bold text-white">
-                    {player.first_name[0]}
-                    {player.last_name[0]}
-                </div>
+                <PlayerAvatar player={player} />
 
                 <div>
-                    <div className="font-semibold uppercase">
+                    <Link
+                        to="/players/$playerId"
+                        params={{
+                            playerId: String(player.player_id),
+                        }}
+                        className="font-semibold uppercase hover:text-estonia-blue"
+                    >
                         {player.first_name} {player.last_name}
-                    </div>
+                    </Link>
                 </div>
             </div>
 
@@ -125,5 +183,32 @@ function PlayerRow({
                 {player.position ?? "—"}
             </div>
         </div>
+    );
+}
+function PlayerAvatar({
+    player,
+}: {
+    player: PlayerListItem;
+}) {
+    const [showFallback, setShowFallback] = useState(false);
+
+    const photoUrl = getPlayerPhotoUrl(player.player_id);
+
+    if (showFallback) {
+        return (
+            <div className="grid h-10 w-10 place-items-center rounded-full bg-estonia-dark text-sm font-bold text-white">
+                {player.first_name[0]}
+                {player.last_name[0]}
+            </div>
+        );
+    }
+
+    return (
+        <img
+            src={photoUrl}
+            alt={`${player.first_name} ${player.last_name}`}
+            className="h-10 w-10 rounded-full object-cover"
+            onError={() => setShowFallback(true)}
+        />
     );
 }

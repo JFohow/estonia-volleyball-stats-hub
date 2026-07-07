@@ -1,0 +1,179 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { playerOptions } from "@/lib/players.queries";
+
+export const Route = createFileRoute("/players/$playerId")({
+    component: PlayerPage,
+});
+
+function PlayerPage() {
+    const { playerId } = Route.useParams();
+
+    const { data } = useSuspenseQuery(
+        playerOptions(Number(playerId))
+    );
+
+    const player = data.player;
+    const appearances = data.appearances;
+
+    const totalApps = appearances.length;
+
+    const vmApps = appearances.filter(
+        (a) => a.matches?.vm
+    ).length;
+
+    const amApps = appearances.filter(
+        (a) => a.matches?.am
+    ).length;
+
+    const setsPlayed = appearances.reduce(
+        (sum, a) => sum + (a.sets_played ?? 0),
+        0
+    );
+
+    const age = player.birth_date
+        ? Math.floor(
+            (Date.now() -
+                new Date(player.birth_date).getTime()) /
+            (365.25 * 24 * 60 * 60 * 1000)
+        )
+        : null;
+
+    const positionLabels: Record<string, string> = {
+        SET: "Setter",
+        OPP: "Opposite",
+        OH: "Outside Hitter",
+        MB: "Middle Blocker",
+        LIB: "Libero",
+    };
+
+    return (
+        <div>
+            <header className="bg-estonia-dark px-6 py-12 text-white">
+                <div className="mx-auto flex max-w-7xl flex-col items-center gap-6 md:flex-row">
+                    <img
+                        src={
+                            player.photo_url ??
+                            `https://lrdblxldprvfylcyoxvb.supabase.co/storage/v1/object/public/player-photos/${player.player_id}.jpg`
+                        }
+                        alt={`${player.first_name} ${player.last_name}`}
+                        className="h-32 w-32 rounded-full border-2 border-white/20 object-cover"
+                    />
+
+                    <div>
+                        <h1 className="font-display text-5xl uppercase italic">
+                            {player.first_name} {player.last_name}
+                        </h1>
+                        <p className="mt-2 text-white/70">
+                            {positionLabels[player.position ?? ""] ??
+                                player.position ??
+                                "—"}
+                        </p>
+
+                        <div className="mt-4 flex flex-wrap gap-6 text-sm text-white/80">
+                            <span>
+                                {player.height_cm ?? "—"} cm
+                            </span>
+
+                            <span>
+                                {age ? `${age} years` : "Age unknown"}
+                            </span>
+
+                            <span>
+                                {player.handedness ?? "Hand unknown"}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="mx-auto mt-8 grid max-w-7xl gap-4 md:grid-cols-4">
+                    <StatCard
+                        title="Appearances"
+                        value={totalApps}
+                    />
+
+                    <StatCard
+                        title="Competitive"
+                        value={vmApps}
+                    />
+
+                    <StatCard
+                        title="Official"
+                        value={amApps}
+                    />
+
+                    <StatCard
+                        title="Sets Played"
+                        value={setsPlayed}
+                    />
+                </div>
+            </header>
+
+            <main className="mx-auto max-w-7xl px-6 py-10">
+                <h2 className="mb-6 font-display text-3xl uppercase italic">
+                    Match History
+                </h2>
+
+                <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                    <div className="grid grid-cols-12 gap-3 border-b border-slate-100 bg-slate-50 px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                        <div className="col-span-2">Date</div>
+                        <div className="col-span-3">Opponent</div>
+                        <div className="col-span-2 text-center">Score</div>
+                        <div className="col-span-4">Competition</div>
+                        <div className="col-span-1 text-center">Sets</div>
+                    </div>
+
+                    {appearances.map((a) => (
+                        <div
+                            key={a.appearance_id}
+                            className="grid grid-cols-12 gap-3 border-t border-slate-100 px-6 py-4"
+                        >
+                            <div className="col-span-2">
+                                {new Date(
+                                    a.matches.match_date
+                                ).toLocaleDateString("en-GB")}
+                            </div>
+
+                            <div className="col-span-3">
+                                {a.matches.opponent}
+                            </div>
+
+                            <div className="col-span-2 text-center">
+                                {a.matches.estonia_sets}–
+                                {a.matches.opponent_sets}
+                            </div>
+
+                            <div className="col-span-4">
+                                {a.matches.competition}
+                            </div>
+
+                            <div className="col-span-1 text-center">
+                                {a.sets_played}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </main>
+        </div>
+    );
+}
+
+function StatCard({
+    title,
+    value,
+}: {
+    title: string;
+    value: number;
+}) {
+    return (
+        <div className="rounded-lg border border-white/20 bg-white/5 p-4">
+            <div className="text-center text-[10px] uppercase tracking-[0.2em] text-white/60">
+                {title}
+            </div>
+
+            <div className="mt-2 text-center font-display text-3xl">
+                {value}
+            </div>
+        </div>
+    );
+}

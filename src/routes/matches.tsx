@@ -100,8 +100,25 @@ function MatchesPage() {
     });
   }, [matches, search, type, result, year]);
 
-  const wins = matches.filter((m) => m.estonia_sets > m.opponent_sets).length;
-  const losses = matches.length - wins;
+  const vmMatches = matches.filter((m) => m.vm);
+  const vmWins = vmMatches.filter(
+    (m) => m.estonia_sets > m.opponent_sets
+  ).length;
+  const vmLosses = vmMatches.length - vmWins;
+
+  const amMatches = matches.filter((m) => m.am);
+  const amWins = amMatches.filter(
+    (m) => m.estonia_sets > m.opponent_sets
+  ).length;
+  const amLosses = amMatches.length - amWins;
+
+  const allMatches = matches.filter(
+    (m) => m.am || m.mam
+  );
+  const allWins = allMatches.filter(
+    (m) => m.estonia_sets > m.opponent_sets
+  ).length;
+  const allLosses = allMatches.length - allWins;
 
   return (
     <div className="text-slate-900">
@@ -111,10 +128,27 @@ function MatchesPage() {
           <p className="mt-2 max-w-2xl text-sm text-white/60">
             Every recorded match of the Estonia Men's National Volleyball Team.
           </p>
-          <div className="mt-8 grid grid-cols-3 gap-4 md:max-w-lg">
-            <Kpi label="Total" value={matches.length} />
-            <Kpi label="Wins" value={wins} />
-            <Kpi label="Losses" value={losses} />
+          <div className="mt-8 grid gap-4 md:grid-cols-3">
+            <StatGroup
+              title="Competitive Matches"
+              total={vmMatches.length}
+              wins={vmWins}
+              losses={vmLosses}
+            />
+
+            <StatGroup
+              title="Official Matches"
+              total={amMatches.length}
+              wins={amWins}
+              losses={amLosses}
+            />
+
+            <StatGroup
+              title="All Matches"
+              total={allMatches.length}
+              wins={allWins}
+              losses={allLosses}
+            />
           </div>
         </div>
       </header>
@@ -190,15 +224,41 @@ function MatchesPage() {
           )}
         </div>
       </main>
-    </div>
+    </div >
   );
 }
 
 function Kpi({ label, value }: { label: string; value: number }) {
   return (
-    <div className="border-l-2 border-estonia-blue pl-4">
+    <div className="border-l-2 border-estonia-blue pl-4 text-center">
       <div className="font-display text-3xl">{value.toLocaleString("en-US")}</div>
       <div className="mt-1 text-[10px] uppercase tracking-widest opacity-60">{label}</div>
+    </div>
+  );
+}
+
+function StatGroup({
+  title,
+  total,
+  wins,
+  losses,
+}: {
+  title: string;
+  total: number;
+  wins: number;
+  losses: number;
+}) {
+  return (
+    <div className="rounded-lg border border-white/20 bg-white/5 p-4">
+      <div className="mb-4 border-b border-white/10 pb-2 text-center text-[10px] font-bold uppercase tracking-[0.2em] text-white">
+        {title}
+      </div>
+
+      <div className="grid grid-cols-3 gap-4 text-center">
+        <Kpi label="Total" value={total} />
+        <Kpi label="Wins" value={wins} />
+        <Kpi label="Losses" value={losses} />
+      </div>
     </div>
   );
 }
