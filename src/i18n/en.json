@@ -1,0 +1,56 @@
+{
+    "nav": {
+        "home": "Home",
+        "matches": "Matches",
+        "players": "Players"
+    },
+    "common": {
+        "search": "Search",
+        "year": "Year",
+        "wins": "Wins",
+        "losses": "Losses",
+        "total": "Total",
+        "noResults": "No results",
+        "tip": "Tip",
+        "matches": "Matches",
+        "sets": "Sets"
+    },
+    "home": {
+        "title": "National Team",
+        "titleAccent": "Historical Database",
+        "subtitle": "Every match, every set, every appearance of the Estonia Men's National Volleyball Team, preserved and searchable.",
+        "totalMatches": "Total Matches",
+        "totalPlayers": "Total Players",
+        "appearances": "Appearances",
+        "setsPlayed": "Sets Played",
+        "recentMatches": "Recent Matches",
+        "recordAppearance": "Record Appearance",
+        "coverageStatus": "Data Coverage Status",
+        "matchResults": "Match Results",
+        "matchesWithPlayers": "Matches With Player Lists",
+        "fullStatistics": "Full Match Statistics",
+        "tipText": "ALL vs AM: Matches with additional training sets are stored in two versions. Filter by AM to see only official international results."
+    },
+    "matches": {
+        "title": "Matches",
+        "subtitle": "Every recorded match of the Estonia Men's National Volleyball Team.",
+        "competitiveMatches": "Competitive Matches",
+        "officialMatches": "Official Matches",
+        "allMatches": "All Matches",
+        "searchPlaceholder": "Search opponent, competition, city...",
+        "allTypes": "All",
+        "vm": "VM",
+        "am": "AM",
+        "mam": "MAM"
+    },
+    "players": {
+        "title": "Players",
+        "subtitle": "All players who have represented the Estonia Men's National Volleyball Team since 1992.",
+        "totalPlayers": "Total Players",
+        "searchPlaceholder": "Search player...",
+        "appearances": "Appearances",
+        "gamesPlayed": "Games Played",
+        "bench": "On Bench",
+        "position": "Position"
+    }
+}

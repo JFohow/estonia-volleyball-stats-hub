@@ -2,6 +2,7 @@ import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useSuspenseQuery, useQueryErrorResetBoundary } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { allMatchesOptions, type MatchListItem } from "@/lib/matches.queries";
+import { useTranslation } from "react-i18next";
 
 export const Route = createFileRoute("/matches")({
   head: () => ({
@@ -70,6 +71,7 @@ function getMatchType(match: MatchListItem): "VM" | "AM" | "MAM" {
 
 function MatchesPage() {
   const { data: matches } = useSuspenseQuery(allMatchesOptions());
+  const { t } = useTranslation();
   const [search, setSearch] = useState("");
   const [type, setType] = useState<"ALL" | "VM" | "AM" | "MAM">("ALL");
   const [result, setResult] = useState<"ALL" | "W" | "L">("ALL");
@@ -124,27 +126,25 @@ function MatchesPage() {
     <div className="text-slate-900">
       <header className="bg-estonia-dark px-6 py-12 text-white">
         <div className="mx-auto max-w-7xl">
-          <h1 className="mt-2 font-display text-4xl uppercase italic md:text-5xl">Matches</h1>
-          <p className="mt-2 max-w-2xl text-sm text-white/60">
-            Every recorded match of the Estonia Men's National Volleyball Team.
-          </p>
+          <h1 className="mt-2 font-display text-4xl uppercase italic md:text-5xl">{t("matches.title")}</h1>
+          <p className="mt-2 max-w-2xl text-sm text-white/60">{t("matches.subtitle")}</p>
           <div className="mt-8 grid gap-4 md:grid-cols-3">
             <StatGroup
-              title="Competitive Matches"
+              title={t("matches.competitiveMatches")}
               total={vmMatches.length}
               wins={vmWins}
               losses={vmLosses}
             />
 
             <StatGroup
-              title="Official Matches"
+              title={t("matches.officialMatches")}
               total={amMatches.length}
               wins={amWins}
               losses={amLosses}
             />
 
             <StatGroup
-              title="All Matches"
+              title={t("matches.allMatches")}
               total={allMatches.length}
               wins={allWins}
               losses={allLosses}
@@ -158,7 +158,7 @@ function MatchesPage() {
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search opponent, competition, city…"
+            placeholder={t("matches.searchPlaceholder")}
             className="w-full max-w-sm rounded-md border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm outline-none focus:border-estonia-blue"
           />
 
@@ -180,19 +180,19 @@ function MatchesPage() {
             value={type}
             onChange={(v) => setType(v as typeof type)}
             options={[
-              { value: "ALL", label: "All" },
-              { value: "VM", label: "VM" },
-              { value: "AM", label: "AM" },
-              { value: "MAM", label: "MAM" },
+              { value: "ALL", label: t("matches.allTypes") },
+              { value: "VM", label: t("matches.vm") },
+              { value: "AM", label: t("matches.am") },
+              { value: "MAM", label: t("matches.mam") },
             ]}
           />
           <Segmented
             value={result}
             onChange={(v) => setResult(v as typeof result)}
             options={[
-              { value: "ALL", label: "All results" },
-              { value: "W", label: "Wins" },
-              { value: "L", label: "Losses" },
+              { value: "ALL", label: t("matches.allResults") },
+              { value: "W", label: t("matches.wins") },
+              { value: "L", label: t("matches.losses") },
             ]}
           />
 
@@ -212,7 +212,7 @@ function MatchesPage() {
           </div>
           {filtered.length === 0 ? (
             <div className="p-12 text-center">
-              <p className="font-display text-xl uppercase italic text-slate-400">No results</p>
+              <p className="font-display text-xl uppercase italic text-slate-400">{t("common.noResults")}</p>
               <p className="mt-2 text-sm text-slate-500">Adjust filters or clear the search.</p>
             </div>
           ) : (
@@ -248,6 +248,8 @@ function StatGroup({
   wins: number;
   losses: number;
 }) {
+  const { t } = useTranslation();
+
   return (
     <div className="rounded-lg border border-white/20 bg-white/5 p-4">
       <div className="mb-4 border-b border-white/10 pb-2 text-center text-[10px] font-bold uppercase tracking-[0.2em] text-white">
@@ -255,9 +257,9 @@ function StatGroup({
       </div>
 
       <div className="grid grid-cols-3 gap-4 text-center">
-        <Kpi label="Total" value={total} />
-        <Kpi label="Wins" value={wins} />
-        <Kpi label="Losses" value={losses} />
+        <Kpi label={t("common.total")} value={total} />
+        <Kpi label={t("common.wins")} value={wins} />
+        <Kpi label={t("common.losses")} value={losses} />
       </div>
     </div>
   );

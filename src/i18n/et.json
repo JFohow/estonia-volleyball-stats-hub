@@ -1,0 +1,56 @@
+{
+    "nav": {
+        "home": "Avaleht",
+        "matches": "Mängud",
+        "players": "Mängijad"
+    },
+    "common": {
+        "search": "Otsi",
+        "year": "Aasta",
+        "wins": "Võidud",
+        "losses": "Kaotused",
+        "total": "Kokku",
+        "noResults": "Tulemusi ei leitud",
+        "tip": "Vihje",
+        "matches": "Mängud",
+        "sets": "Geimid"
+    },
+    "home": {
+        "title": "Koondise",
+        "titleAccent": "Ajalooline Andmebaas",
+        "subtitle": "Iga mäng, iga geim ja iga koondiseesinemine Eesti meeste võrkpallikoondise ajaloost.",
+        "totalMatches": "Mänge Kokku",
+        "totalPlayers": "Mängijaid Kokku",
+        "appearances": "Mänge",
+        "setsPlayed": "Mängitud geime",
+        "recentMatches": "Viimased mängud",
+        "recordAppearance": "Enim mänge",
+        "coverageStatus": "Andmebaas",
+        "matchResults": "Mängude tulemused",
+        "matchesWithPlayers": "Mänge algkoosseisudega",
+        "fullStatistics": "Mänge täieliku statistikaga",
+        "tipText": "ALL vs AM: Lisageimidega kohtumised on salvestatud kahes versioonis. Filtreeri AM järgi, et näha ainult ametlikke rahvusvahelisi tulemusi."
+    },
+    "matches": {
+        "title": "Mängud",
+        "subtitle": "Kõik Eesti meeste võrkpallikoondise teadaolevad kohtumised.",
+        "competitiveMatches": "Võistlusmängud",
+        "officialMatches": "Ametlikud mängud",
+        "allMatches": "Kõik mängud",
+        "searchPlaceholder": "Otsi vastast, võistlust või linna...",
+        "allTypes": "Kõik",
+        "vm": "VM",
+        "am": "AM",
+        "mam": "MAM"
+    },
+    "players": {
+        "title": "Mängijad",
+        "subtitle": "Kõik mängijad, kes on alates 1992. aastast esindanud Eesti meeste võrkpallikoondist.",
+        "totalPlayers": "Mängijaid Kokku",
+        "searchPlaceholder": "Otsi mängijat...",
+        "appearances": "Mänge",
+        "gamesPlayed": "Väljakul",
+        "bench": "Pingil",
+        "position": "Positsioon"
+    }
+}

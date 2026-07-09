@@ -1,6 +1,9 @@
 import { Link } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
+import i18n from "@/i18n";
 
 export function SiteNav() {
+  const { t } = useTranslation();
   return (
     <nav className="sticky top-0 z-50 bg-estonia-dark text-white shadow-lg">
       <div className="flex items-center gap-8 px-6 py-4">
@@ -21,22 +24,46 @@ export function SiteNav() {
             activeProps={{ className: "text-estonia-blue" }}
             activeOptions={{ exact: true }}
           >
-            Home
+            {t("nav.home")}
           </Link>
+
           <Link
             to="/matches"
             className="transition-colors hover:text-estonia-blue"
             activeProps={{ className: "text-estonia-blue" }}
           >
-            Matches
+            {t("nav.matches")}
           </Link>
+
           <Link
             to="/players"
             className="transition-colors hover:text-estonia-blue"
             activeProps={{ className: "text-estonia-blue" }}
           >
-            Players
+            {t("nav.players")}
           </Link>
+        </div>
+
+        <div className="ml-auto flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-2 py-1">
+          <button
+            onClick={() => i18n.changeLanguage("en")}
+            className={`flex items-center gap-1 rounded-full px-2 py-1 text-xs transition ${i18n.language === "en"
+                ? "bg-estonia-blue text-white"
+                : "hover:bg-white/10"
+              }`}
+          >
+            🇬🇧 EN
+          </button>
+
+          <button
+            onClick={() => i18n.changeLanguage("et")}
+            className={`flex items-center gap-1 rounded-full px-2 py-1 text-xs transition ${i18n.language === "et"
+                ? "bg-estonia-blue text-white"
+                : "hover:bg-white/10"
+              }`}
+          >
+            🇪🇪 ET
+          </button>
         </div>
       </div>
     </nav>

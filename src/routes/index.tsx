@@ -1,6 +1,7 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useSuspenseQuery, useQueryErrorResetBoundary } from "@tanstack/react-query";
 import { homeSummaryOptions, type RecentMatch } from "@/lib/home.queries";
+import { useTranslation } from "react-i18next";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -45,6 +46,7 @@ function fmt(n: number) {
 }
 
 function HomePage() {
+  const { t } = useTranslation();
   const { data } = useSuspenseQuery(homeSummaryOptions());
   const coveragePct =
     data.statsCoverage.totalMatches > 0
@@ -60,10 +62,10 @@ function HomePage() {
       : 0;
 
   const kpis = [
-    { label: "Total Matches", value: data.totalMatches },
-    { label: "Total Players", value: data.totalPlayers },
-    { label: "Appearances", value: data.totalAppearances },
-    { label: "Sets Played", value: data.totalSets },
+    { label: t("home.totalMatches"), value: data.totalMatches },
+    { label: t("home.totalPlayers"), value: data.totalPlayers },
+    { label: t("home.appearances"), value: data.totalAppearances },
+    { label: t("home.setsPlayed"), value: data.totalSets },
   ];
 
   return (
@@ -72,11 +74,13 @@ function HomePage() {
       <header className="bg-estonia-dark px-6 pt-12 pb-24 text-white">
         <div className="mx-auto max-w-7xl">
           <h1 className="mb-3 font-display text-5xl uppercase italic md:text-6xl">
-            National Team <span className="text-estonia-blue">Historical Database</span>
+            {t("home.title")}{" "}
+            <span className="text-estonia-blue">
+              {t("home.titleAccent")}
+            </span>
           </h1>
           <p className="mb-12 max-w-2xl text-sm text-white/60">
-            Every match, every set, every appearance of the Estonia Men's National Volleyball Team,
-            preserved and searchable.
+            {t("home.subtitle")}
           </p>
 
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-8">
@@ -98,7 +102,7 @@ function HomePage() {
             <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
               <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
                 <h2 className="font-display text-xl uppercase italic">
-                  Recent Matches
+                  {t("home.recentMatches")}
                 </h2>
               </div>
               <div className="divide-y divide-slate-100">
@@ -114,7 +118,7 @@ function HomePage() {
           {/* Sidebar */}
           <aside className="space-y-8">
             <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h2 className="mb-6 font-display text-lg uppercase italic">Record Appearance</h2>
+              <h2 className="mb-6 font-display text-lg uppercase italic">{t("home.recordAppearance")}</h2>
               {data.topAppearance ? (
                 <div className="flex gap-4">
                   <div className="grid h-20 w-20 shrink-0 place-items-center rounded-lg bg-estonia-dark font-display text-2xl text-white">
@@ -131,11 +135,11 @@ function HomePage() {
                     <div className="mt-4 grid grid-cols-2 gap-4">
                       <div>
                         <div className="font-display text-2xl">{fmt(data.topAppearance.matches)}</div>
-                        <div className="text-[10px] font-bold uppercase text-slate-400">Matches</div>
+                        <div className="text-[10px] font-bold uppercase text-slate-400">{t("common.matches")}</div>
                       </div>
                       <div>
                         <div className="font-display text-2xl">{fmt(data.topAppearance.sets)}</div>
-                        <div className="text-[10px] font-bold uppercase text-slate-400">Sets</div>
+                        <div className="text-[10px] font-bold uppercase text-slate-400">{t("common.sets")}</div>
                       </div>
                     </div>
                   </div>
@@ -149,21 +153,21 @@ function HomePage() {
 
             <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
               <div className="bg-slate-900 px-6 py-3 font-display text-sm uppercase tracking-widest text-white">
-                Data Coverage Status
+                {t("home.coverageStatus")}
               </div>
               <div className="space-y-4 p-6">
                 <CoverageBar
-                  label="Match Results"
+                  label={t("home.matchResults")}
                   pct={data.totalMatches > 0 ? 100 : 0}
                   color="green"
                 />
                 <CoverageBar
-                  label="Matches With Player Lists"
+                  label={t("home.matchesWithPlayers")}
                   pct={playerCoveragePct}
                   color={playerCoveragePct >= 80 ? "green" : "amber"}
                 />
                 <CoverageBar
-                  label="Full Match Statistics"
+                  label={t("home.fullStatistics")}
                   pct={coveragePct}
                   color={coveragePct >= 80 ? "green" : "amber"}
                 />
@@ -178,12 +182,10 @@ function HomePage() {
             <div className="rounded-xl border border-estonia-blue/20 bg-estonia-blue/10 p-4">
               <div className="flex gap-3">
                 <div className="grid h-8 w-8 shrink-0 place-items-center rounded bg-estonia-blue text-xs font-bold uppercase text-white">
-                  Tip
+                  {t("common.tip")}
                 </div>
                 <p className="text-xs leading-normal text-estonia-dark">
-                  <strong>ALL vs AM:</strong> Matches with additional training sets are stored in
-                  two versions. Filter by <strong>AM</strong> to see only official international
-                  results.
+                  {t("home.tipText")}
                 </p>
               </div>
             </div>
