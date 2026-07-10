@@ -2,7 +2,8 @@
     "nav": {
         "home": "Avaleht",
         "matches": "Mängud",
-        "players": "Mängijad"
+        "players": "Mängijad",
+        "coaches": "Peatreenerid"
     },
     "common": {
         "search": "Otsi",
@@ -52,5 +53,14 @@
         "gamesPlayed": "Väljakul",
         "bench": "Pingil",
         "position": "Positsioon"
+    },
+    "coaches": {
+        "title": "Peatreenerid",
+        "subtitle": "Kõik Eesti meeste võrkpallikoondise peatreenerid alates 1992. aastast.",
+        "competitive": "Võistlusmängud",
+        "official": "Ametlikud mängud",
+        "allMatches": "Kõik mängud",
+        "coach": "Peatreener",
+        "headCoaches": "Peatreenereid"
     }
 }

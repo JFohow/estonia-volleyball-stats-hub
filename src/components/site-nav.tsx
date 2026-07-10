@@ -44,12 +44,20 @@ export function SiteNav() {
           </Link>
         </div>
 
+        <Link
+          to="/coaches"
+          className="transition-colors hover:text-estonia-blue"
+          activeProps={{ className: "text-estonia-blue" }}
+        >
+          {t("nav.coaches")}
+        </Link>
+
         <div className="ml-auto flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-2 py-1">
           <button
             onClick={() => i18n.changeLanguage("en")}
             className={`flex items-center gap-1 rounded-full px-2 py-1 text-xs transition ${i18n.language === "en"
-                ? "bg-estonia-blue text-white"
-                : "hover:bg-white/10"
+              ? "bg-estonia-blue text-white"
+              : "hover:bg-white/10"
               }`}
           >
             🇬🇧 EN
@@ -58,8 +66,8 @@ export function SiteNav() {
           <button
             onClick={() => i18n.changeLanguage("et")}
             className={`flex items-center gap-1 rounded-full px-2 py-1 text-xs transition ${i18n.language === "et"
-                ? "bg-estonia-blue text-white"
-                : "hover:bg-white/10"
+              ? "bg-estonia-blue text-white"
+              : "hover:bg-white/10"
               }`}
           >
             🇪🇪 ET

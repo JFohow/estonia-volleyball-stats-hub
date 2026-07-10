@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as MatchesRouteImport } from './routes/matches'
+import { Route as CoachesRouteImport } from './routes/coaches'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PlayersIndexRouteImport } from './routes/players/index'
 import { Route as PlayersPlayerIdRouteImport } from './routes/players/$playerId'
@@ -23,6 +24,11 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
 const MatchesRoute = MatchesRouteImport.update({
   id: '/matches',
   path: '/matches',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CoachesRoute = CoachesRouteImport.update({
+  id: '/coaches',
+  path: '/coaches',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -43,6 +49,7 @@ const PlayersPlayerIdRoute = PlayersPlayerIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/coaches': typeof CoachesRoute
   '/matches': typeof MatchesRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/players/$playerId': typeof PlayersPlayerIdRoute
@@ -50,6 +57,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/coaches': typeof CoachesRoute
   '/matches': typeof MatchesRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/players/$playerId': typeof PlayersPlayerIdRoute
@@ -58,6 +66,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/coaches': typeof CoachesRoute
   '/matches': typeof MatchesRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/players/$playerId': typeof PlayersPlayerIdRoute
@@ -66,12 +75,24 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/matches' | '/sitemap.xml' | '/players/$playerId' | '/players/'
+    | '/'
+    | '/coaches'
+    | '/matches'
+    | '/sitemap.xml'
+    | '/players/$playerId'
+    | '/players/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/matches' | '/sitemap.xml' | '/players/$playerId' | '/players'
+  to:
+    | '/'
+    | '/coaches'
+    | '/matches'
+    | '/sitemap.xml'
+    | '/players/$playerId'
+    | '/players'
   id:
     | '__root__'
     | '/'
+    | '/coaches'
     | '/matches'
     | '/sitemap.xml'
     | '/players/$playerId'
@@ -80,6 +101,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CoachesRoute: typeof CoachesRoute
   MatchesRoute: typeof MatchesRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   PlayersPlayerIdRoute: typeof PlayersPlayerIdRoute
@@ -100,6 +122,13 @@ declare module '@tanstack/react-router' {
       path: '/matches'
       fullPath: '/matches'
       preLoaderRoute: typeof MatchesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/coaches': {
+      id: '/coaches'
+      path: '/coaches'
+      fullPath: '/coaches'
+      preLoaderRoute: typeof CoachesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -128,6 +157,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CoachesRoute: CoachesRoute,
   MatchesRoute: MatchesRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   PlayersPlayerIdRoute: PlayersPlayerIdRoute,

@@ -2,7 +2,8 @@
     "nav": {
         "home": "Home",
         "matches": "Matches",
-        "players": "Players"
+        "players": "Players",
+        "coaches": "Coaches"
     },
     "common": {
         "search": "Search",
@@ -52,5 +53,14 @@
         "gamesPlayed": "Games Played",
         "bench": "On Bench",
         "position": "Position"
+    },
+    "coaches": {
+        "title": "Coaches",
+        "subtitle": "Every head coach of the Estonia Men's National Volleyball Team since 1992.",
+        "competitive": "Competitive matches",
+        "official": "Official matches",
+        "allMatches": "All matches",
+        "coach": "Coach",
+        "headCoaches": "Head Coaches"
     }
 }
