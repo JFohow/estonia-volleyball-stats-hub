@@ -9,12 +9,24 @@ export const Route = createFileRoute("/coaches")({
     component: CoachesPage,
 });
 
+
+
 function CoachesPage() {
     const { t } = useTranslation();
 
     const { data: coaches } = useSuspenseQuery(
         coachesOptions()
     );
+
+    function SortIcon(field: string) {
+        if (sortField !== field) {
+            return " ⇅";
+        }
+
+        return sortDirection === "asc"
+            ? " ↑"
+            : " ↓";
+    }
 
     const [sortField, setSortField] = useState<
         | "amMatches"
@@ -91,79 +103,91 @@ function CoachesPage() {
                     {/* Group Header */}
                     <div className="border-b border-slate-200 bg-slate-50">
 
-                        <div className="grid grid-cols-14 px-6 pt-4 text-[10px] font-bold uppercase tracking-widest">
+                        <div className="grid grid-cols-16 px-6 pt-4 text-[10px] font-bold uppercase tracking-widest">
                             <div className="col-span-4" />
 
                             <div className="col-span-4 text-center text-estonia-dark">
                                 {t("coaches.official")}
                             </div>
 
-                            <div className="col-span-3 text-center text-slate-500">
+                            <div className="col-span-4 text-center text-slate-500">
                                 {t("coaches.competitive")}
                             </div>
 
-                            <div className="col-span-3 text-center text-slate-500">
+                            <div className="col-span-4 text-center text-slate-500">
                                 {t("coaches.allMatches")}
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-14 gap-3 px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                        <div className="grid grid-cols-16 gap-3 px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">
                             <div className="col-span-4">
-                                {t("coaches.name")}
+
                             </div>
 
                             <button
                                 onClick={() => handleSort("amMatches")}
-                                className="col-span-2 text-center hover:text-estonia-blue"
+                                className={`col-span-2 text-center uppercase tracking-widest transition-colors hover:text-estonia-blue ${sortField === "amMatches"
+                                    ? "text-estonia-blue"
+                                    : ""
+                                    }`}
                             >
                                 {t("common.matches")}
-                                {sortField === "amMatches" &&
-                                    (sortDirection === "desc" ? " ▼" : " ▲")}
+                                {SortIcon("amMatches")}
                             </button>
 
                             <button
                                 onClick={() => handleSort("amWinPct")}
-                                className="col-span-2 text-center hover:text-estonia-blue"
+                                className={`col-span-2 text-center uppercase tracking-widest transition-colors hover:text-estonia-blue ${sortField === "amWinPct"
+                                    ? "text-estonia-blue"
+                                    : ""
+                                    }`}
                             >
                                 {t("coaches.winPct")}
-                                {sortField === "amWinPct" &&
-                                    (sortDirection === "desc" ? " ▼" : " ▲")}
+                                {SortIcon("amWinPct")}
                             </button>
 
                             <button
                                 onClick={() => handleSort("vmMatches")}
-                                className="col-span-2 text-center hover:text-estonia-blue"
+                                className={`col-span-2 text-center uppercase tracking-widest transition-colors hover:text-estonia-blue ${sortField === "vmMatches"
+                                    ? "text-estonia-blue"
+                                    : ""
+                                    }`}
                             >
                                 {t("common.matches")}
-                                {sortField === "vmMatches" &&
-                                    (sortDirection === "desc" ? " ▼" : " ▲")}
+                                {SortIcon("vmMatches")}
                             </button>
 
                             <button
                                 onClick={() => handleSort("vmWinPct")}
-                                className="col-span-1 text-center hover:text-estonia-blue"
+                                className={`col-span-2 text-center uppercase tracking-widest transition-colors hover:text-estonia-blue ${sortField === "vmWinPct"
+                                    ? "text-estonia-blue"
+                                    : ""
+                                    }`}
                             >
                                 {t("coaches.winPct")}
-                                {sortField === "vmWinPct" &&
-                                    (sortDirection === "desc" ? " ▼" : " ▲")}
+                                {SortIcon("vmWinPct")}
                             </button>
 
                             <button
                                 onClick={() => handleSort("allMatches")}
-                                className="col-span-2 text-center hover:text-estonia-blue"
+                                className={`col-span-2 text-center uppercase tracking-widest transition-colors hover:text-estonia-blue ${sortField === "allMatches"
+                                    ? "text-estonia-blue"
+                                    : ""
+                                    }`}
                             >
                                 {t("common.matches")}
-                                {sortField === "allMatches" &&
-                                    (sortDirection === "desc" ? " ▼" : " ▲")}
+                                {SortIcon("allMatches")}
                             </button>
 
                             <button
                                 onClick={() => handleSort("allWinPct")}
-                                className="col-span-1 text-center hover:text-estonia-blue"
+                                className={`col-span-2 text-center uppercase tracking-widest transition-colors hover:text-estonia-blue ${sortField === "allWinPct"
+                                    ? "text-estonia-blue"
+                                    : ""
+                                    }`}
                             >
                                 {t("coaches.winPct")}
-                                {sortField === "allWinPct" &&
-                                    (sortDirection === "desc" ? " ▼" : " ▲")}
+                                {SortIcon("allWinPct")}
                             </button>
                         </div>
                     </div>
@@ -172,7 +196,7 @@ function CoachesPage() {
                     {sortedCoaches.map((coach) => (
                         <div
                             key={coach.coach_id}
-                            className="grid grid-cols-14 gap-3 border-t border-slate-100 px-6 py-4 hover:bg-slate-50"
+                            className="grid grid-cols-16 gap-3 border-t border-slate-100 px-6 py-4 hover:bg-slate-50"
                         >
                             <div className="col-span-4 flex items-center gap-3">
                                 <CoachAvatar
@@ -208,7 +232,7 @@ function CoachesPage() {
                                 </span>
                             </div>
 
-                            <div className="col-span-1 text-center text-slate-500">
+                            <div className="col-span-2 text-center text-slate-500">
                                 {coach.vmWinPct}%
                             </div>
 
@@ -218,7 +242,7 @@ function CoachesPage() {
                                 </span>
                             </div>
 
-                            <div className="col-span-1 text-center text-slate-500">
+                            <div className="col-span-2 text-center text-slate-500">
                                 {coach.allWinPct}%
                             </div>
                         </div>
@@ -242,9 +266,16 @@ function CoachAvatar({
         return (
             <img
                 src={photoUrl}
-              <div className="grid h-10 w-10 place-items-center rounded-full bg-estonia-dark text-sm font-bold text-white">
+                alt={`${firstName} ${lastName}`}
+                className="h-10 w-10 rounded-full object-cover"
+            />
+        );
+    }
+
+    return (
+        <div className="grid h-10 w-10 place-items-center rounded-full bg-estonia-dark text-sm font-bold text-white">
             {firstName[0]}
             {lastName[0]}
         </div>
-        );
-    }
+    );
+}
