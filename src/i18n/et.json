@@ -14,7 +14,9 @@
         "noResults": "Tulemusi ei leitud",
         "tip": "Vihje",
         "matches": "Mängud",
-        "sets": "Geimid"
+        "sets": "Geimid",
+        "databaseLogic": "Andmebaasi ülesehitus",
+        "databaseExplanation": "Lehekülg lähtub EVF-i ametlike mängude arvestusest, kuid kajastab eraldi ka võistlusmänge ning kõiki teadaolevaid kohtumisi, sh lisageime ja mitteametlikke kohtumisi koondiste ja klubidega."
     },
     "home": {
         "title": "Koondise",
@@ -56,11 +58,12 @@
     },
     "coaches": {
         "title": "Peatreenerid",
-        "subtitle": "Kõik Eesti meeste võrkpallikoondise peatreenerid alates 1992. aastast.",
+        "subtitle": "Eesti meeste võrkpallikoondise peatreenerid alates 1992. aastast.",
         "competitive": "Võistlusmängud",
         "official": "Ametlikud mängud",
         "allMatches": "Kõik mängud",
-        "coach": "Peatreener",
-        "headCoaches": "Peatreenereid"
+        "name": "Nimi",
+        "headCoaches": "Peatreenereid",
+        "winPct": "Võidu%"
     }
 }

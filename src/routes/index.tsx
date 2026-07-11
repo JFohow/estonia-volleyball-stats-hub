@@ -178,17 +178,6 @@ function HomePage() {
                 </p>
               </div>
             </section>
-
-            <div className="rounded-xl border border-estonia-blue/20 bg-estonia-blue/10 p-4">
-              <div className="flex gap-3">
-                <div className="grid h-8 w-8 shrink-0 place-items-center rounded bg-estonia-blue text-xs font-bold uppercase text-white">
-                  {t("common.tip")}
-                </div>
-                <p className="text-xs leading-normal text-estonia-dark">
-                  {t("home.tipText")}
-                </p>
-              </div>
-            </div>
           </aside>
         </div>
       </main>

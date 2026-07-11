@@ -126,8 +126,30 @@ function MatchesPage() {
     <div className="text-slate-900">
       <header className="bg-estonia-dark px-6 py-12 text-white">
         <div className="mx-auto max-w-7xl">
-          <h1 className="mt-2 font-display text-4xl uppercase italic md:text-5xl">{t("matches.title")}</h1>
-          <p className="mt-2 max-w-2xl text-sm text-white/60">{t("matches.subtitle")}</p>
+          <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <h1 className="mt-2 font-display text-4xl uppercase italic md:text-5xl">
+                {t("matches.title")}
+              </h1>
+
+              <p className="mt-2 max-w-2xl text-sm text-white/60">
+                {t("matches.subtitle")}
+              </p>
+            </div>
+
+            <div className="w-full max-w-xl">
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
+                <div>
+
+                  <p className="text-xs leading-relaxed text-white/75">
+                    {t("common.databaseExplanation")}
+                  </p>
+
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div className="mt-8 grid gap-4 md:grid-cols-3">
             <StatGroup
               title={t("matches.competitiveMatches")}

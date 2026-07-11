@@ -2,6 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { coachesOptions } from "@/lib/coaches.queries";
+import { Link } from "@tanstack/react-router";
+import { useState } from "react";
 
 export const Route = createFileRoute("/coaches")({
     component: CoachesPage,
@@ -9,106 +11,215 @@ export const Route = createFileRoute("/coaches")({
 
 function CoachesPage() {
     const { t } = useTranslation();
+
     const { data: coaches } = useSuspenseQuery(
         coachesOptions()
     );
+
+    const [sortField, setSortField] = useState<
+        | "amMatches"
+        | "amWinPct"
+        | "vmMatches"
+        | "vmWinPct"
+        | "allMatches"
+        | "allWinPct"
+    >("amMatches");
+
+    const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+
+    const sortedCoaches = [...coaches].sort((a, b) => {
+        const aValue = Number(a[sortField]);
+        const bValue = Number(b[sortField]);
+
+        if (sortDirection === "asc") {
+            return aValue - bValue;
+        }
+
+        return bValue - aValue;
+    });
+
+
+
+    function handleSort(
+        field:
+            | "amMatches"
+            | "amWinPct"
+            | "vmMatches"
+            | "vmWinPct"
+            | "allMatches"
+            | "allWinPct"
+    ) {
+        if (sortField === field) {
+            setSortDirection(
+                sortDirection === "asc" ? "desc" : "asc"
+            );
+        } else {
+            setSortField(field);
+            setSortDirection("desc");
+        }
+    }
 
     return (
         <div className="text-slate-900">
             <header className="bg-estonia-dark px-6 py-12 text-white">
                 <div className="mx-auto max-w-7xl">
-                    <h1 className="font-display text-4xl uppercase italic md:text-5xl">
-                        {t("coaches.title")}
-                    </h1>
+                    <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
+                        <div>
+                            <h1 className="font-display text-4xl uppercase italic md:text-5xl">
+                                {t("coaches.title")}
+                            </h1>
 
-                    <p className="mt-2 max-w-2xl text-sm text-white/60">
-                        {t("coaches.subtitle")}
-                    </p>
+                            <p className="mt-2 max-w-2xl text-sm text-white/60">
+                                {t("coaches.subtitle")}
+                            </p>
+                        </div>
 
-                    <div className="mt-8 grid gap-4 md:grid-cols-3">
-                        <StatCard
-                            title={t("coaches.headCoaches")}
-                            value={coaches.length}
-                        />
-
-                        <StatCard
-                            title={t("coaches.topCoach")}
-                            value={
-                                coaches.length > 0
-                                    ? coaches[0].allMatches
-                                    : 0
-                            }
-                        />
-
-                        <StatCard
-                            title={t("coaches.totalMatches")}
-                            value={coaches.reduce(
-                                (sum, c) => sum + c.allMatches,
-                                0
-                            )}
-                        />
+                        <div className="w-full max-w-xl">
+                            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
+                                <p className="text-xs leading-relaxed text-white/75">
+                                    {t("common.databaseExplanation")}
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </header>
 
             <main className="mx-auto max-w-7xl px-6 py-10">
                 <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-                    <div className="grid grid-cols-12 gap-3 border-b border-slate-100 bg-slate-50 px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                        <div className="col-span-4">
-                            {t("coaches.coach")}
+
+                    {/* Group Header */}
+                    <div className="border-b border-slate-200 bg-slate-50">
+
+                        <div className="grid grid-cols-14 px-6 pt-4 text-[10px] font-bold uppercase tracking-widest">
+                            <div className="col-span-4" />
+
+                            <div className="col-span-4 text-center text-estonia-dark">
+                                {t("coaches.official")}
+                            </div>
+
+                            <div className="col-span-3 text-center text-slate-500">
+                                {t("coaches.competitive")}
+                            </div>
+
+                            <div className="col-span-3 text-center text-slate-500">
+                                {t("coaches.allMatches")}
+                            </div>
                         </div>
 
-                        <div className="col-span-2 text-center">
-                            {t("coaches.competitive")}
-                        </div>
+                        <div className="grid grid-cols-14 gap-3 px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                            <div className="col-span-4">
+                                {t("coaches.name")}
+                            </div>
 
-                        <div className="col-span-3 text-center">
-                            {t("coaches.official")}
-                        </div>
+                            <button
+                                onClick={() => handleSort("amMatches")}
+                                className="col-span-2 text-center hover:text-estonia-blue"
+                            >
+                                {t("common.matches")}
+                                {sortField === "amMatches" &&
+                                    (sortDirection === "desc" ? " ▼" : " ▲")}
+                            </button>
 
-                        <div className="col-span-3 text-center">
-                            {t("coaches.allMatches")}
+                            <button
+                                onClick={() => handleSort("amWinPct")}
+                                className="col-span-2 text-center hover:text-estonia-blue"
+                            >
+                                {t("coaches.winPct")}
+                                {sortField === "amWinPct" &&
+                                    (sortDirection === "desc" ? " ▼" : " ▲")}
+                            </button>
+
+                            <button
+                                onClick={() => handleSort("vmMatches")}
+                                className="col-span-2 text-center hover:text-estonia-blue"
+                            >
+                                {t("common.matches")}
+                                {sortField === "vmMatches" &&
+                                    (sortDirection === "desc" ? " ▼" : " ▲")}
+                            </button>
+
+                            <button
+                                onClick={() => handleSort("vmWinPct")}
+                                className="col-span-1 text-center hover:text-estonia-blue"
+                            >
+                                {t("coaches.winPct")}
+                                {sortField === "vmWinPct" &&
+                                    (sortDirection === "desc" ? " ▼" : " ▲")}
+                            </button>
+
+                            <button
+                                onClick={() => handleSort("allMatches")}
+                                className="col-span-2 text-center hover:text-estonia-blue"
+                            >
+                                {t("common.matches")}
+                                {sortField === "allMatches" &&
+                                    (sortDirection === "desc" ? " ▼" : " ▲")}
+                            </button>
+
+                            <button
+                                onClick={() => handleSort("allWinPct")}
+                                className="col-span-1 text-center hover:text-estonia-blue"
+                            >
+                                {t("coaches.winPct")}
+                                {sortField === "allWinPct" &&
+                                    (sortDirection === "desc" ? " ▼" : " ▲")}
+                            </button>
                         </div>
                     </div>
 
-                    {coaches.map((coach) => (
+                    {/* Coach Rows */}
+                    {sortedCoaches.map((coach) => (
                         <div
                             key={coach.coach_id}
-                            className="grid grid-cols-12 gap-3 border-t border-slate-100 px-6 py-4"
+                            className="grid grid-cols-14 gap-3 border-t border-slate-100 px-6 py-4 hover:bg-slate-50"
                         >
                             <div className="col-span-4 flex items-center gap-3">
                                 <CoachAvatar
                                     firstName={coach.first_name}
                                     lastName={coach.last_name}
+                                    photoUrl={coach.photo_url}
                                 />
 
-                                <div>
-                                    <div className="font-semibold uppercase">
-                                        {coach.first_name}{" "}
-                                        {coach.last_name}
-                                    </div>
-                                </div>
+                                <Link
+                                    to="/coaches/$coachId"
+                                    params={{
+                                        coachId: String(coach.coach_id),
+                                    }}
+                                    className="font-semibold uppercase transition-colors hover:text-estonia-blue"
+                                >
+                                    {coach.first_name} {coach.last_name}
+                                </Link>
                             </div>
 
-                            <div className="col-span-2 text-center font-medium">
-                                {coach.vmMatches}
-                                <span className="ml-1 text-slate-500">
-                                    ({coach.vmWinPct}%)
+                            <div className="col-span-2 text-center">
+                                <span className="font-semibold text-estonia-dark">
+                                    {coach.amMatches}
                                 </span>
                             </div>
 
-                            <div className="col-span-3 text-center font-medium">
-                                {coach.amMatches}
-                                <span className="ml-1 text-slate-500">
-                                    ({coach.amWinPct}%)
+                            <div className="col-span-2 text-center text-slate-500">
+                                {coach.amWinPct}%
+                            </div>
+
+                            <div className="col-span-2 text-center">
+                                <span className="font-semibold text-estonia-dark">
+                                    {coach.vmMatches}
                                 </span>
                             </div>
 
-                            <div className="col-span-3 text-center font-medium">
-                                {coach.allMatches}
-                                <span className="ml-1 text-slate-500">
-                                    ({coach.allWinPct}%)
+                            <div className="col-span-1 text-center text-slate-500">
+                                {coach.vmWinPct}%
+                            </div>
+
+                            <div className="col-span-2 text-center">
+                                <span className="font-semibold text-estonia-dark">
+                                    {coach.allMatches}
                                 </span>
+                            </div>
+
+                            <div className="col-span-1 text-center text-slate-500">
+                                {coach.allWinPct}%
                             </div>
                         </div>
                     ))}
@@ -121,34 +232,19 @@ function CoachesPage() {
 function CoachAvatar({
     firstName,
     lastName,
+    photoUrl,
 }: {
     firstName: string;
     lastName: string;
+    photoUrl: string | null;
 }) {
-    return (
-        <div className="grid h-10 w-10 place-items-center rounded-full bg-estonia-dark text-sm font-bold text-white">
+    if (photoUrl) {
+        return (
+            <img
+                src={photoUrl}
+              <div className="grid h-10 w-10 place-items-center rounded-full bg-estonia-dark text-sm font-bold text-white">
             {firstName[0]}
             {lastName[0]}
         </div>
-    );
-}
-
-function StatCard({
-    title,
-    value,
-}: {
-    title: string;
-    value: number;
-}) {
-    return (
-        <div className="rounded-lg border border-white/20 bg-white/5 p-4">
-            <div className="text-center text-[10px] uppercase tracking-[0.2em] text-white/60">
-                {title}
-            </div>
-
-            <div className="mt-2 text-center font-display text-3xl">
-                {value}
-            </div>
-        </div>
-    );
-}
+        );
+    }

@@ -42,15 +42,17 @@ export function SiteNav() {
           >
             {t("nav.players")}
           </Link>
+
+          <Link
+            to="/coaches"
+            className="transition-colors hover:text-estonia-blue"
+            activeProps={{ className: "text-estonia-blue" }}
+          >
+            {t("nav.coaches")}
+          </Link>
         </div>
 
-        <Link
-          to="/coaches"
-          className="transition-colors hover:text-estonia-blue"
-          activeProps={{ className: "text-estonia-blue" }}
-        >
-          {t("nav.coaches")}
-        </Link>
+
 
         <div className="ml-auto flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-2 py-1">
           <button

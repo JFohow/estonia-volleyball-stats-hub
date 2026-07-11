@@ -5,6 +5,7 @@ export type CoachListItem = {
     coach_id: number;
     first_name: string;
     last_name: string;
+    photo_url: string | null;
 
     vmMatches: number;
     vmWinPct: number;
@@ -66,6 +67,7 @@ async function fetchCoaches(): Promise<CoachListItem[]> {
                 coach_id: coach.coach_id,
                 first_name: coach.first_name,
                 last_name: coach.last_name,
+                photo_url: coach.photo_url,
 
                 vmMatches: vmMatches.length,
                 vmWinPct:
@@ -86,7 +88,7 @@ async function fetchCoaches(): Promise<CoachListItem[]> {
                         : 0,
             };
         })
-        .sort((a, b) => b.allMatches - a.allMatches);
+        .sort((a, b) => b.amMatches - a.amMatches);
 }
 
 export const coachesOptions = () =>
