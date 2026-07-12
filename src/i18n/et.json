@@ -75,6 +75,14 @@
         "gp": "Platsil",
         "bench": "Pingil",
         "position": "Positsioon",
+        "height": "Pikkus",
+        "birth_date": "Sünnikuupäev",
+        "place_of_birth": "Pärit",
+        "handedness": "Käelisus",
+        "shirt_numbers": "Särginumbrid",
+        "national_team_debut": "Rahvuskoondise debüüt",
+        "last_match": "Viimane mäng",
+        "games": "Mängud",
         "pos": "Pos"
     },
     "coaches": {

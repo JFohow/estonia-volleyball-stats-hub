@@ -75,6 +75,14 @@
         "gamesPlayed": "Games Played",
         "bench": "On Bench",
         "position": "Position",
+        "height": "Height",
+        "birth_date": "Birth Date",
+        "place_of_birth": "Place of Birth",
+        "handedness": "Handedness",
+        "shirt_numbers": "Shirt Numbers",
+        "national_team_debut": "National Team Debut",
+        "last_match": "Last Match",
+        "games": "Games",
         "pos": "Pos"
     },
     "coaches": {

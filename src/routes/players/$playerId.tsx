@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { playerOptions } from "@/lib/players.queries";
+import { useTranslation } from "react-i18next";
+
 
 export const Route = createFileRoute("/players/$playerId")({
     component: PlayerPage,
@@ -8,6 +10,8 @@ export const Route = createFileRoute("/players/$playerId")({
 
 function PlayerPage() {
     const { playerId } = Route.useParams();
+
+    const { t } = useTranslation();
 
     const { data } = useSuspenseQuery(
         playerOptions(Number(playerId))
@@ -61,80 +65,129 @@ function PlayerPage() {
     return (
         <div>
             <header className="bg-estonia-dark px-6 py-12 text-white">
-                <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[220px_1fr_380px]">
-                    <img
-                        src={
-                            player.photo_url ??
-                            `https://lrdblxldprvfylcyoxvb.supabase.co/storage/v1/object/public/player-photos/${player.player_id}.jpg`
-                        }
-                        alt={`${player.first_name} ${player.last_name}`}
-                        className="h-48 w-48 rounded-2xl border-2 border-white/20 object-cover"
-                    />
+                <div className="mx-auto max-w-7xl">
+                    <div className="grid gap-8 lg:grid-cols-[220px_260px_260px_340px]">
+                        <img
+                            src={
+                                player.photo_url ??
+                                `https://lrdblxldprvfylcyoxvb.supabase.co/storage/v1/object/public/player-photos/${player.player_id}.jpg`
+                            }
+                            alt={`${player.first_name} ${player.last_name}`}
+                            className="h-63 w-48 rounded-2xl border-2 border-white/20 object-cover"
+                        />
+                        <div className="col-span-2">
 
-                    <div>
-                        <h1 className="font-display text-5xl uppercase italic">
-                            {player.first_name} {player.last_name}
-                        </h1>
-                        <p className="mt-2 text-white/70">
-                            {positionLabels[player.position ?? ""] ??
-                                player.position ??
-                                "—"}
-                        </p>
+                            <h1 className="font-display text-5xl uppercase italic">
+                                {player.first_name} {player.last_name}
+                            </h1>
 
-                        <div className="mt-4 space-y-2 text-white/80">
+                            <div className="mt-8 grid gap-x-16 gap-y-4 text-white/80 md:grid-cols-2">
 
-                            <div>
-                                📍 {player.place_of_birth ?? "N/A"}
-                                {player.birth_county
-                                    ? `, ${player.birth_county}`
-                                    : ""}
+                                <div className="space-y-5">
+
+                                    <div>
+                                        <div className="text-xs uppercase tracking-widest text-white/50">
+                                            {t("players.position")}
+                                        </div>
+                                        <div className="mt-1">
+                                            🏐 {
+                                                positionLabels[player.position ?? ""] ??
+                                                player.position ??
+                                                "N/A"
+                                            }
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <div className="text-xs uppercase tracking-widest text-white/50">
+                                            {t("players.height")}
+                                        </div>
+                                        <div className="mt-1">
+                                            📏 {
+                                                player.height_cm
+                                                    ? `${player.height_cm} cm`
+                                                    : "N/A"
+                                            }
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <div className="text-xs uppercase tracking-widest text-white/50">
+                                            {t("players.birth_date")}
+                                        </div>
+                                        <div className="mt-1">
+                                            🎂 {
+                                                player.birth_date
+                                                    ? new Date(
+                                                        player.birth_date
+                                                    ).toLocaleDateString("en-GB")
+                                                    : "N/A"
+                                            }
+                                            {age ? ` (${age})` : ""}
+                                        </div>
+                                    </div>
+
+                                </div>
+
+                                <div className="space-y-5">
+
+                                    <div>
+                                        <div className="text-xs uppercase tracking-widest text-white/50">
+                                            {t("players.place_of_birth")}
+                                        </div>
+                                        <div className="mt-1">
+                                            📍 {player.place_of_birth ?? "N/A"}
+                                            {player.birth_county
+                                                ? `, ${player.birth_county}`
+                                                : ""}
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <div className="text-xs uppercase tracking-widest text-white/50">
+                                            {t("players.handedness")}
+                                        </div>
+                                        <div className="mt-1">
+                                            ✋ {player.handedness ?? "N/A"}
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <div className="text-xs uppercase tracking-widest text-white/50">
+                                            {t("players.shirt_numbers")}
+                                        </div>
+                                        <div className="mt-1">
+                                            👕 {
+                                                shirtNumbers.length > 0
+                                                    ? shirtNumbers.join(", ")
+                                                    : "N/A"
+                                            }
+                                        </div>
+                                    </div>
+
+                                </div>
+
                             </div>
 
-                            <div>
-                                🎂 {player.birth_date ?? "N/A"}
-                                {age ? ` (${age})` : ""}
-                            </div>
+                        </div>
 
-                            <div>
-                                📏 {player.height_cm
-                                    ? `${player.height_cm} cm`
-                                    : "N/A"}
-                            </div>
+                        <div className="space-y-4">
 
-                            <div>
-                                ✋ {player.handedness ?? "N/A"}
-                            </div>
+                            <InfoCard
+                                title={t("players.national_team_debut")}
+                                date={debutMatch?.matches.match_date}
+                                opponent={debutMatch?.matches.opponent}
+                                competition={debutMatch?.matches.competition}
+                            />
 
-                            <div>
-                                👕 {
-                                    shirtNumbers.length > 0
-                                        ? shirtNumbers.join(", ")
-                                        : "N/A"
-                                }
-                            </div>
+                            <InfoCard
+                                title={t("players.last_match")}
+                                date={lastMatch?.matches.match_date}
+                                opponent={lastMatch?.matches.opponent}
+                                competition={lastMatch?.matches.competition}
+                            />
                         </div>
                     </div>
-                </div>
-
-                <div className="mx-auto mt-8 grid max-w-7xl gap-4 lg:grid-cols-3">
-                    <StatCard
-                        title="Official Appearances"
-                        value={amApps}
-                    />
-
-                    <InfoCard
-                        title="National Team Debut"
-                        date={debutMatch?.matches.match_date}
-                        opponent={debutMatch?.matches.opponent}
-                        competition={debutMatch?.matches.competition}
-                    />
-
-                    <InfoCard
-                        title="Last National Team Match"
-                        date={lastMatch?.matches.match_date}
-                        opponent={lastMatch?.matches.opponent}
-                        competition={lastMatch?.matches.competition}
-                    />
                 </div>
             </header >
 
@@ -218,12 +271,12 @@ function InfoCard({
     competition?: string;
 }) {
     return (
-        <div className="rounded-lg border border-white/20 bg-white/5 p-4">
-            <div className="text-center text-[10px] uppercase tracking-[0.2em] text-white/60">
+        <div className="rounded-lg border border-white/20 bg-white/5 p-3">
+            <div className="text-center text-[12px] uppercase tracking-[0.2em] text-white/60">
                 {title}
             </div>
 
-            <div className="mt-4 text-center">
+            <div className="mt-2 text-center">
                 <div className="font-semibold">
                     {date
                         ? new Date(date).toLocaleDateString("en-GB")
