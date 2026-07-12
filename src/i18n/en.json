@@ -18,6 +18,14 @@
         "databaseLogic": "Database Logic",
         "databaseExplanation": "Site is based off the official records of the Estonian Volleyball Federation, but also tracks separately competitive matches and all known matches, including additional sets and non-official matches against national teams and clubs."
     },
+    "positions": {
+        "SET": "Setters",
+        "OPP": "Opposites",
+        "OH": "Outside Hitters",
+        "MB": "Middle Blockers",
+        "LIB": "Liberos",
+        "Unknown": "Unknown"
+    },
     "home": {
         "title": "National Team",
         "titleAccent": "Historical Database",
@@ -56,6 +64,7 @@
         "opposites": "Opposites",
         "liberos": "Liberos",
         "searchPlaceholder": "Search player...",
+        "noPlayersFound": "No players found",
         "appearances": "Appearances",
         "gamesPlayed": "Games Played",
         "bench": "On Bench",

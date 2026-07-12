@@ -18,6 +18,14 @@
         "databaseLogic": "Andmebaasi ülesehitus",
         "databaseExplanation": "Lehekülg lähtub EVF-i ametlike mängude arvestusest, kuid kajastab eraldi ka võistlusmänge ning kõiki teadaolevaid kohtumisi, sh lisageime ja mitteametlikke kohtumisi koondiste ja klubidega."
     },
+    "positions": {
+        "SET": "Sidemängijad",
+        "OPP": "Diagonaalid",
+        "OH": "Nurgaründajad",
+        "MB": "Temporündajad",
+        "LIB": "Liberod",
+        "Unknown": "Määramata"
+    },
     "home": {
         "title": "Koondise",
         "titleAccent": "Ajalooline Andmebaas",
@@ -56,6 +64,7 @@
         "opposites": "Diagonaalründajad",
         "liberos": "Liberod",
         "searchPlaceholder": "Otsi mängijat...",
+        "noPlayersFound": "Mängijaid ei leitud",
         "appearances": "Mänge",
         "gamesPlayed": "Väljakul",
         "bench": "Pingil",

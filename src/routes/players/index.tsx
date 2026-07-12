@@ -8,26 +8,21 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "@tanstack/react-router";
 import { Outlet } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 
 export const Route = createFileRoute("/players/")({
     component: PlayersPage,
 });
 
 function PlayersPage() {
+
+    const { t } = useTranslation();
+
     const { data: players } = useSuspenseQuery(playersOptions());
 
     const [search, setSearch] = useState("");
 
     const positionOrder = ["SET", "OPP", "OH", "MB", "LIB", "Unknown"];
-
-    const positionLabels: Record<string, string> = {
-        SET: "Setters",
-        OPP: "Opposites",
-        OH: "Outside Hitters",
-        MB: "Middle Blockers",
-        LIB: "Liberos",
-        Unknown: "Unknown",
-    };
 
     const positionCounts = useMemo(() => {
         const counts = new Map<string, number>();
@@ -63,17 +58,17 @@ function PlayersPage() {
                 <div className="mx-auto max-w-7xl">
 
                     <h1 className="mt-2 font-display text-4xl uppercase italic md:text-5xl">
-                        Players
+                        {t("players.title")}
                     </h1>
 
                     <p className="mt-2 max-w-2xl text-sm text-white/60">
-                        All players who have represented the Estonia Men's National Volleyball Team since 1992.
+                        {t("players.subtitle")}
                     </p>
 
                     <div className="mt-8 grid gap-4 md:grid-cols-6">
                         <div className="rounded-lg border border-white/20 bg-white/5 p-4">
                             <div className="text-center text-[10px] uppercase tracking-[0.2em] text-white/60">
-                                Total Players
+                                {t("players.totalPlayers")}
                             </div>
                             <div className="mt-2 text-center font-display text-3xl">
                                 {players.length}
@@ -86,7 +81,7 @@ function PlayersPage() {
                                 className="rounded-lg border border-white/20 bg-white/5 p-4"
                             >
                                 <div className="text-center text-[10px] uppercase tracking-[0.2em] text-white/60">
-                                    {positionLabels[position] ?? position}
+                                    {t(`players.positions.${position}`)}
                                 </div>
 
                                 <div className="mt-2 text-center font-display text-3xl">
@@ -102,23 +97,23 @@ function PlayersPage() {
                 <input
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Search player..."
+                    placeholder={t("players.search")}
                     className="mb-6 w-full max-w-sm rounded-md border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm outline-none focus:border-estonia-blue"
                 />
 
                 <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
                     <div className="grid grid-cols-12 gap-3 border-b border-slate-100 bg-slate-50 px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                        <div className="col-span-5">Player</div>
-                        <div className="col-span-2 text-center">Appearances</div>
-                        <div className="col-span-2 text-center">Games Played</div>
-                        <div className="col-span-2 text-center">On Bench</div>
-                        <div className="col-span-1 text-center">Pos</div>
+                        <div className="col-span-5">{t("players.player")}</div>
+                        <div className="col-span-2 text-center">{t("players.appearances")}</div>
+                        <div className="col-span-2 text-center">{t("players.gamesPlayed")}</div>
+                        <div className="col-span-2 text-center">{t("players.bench")}</div>
+                        <div className="col-span-1 text-center">{t("players.pos")}</div>
                     </div>
 
                     {filtered.length === 0 ? (
                         <div className="p-12 text-center">
                             <p className="font-display text-xl uppercase italic text-slate-400">
-                                No players found
+                                {t("players.noPlayersFound")}
                             </p>
                         </div>
                     ) : (
