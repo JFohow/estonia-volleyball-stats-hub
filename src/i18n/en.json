@@ -50,11 +50,17 @@
         "title": "Players",
         "subtitle": "All players who have represented the Estonia Men's National Volleyball Team since 1992.",
         "totalPlayers": "Total Players",
+        "setters": "Setters",
+        "outsideHitters": "Outside Hitters",
+        "middleBlockers": "Middle Blockers",
+        "opposites": "Opposites",
+        "liberos": "Liberos",
         "searchPlaceholder": "Search player...",
         "appearances": "Appearances",
         "gamesPlayed": "Games Played",
         "bench": "On Bench",
-        "position": "Position"
+        "position": "Position",
+        "pos": "Pos"
     },
     "coaches": {
         "title": "Coaches",

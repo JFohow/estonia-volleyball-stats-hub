@@ -50,11 +50,17 @@
         "title": "Mängijad",
         "subtitle": "Kõik mängijad, kes on alates 1992. aastast esindanud Eesti meeste võrkpallikoondist.",
         "totalPlayers": "Mängijaid Kokku",
+        "setters": "Sidemängijad",
+        "outsideHitters": "Nurgaründajad",
+        "middleBlockers": "Temporündajad",
+        "opposites": "Diagonaalründajad",
+        "liberos": "Liberod",
         "searchPlaceholder": "Otsi mängijat...",
         "appearances": "Mänge",
         "gamesPlayed": "Väljakul",
         "bench": "Pingil",
-        "position": "Positsioon"
+        "position": "Positsioon",
+        "pos": "Pos"
     },
     "coaches": {
         "title": "Peatreenerid",
