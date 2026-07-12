@@ -16,20 +16,31 @@ function PlayerPage() {
     const player = data.player;
     const appearances = data.appearances;
 
-    const totalApps = appearances.length;
+    const sortedAppearances = [...appearances].sort(
+        (a, b) =>
+            new Date(a.matches.match_date).getTime() -
+            new Date(b.matches.match_date).getTime()
+    );
 
-    const vmApps = appearances.filter(
-        (a) => a.matches?.vm
-    ).length;
+    const debutMatch =
+        sortedAppearances[0] ?? null;
+
+    const lastMatch =
+        sortedAppearances[
+        sortedAppearances.length - 1
+        ] ?? null;
+
+    const shirtNumbers = [
+        ...new Set(
+            appearances
+                .map((a) => a.shirt_number)
+                .filter(Boolean)
+        ),
+    ].sort((a, b) => Number(a) - Number(b));
 
     const amApps = appearances.filter(
         (a) => a.matches?.am
     ).length;
-
-    const setsPlayed = appearances.reduce(
-        (sum, a) => sum + (a.sets_played ?? 0),
-        0
-    );
 
     const age = player.birth_date
         ? Math.floor(
@@ -50,14 +61,14 @@ function PlayerPage() {
     return (
         <div>
             <header className="bg-estonia-dark px-6 py-12 text-white">
-                <div className="mx-auto flex max-w-7xl flex-col items-center gap-6 md:flex-row">
+                <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[220px_1fr_380px]">
                     <img
                         src={
                             player.photo_url ??
                             `https://lrdblxldprvfylcyoxvb.supabase.co/storage/v1/object/public/player-photos/${player.player_id}.jpg`
                         }
                         alt={`${player.first_name} ${player.last_name}`}
-                        className="h-32 w-32 rounded-full border-2 border-white/20 object-cover"
+                        className="h-48 w-48 rounded-2xl border-2 border-white/20 object-cover"
                     />
 
                     <div>
@@ -70,44 +81,62 @@ function PlayerPage() {
                                 "—"}
                         </p>
 
-                        <div className="mt-4 flex flex-wrap gap-6 text-sm text-white/80">
-                            <span>
-                                {player.height_cm ?? "—"} cm
-                            </span>
+                        <div className="mt-4 space-y-2 text-white/80">
 
-                            <span>
-                                {age ? `${age} years` : "Age unknown"}
-                            </span>
+                            <div>
+                                📍 {player.place_of_birth ?? "N/A"}
+                                {player.birth_county
+                                    ? `, ${player.birth_county}`
+                                    : ""}
+                            </div>
 
-                            <span>
-                                {player.handedness ?? "Hand unknown"}
-                            </span>
+                            <div>
+                                🎂 {player.birth_date ?? "N/A"}
+                                {age ? ` (${age})` : ""}
+                            </div>
+
+                            <div>
+                                📏 {player.height_cm
+                                    ? `${player.height_cm} cm`
+                                    : "N/A"}
+                            </div>
+
+                            <div>
+                                ✋ {player.handedness ?? "N/A"}
+                            </div>
+
+                            <div>
+                                👕 {
+                                    shirtNumbers.length > 0
+                                        ? shirtNumbers.join(", ")
+                                        : "N/A"
+                                }
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div className="mx-auto mt-8 grid max-w-7xl gap-4 md:grid-cols-4">
+                <div className="mx-auto mt-8 grid max-w-7xl gap-4 lg:grid-cols-3">
                     <StatCard
-                        title="Appearances"
-                        value={totalApps}
-                    />
-
-                    <StatCard
-                        title="Competitive"
-                        value={vmApps}
-                    />
-
-                    <StatCard
-                        title="Official"
+                        title="Official Appearances"
                         value={amApps}
                     />
 
-                    <StatCard
-                        title="Sets Played"
-                        value={setsPlayed}
+                    <InfoCard
+                        title="National Team Debut"
+                        date={debutMatch?.matches.match_date}
+                        opponent={debutMatch?.matches.opponent}
+                        competition={debutMatch?.matches.competition}
+                    />
+
+                    <InfoCard
+                        title="Last National Team Match"
+                        date={lastMatch?.matches.match_date}
+                        opponent={lastMatch?.matches.opponent}
+                        competition={lastMatch?.matches.competition}
                     />
                 </div>
-            </header>
+            </header >
 
             <main className="mx-auto max-w-7xl px-6 py-10">
                 <h2 className="mb-6 font-display text-3xl uppercase italic">
@@ -154,7 +183,7 @@ function PlayerPage() {
                     ))}
                 </div>
             </main>
-        </div>
+        </div >
     );
 }
 
@@ -173,6 +202,43 @@ function StatCard({
 
             <div className="mt-2 text-center font-display text-3xl">
                 {value}
+            </div>
+        </div>
+    );
+}
+function InfoCard({
+    title,
+    date,
+    opponent,
+    competition,
+}: {
+    title: string;
+    date?: string;
+    opponent?: string;
+    competition?: string;
+}) {
+    return (
+        <div className="rounded-lg border border-white/20 bg-white/5 p-4">
+            <div className="text-center text-[10px] uppercase tracking-[0.2em] text-white/60">
+                {title}
+            </div>
+
+            <div className="mt-4 text-center">
+                <div className="font-semibold">
+                    {date
+                        ? new Date(date).toLocaleDateString("en-GB")
+                        : "N/A"}
+                </div>
+
+                <div className="mt-1 text-sm text-white/80">
+                    {opponent
+                        ? `vs ${opponent}`
+                        : "N/A"}
+                </div>
+
+                <div className="mt-1 text-xs text-white/60">
+                    {competition ?? "N/A"}
+                </div>
             </div>
         </div>
     );

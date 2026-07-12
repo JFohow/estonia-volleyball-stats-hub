@@ -8,9 +8,17 @@ export type PlayerListItem = {
     position: string | null;
     photo_url: string | null;
 
-    appearances: number;
-    gamesPlayed: number;
-    bench: number;
+    amAppearances: number;
+    amGamesPlayed: number;
+    amBench: number;
+
+    vmAppearances: number;
+    vmGamesPlayed: number;
+    vmBench: number;
+
+    allAppearances: number;
+    allGamesPlayed: number;
+    allBench: number;
 };
 
 async function fetchPlayers(): Promise<PlayerListItem[]> {
@@ -31,32 +39,91 @@ async function fetchPlayers(): Promise<PlayerListItem[]> {
         .select(`
       player_id,
       sets_played,
-      on_the_bench
+      on_the_bench,
+      matches(
+        vm,
+        am,
+        mam
+      )
     `);
 
     const stats = new Map<
         number,
         {
-            appearances: number;
-            gamesPlayed: number;
-            bench: number;
+            amAppearances: number;
+            amGamesPlayed: number;
+            amBench: number;
+
+            vmAppearances: number;
+            vmGamesPlayed: number;
+            vmBench: number;
+
+            allAppearances: number;
+            allGamesPlayed: number;
+            allBench: number;
         }
     >();
 
     (apps ?? []).forEach((a) => {
+        const match = Array.isArray(a.matches)
+            ? a.matches[0]
+            : a.matches;
+
         const current = stats.get(a.player_id) ?? {
-            appearances: 0,
-            gamesPlayed: 0,
-            bench: 0,
+            amAppearances: 0,
+            amGamesPlayed: 0,
+            amBench: 0,
+
+            vmAppearances: 0,
+            vmGamesPlayed: 0,
+            vmBench: 0,
+
+            allAppearances: 0,
+            allGamesPlayed: 0,
+            allBench: 0,
         };
 
-        current.appearances += 1;
+        // Official (AM)
 
-        if ((a.sets_played ?? 0) > 0)
-            current.gamesPlayed += 1;
+        if (match?.am) {
+            current.amAppearances += 1;
 
-        if (a.on_the_bench)
-            current.bench += 1;
+            if ((a.sets_played ?? 0) > 0) {
+                current.amGamesPlayed += 1;
+            }
+
+            if (a.on_the_bench) {
+                current.amBench += 1;
+            }
+        }
+
+        // Competitive (VM)
+
+        if (match?.vm) {
+            current.vmAppearances += 1;
+
+            if ((a.sets_played ?? 0) > 0) {
+                current.vmGamesPlayed += 1;
+            }
+
+            if (a.on_the_bench) {
+                current.vmBench += 1;
+            }
+        }
+
+        // All Matches (AM + MAM)
+
+        if (match?.am || match?.mam) {
+            current.allAppearances += 1;
+
+            if ((a.sets_played ?? 0) > 0) {
+                current.allGamesPlayed += 1;
+            }
+
+            if (a.on_the_bench) {
+                current.allBench += 1;
+            }
+        }
 
         stats.set(a.player_id, current);
     });
@@ -64,11 +131,38 @@ async function fetchPlayers(): Promise<PlayerListItem[]> {
     return (players ?? [])
         .map((p) => ({
             ...p,
-            appearances: stats.get(p.player_id)?.appearances ?? 0,
-            gamesPlayed: stats.get(p.player_id)?.gamesPlayed ?? 0,
-            bench: stats.get(p.player_id)?.bench ?? 0,
+
+            amAppearances:
+                stats.get(p.player_id)?.amAppearances ?? 0,
+
+            amGamesPlayed:
+                stats.get(p.player_id)?.amGamesPlayed ?? 0,
+
+            amBench:
+                stats.get(p.player_id)?.amBench ?? 0,
+
+            vmAppearances:
+                stats.get(p.player_id)?.vmAppearances ?? 0,
+
+            vmGamesPlayed:
+                stats.get(p.player_id)?.vmGamesPlayed ?? 0,
+
+            vmBench:
+                stats.get(p.player_id)?.vmBench ?? 0,
+
+            allAppearances:
+                stats.get(p.player_id)?.allAppearances ?? 0,
+
+            allGamesPlayed:
+                stats.get(p.player_id)?.allGamesPlayed ?? 0,
+
+            allBench:
+                stats.get(p.player_id)?.allBench ?? 0,
         }))
-        .sort((a, b) => b.appearances - a.appearances);
+        .sort(
+            (a, b) =>
+                b.amAppearances - a.amAppearances
+        );
 }
 
 export const playersOptions = () =>

@@ -107,15 +107,15 @@ function CoachesPage() {
                             <div className="col-span-4" />
 
                             <div className="col-span-4 text-center text-estonia-dark">
-                                {t("coaches.official")}
+                                {t("common.official")}
                             </div>
 
                             <div className="col-span-4 text-center text-slate-500">
-                                {t("coaches.competitive")}
+                                {t("common.competitive")}
                             </div>
 
                             <div className="col-span-4 text-center text-slate-500">
-                                {t("coaches.allMatches")}
+                                {t("common.allMatches")}
                             </div>
                         </div>
 
@@ -142,7 +142,7 @@ function CoachesPage() {
                                     : ""
                                     }`}
                             >
-                                {t("coaches.winPct")}
+                                {t("common.winPct")}
                                 {SortIcon("amWinPct")}
                             </button>
 
@@ -164,7 +164,7 @@ function CoachesPage() {
                                     : ""
                                     }`}
                             >
-                                {t("coaches.winPct")}
+                                {t("common.winPct")}
                                 {SortIcon("vmWinPct")}
                             </button>
 
@@ -186,7 +186,7 @@ function CoachesPage() {
                                     : ""
                                     }`}
                             >
-                                {t("coaches.winPct")}
+                                {t("common.winPct")}
                                 {SortIcon("allWinPct")}
                             </button>
                         </div>

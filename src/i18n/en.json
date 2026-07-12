@@ -15,6 +15,10 @@
         "tip": "Tip",
         "matches": "Matches",
         "sets": "Sets",
+        "competitive": "Competitive Matches",
+        "official": "Official Matches",
+        "allMatches": "All Matches",
+        "winPct": "Win %",
         "databaseLogic": "Database Logic",
         "databaseExplanation": "Site is based off the official records of the Estonian Volleyball Federation, but also tracks separately competitive matches and all known matches, including additional sets and non-official matches against national teams and clubs."
     },
@@ -63,9 +67,11 @@
         "middleBlockers": "Middle Blockers",
         "opposites": "Opposites",
         "liberos": "Liberos",
-        "searchPlaceholder": "Search player...",
+        "search": "Search player...",
         "noPlayersFound": "No players found",
         "appearances": "Appearances",
+        "apps": "Apps",
+        "gp": "Played",
         "gamesPlayed": "Games Played",
         "bench": "On Bench",
         "position": "Position",
@@ -74,11 +80,7 @@
     "coaches": {
         "title": "Coaches",
         "subtitle": "Head coaches of the Estonia Men's National Volleyball Team since 1992.",
-        "competitive": "Competitive Matches",
-        "official": "Official Matches",
-        "allMatches": "All Matches",
         "name": "Name",
-        "headCoaches": "Head Coaches",
-        "winPct": "Win %"
+        "headCoaches": "Head Coaches"
     }
 }

@@ -22,7 +22,67 @@ function PlayersPage() {
 
     const [search, setSearch] = useState("");
 
-    const positionOrder = ["SET", "OPP", "OH", "MB", "LIB", "Unknown"];
+    const [selectedPositions, setSelectedPositions] =
+        useState<string[]>([]);
+
+    function togglePosition(position: string) {
+        setSelectedPositions((current) =>
+            current.includes(position)
+                ? current.filter((p) => p !== position)
+                : [...current, position]
+        );
+    }
+
+    function handleSort(
+        field:
+            | "amAppearances"
+            | "amGamesPlayed"
+            | "amBench"
+            | "vmAppearances"
+            | "vmGamesPlayed"
+            | "vmBench"
+            | "allAppearances"
+            | "allGamesPlayed"
+            | "allBench"
+    ) {
+        if (sortField === field) {
+            setSortDirection(
+                sortDirection === "asc"
+                    ? "desc"
+                    : "asc"
+            );
+        } else {
+            setSortField(field);
+            setSortDirection("desc");
+        }
+    }
+
+    function SortIcon(field: string) {
+        if (sortField !== field) {
+            return " ⇅";
+        }
+
+        return sortDirection === "asc"
+            ? " ↑"
+            : " ↓";
+    }
+
+    const [sortField, setSortField] = useState<
+        | "amAppearances"
+        | "amGamesPlayed"
+        | "amBench"
+        | "vmAppearances"
+        | "vmGamesPlayed"
+        | "vmBench"
+        | "allAppearances"
+        | "allGamesPlayed"
+        | "allBench"
+    >("amAppearances");
+
+    const [sortDirection, setSortDirection] =
+        useState<"asc" | "desc">("desc");
+
+    const positionOrder = ["SET", "OPP", "OH", "MB", "LIB"];
 
     const positionCounts = useMemo(() => {
         const counts = new Map<string, number>();
@@ -43,14 +103,35 @@ function PlayersPage() {
     const filtered = useMemo(() => {
         const q = search.toLowerCase().trim();
 
-        if (!q) return players;
+        let result = players;
 
-        return players.filter((p) =>
-            `${p.first_name} ${p.last_name}`
-                .toLowerCase()
-                .includes(q)
-        );
-    }, [players, search]);
+        if (q) {
+            result = result.filter((p) =>
+                `${p.first_name} ${p.last_name}`
+                    .toLowerCase()
+                    .includes(q)
+            );
+        }
+
+        if (selectedPositions.length > 0) {
+            result = result.filter((p) =>
+                selectedPositions.includes(
+                    p.position ?? "Unknown"
+                )
+            );
+        }
+
+        return result;
+    }, [players, search, selectedPositions]);
+
+    const sortedPlayers = [...filtered].sort((a, b) => {
+        const aValue = Number(a[sortField]);
+        const bValue = Number(b[sortField]);
+
+        return sortDirection === "asc"
+            ? aValue - bValue
+            : bValue - aValue;
+    });
 
     return (
         <div className="text-slate-900">
@@ -81,7 +162,7 @@ function PlayersPage() {
                                 className="rounded-lg border border-white/20 bg-white/5 p-4"
                             >
                                 <div className="text-center text-[10px] uppercase tracking-[0.2em] text-white/60">
-                                    {t(`players.positions.${position}`)}
+                                    {t(`positions.${position}`)}
                                 </div>
 
                                 <div className="mt-2 text-center font-display text-3xl">
@@ -94,21 +175,149 @@ function PlayersPage() {
             </header>
 
             <main className="mx-auto max-w-7xl px-6 py-10">
-                <input
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder={t("players.search")}
-                    className="mb-6 w-full max-w-sm rounded-md border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm outline-none focus:border-estonia-blue"
-                />
+                <div className="mb-6 flex flex-wrap items-center gap-3">
+                    <input
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        placeholder={t("players.search")}
+                        className="w-full max-w-sm rounded-md border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm outline-none focus:border-estonia-blue"
+                    />
+
+                    {positionOrder
+                        .filter((p) => p !== "Unknown")
+                        .map((position) => (
+                            <button
+                                key={position}
+                                type="button"
+                                onClick={() => togglePosition(position)}
+                                className={`rounded-md border px-3 py-2 text-sm transition-colors ${selectedPositions.includes(position)
+                                    ? "border-estonia-blue bg-estonia-blue text-white"
+                                    : "border-slate-300 bg-white text-slate-600 hover:bg-slate-50"
+                                    }`}
+                            >
+                                {position}
+                            </button>
+                        ))}
+                </div>
 
                 <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-                    <div className="grid grid-cols-12 gap-3 border-b border-slate-100 bg-slate-50 px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                        <div className="col-span-5">{t("players.player")}</div>
-                        <div className="col-span-2 text-center">{t("players.appearances")}</div>
-                        <div className="col-span-2 text-center">{t("players.gamesPlayed")}</div>
-                        <div className="col-span-2 text-center">{t("players.bench")}</div>
-                        <div className="col-span-1 text-center">{t("players.pos")}</div>
+
+                    <div className="sticky top-0 z-20 border-b border-slate-200 bg-slate-50">
+
+                        <div className="grid grid-cols-13 px-6 pt-4 text-[10px] font-bold uppercase tracking-widest">
+                            <div className="col-span-4" />
+
+                            <div className="col-span-3 text-center text-estonia-dark">
+                                {t("common.official")}
+                            </div>
+
+                            <div className="col-span-3 text-center text-estonia-dark">
+                                {t("common.competitive")}
+                            </div>
+
+                            <div className="col-span-3 text-center text-estonia-dark">
+                                {t("common.allMatches")}
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-13 gap-3 px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+
+                            <div className="col-span-4" />
+
+                            <button
+                                onClick={() => handleSort("amAppearances")}
+                                className={`text-center transition-colors hover:text-estonia-blue ${sortField === "amAppearances"
+                                    ? "text-estonia-blue"
+                                    : ""
+                                    }`}
+                            >
+                                {t("players.apps").toUpperCase()}{SortIcon("amAppearances")}
+                            </button>
+
+                            <button
+                                onClick={() => handleSort("amGamesPlayed")}
+                                className={`text-center transition-colors hover:text-estonia-blue ${sortField === "amGamesPlayed"
+                                    ? "text-estonia-blue"
+                                    : ""
+                                    }`}
+                            >
+                                {t("players.gp").toUpperCase()}{SortIcon("amGamesPlayed")}
+                            </button>
+
+                            <button
+                                onClick={() => handleSort("amBench")}
+                                className={`text-center transition-colors hover:text-estonia-blue ${sortField === "amBench"
+                                    ? "text-estonia-blue"
+                                    : ""
+                                    }`}
+                            >
+                                {t("players.bench").toUpperCase()}{SortIcon("amBench")}
+
+                            </button>
+
+                            <button
+                                onClick={() => handleSort("vmAppearances")}
+                                className={`text-center transition-colors hover:text-estonia-blue ${sortField === "vmAppearances"
+                                    ? "text-estonia-blue"
+                                    : ""
+                                    }`}
+                            >
+                                {t("players.apps").toUpperCase()}{SortIcon("vmAppearances")}
+                            </button>
+
+                            <button
+                                onClick={() => handleSort("vmGamesPlayed")}
+                                className={`text-center transition-colors hover:text-estonia-blue ${sortField === "vmGamesPlayed"
+                                    ? "text-estonia-blue"
+                                    : ""
+                                    }`}
+                            >
+                                {t("players.gp").toUpperCase()}{SortIcon("vmGamesPlayed")}
+                            </button>
+
+                            <button
+                                onClick={() => handleSort("vmBench")}
+                                className={`text-center transition-colors hover:text-estonia-blue ${sortField === "vmBench"
+                                    ? "text-estonia-blue"
+                                    : ""
+                                    }`}
+                            >
+                                {t("players.bench").toUpperCase()}{SortIcon("vmBench")}
+                            </button>
+
+                            <button
+                                onClick={() => handleSort("allAppearances")}
+                                className={`text-center transition-colors hover:text-estonia-blue ${sortField === "allAppearances"
+                                    ? "text-estonia-blue"
+                                    : ""
+                                    }`}
+                            >
+                                {t("players.apps").toUpperCase()}{SortIcon("allAppearances")}
+                            </button>
+
+                            <button
+                                onClick={() => handleSort("allGamesPlayed")}
+                                className={`text-center transition-colors hover:text-estonia-blue ${sortField === "allGamesPlayed"
+                                    ? "text-estonia-blue"
+                                    : ""
+                                    }`}
+                            >
+                                {t("players.gp").toUpperCase()}{SortIcon("allGamesPlayed")}
+                            </button>
+
+                            <button
+                                onClick={() => handleSort("allBench")}
+                                className={`text-center transition-colors hover:text-estonia-blue ${sortField === "allBench"
+                                    ? "text-estonia-blue"
+                                    : ""
+                                    }`}
+                            >
+                                {t("players.bench").toUpperCase()}{SortIcon("allBench")}
+                            </button>
+                        </div>
                     </div>
+
+
 
                     {filtered.length === 0 ? (
                         <div className="p-12 text-center">
@@ -117,7 +326,7 @@ function PlayersPage() {
                             </p>
                         </div>
                     ) : (
-                        filtered.map((player) => (
+                        sortedPlayers.map((player) => (
                             <PlayerRow
                                 key={player.player_id}
                                 player={player}
@@ -125,9 +334,9 @@ function PlayersPage() {
                         ))
                     )}
                 </div>
-            </main>
+            </main >
             <Outlet />
-        </div>
+        </div >
     );
 }
 
@@ -145,8 +354,8 @@ function PlayerRow({
     player: PlayerListItem;
 }) {
     return (
-        <div className="grid grid-cols-12 gap-3 border-t border-slate-100 px-6 py-4 transition-colors hover:bg-slate-50">
-            <div className="col-span-5 flex items-center gap-3">
+        <div className="grid grid-cols-13 gap-3 border-t border-slate-100 px-6 py-4 transition-colors hover:bg-slate-50">
+            <div className="col-span-4 flex items-center gap-3 border-r border-slate-200 pr-2">
                 <PlayerAvatar player={player} />
 
                 <div>
@@ -159,23 +368,47 @@ function PlayerRow({
                     >
                         {player.first_name} {player.last_name}
                     </Link>
+
+                    <div className="mt-1 text-xs uppercase tracking-wider text-slate-500">
+                        {player.position ?? "—"}
+                    </div>
                 </div>
             </div>
 
-            <div className="col-span-2 text-center font-semibold">
-                {player.appearances}
+            <div className="text-center font-semibold">
+                {player.amAppearances}
             </div>
 
-            <div className="col-span-2 text-center">
-                {player.gamesPlayed}
+            <div className="text-center">
+                {player.amGamesPlayed}
             </div>
 
-            <div className="col-span-2 text-center">
-                {player.bench}
+            <div className="border-r border-slate-200 text-center">
+                {player.amBench}
             </div>
 
-            <div className="col-span-1 text-center text-sm text-slate-500">
-                {player.position ?? "—"}
+            <div className="text-center font-semibold">
+                {player.vmAppearances}
+            </div>
+
+            <div className="text-center">
+                {player.vmGamesPlayed}
+            </div>
+
+            <div className="border-r border-slate-200 text-center">
+                {player.vmBench}
+            </div>
+
+            <div className="text-center font-semibold">
+                {player.allAppearances}
+            </div>
+
+            <div className="text-center">
+                {player.allGamesPlayed}
+            </div>
+
+            <div className="text-center">
+                {player.allBench}
             </div>
         </div>
     );

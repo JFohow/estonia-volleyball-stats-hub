@@ -15,12 +15,16 @@
         "tip": "Vihje",
         "matches": "Mängud",
         "sets": "Geimid",
+        "competitive": "Võistlusmängud",
+        "official": "Ametlikud mängud",
+        "allMatches": "Kõik mängud",
+        "winPct": "Võidu%",
         "databaseLogic": "Andmebaasi ülesehitus",
         "databaseExplanation": "Lehekülg lähtub EVF-i ametlike mängude arvestusest, kuid kajastab eraldi ka võistlusmänge ning kõiki teadaolevaid kohtumisi, sh lisageime ja mitteametlikke kohtumisi koondiste ja klubidega."
     },
     "positions": {
         "SET": "Sidemängijad",
-        "OPP": "Diagonaalid",
+        "OPP": "Diagonaalründajad",
         "OH": "Nurgaründajad",
         "MB": "Temporündajad",
         "LIB": "Liberod",
@@ -63,10 +67,12 @@
         "middleBlockers": "Temporündajad",
         "opposites": "Diagonaalründajad",
         "liberos": "Liberod",
-        "searchPlaceholder": "Otsi mängijat...",
+        "search": "Otsi mängijat...",
         "noPlayersFound": "Mängijaid ei leitud",
         "appearances": "Mänge",
-        "gamesPlayed": "Väljakul",
+        "apps": "Mänge",
+        "gamesPlayed": "Platsil",
+        "gp": "Platsil",
         "bench": "Pingil",
         "position": "Positsioon",
         "pos": "Pos"
@@ -74,11 +80,7 @@
     "coaches": {
         "title": "Peatreenerid",
         "subtitle": "Eesti meeste võrkpallikoondise peatreenerid alates 1992. aastast.",
-        "competitive": "Võistlusmängud",
-        "official": "Ametlikud mängud",
-        "allMatches": "Kõik mängud",
         "name": "Nimi",
-        "headCoaches": "Peatreenereid",
-        "winPct": "Võidu%"
+        "headCoaches": "Peatreenereid"
     }
 }
