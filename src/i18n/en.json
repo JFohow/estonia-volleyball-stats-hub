@@ -83,7 +83,47 @@
         "national_team_debut": "National Team Debut",
         "last_match": "Last Match",
         "games": "Games",
-        "pos": "Pos"
+        "pos": "Pos",
+        "statsOverviewTitle": "Stats Overview",
+        "statsOverviewSubtitle": "Averages and totals from recorded match stats.",
+        "matchesWithStats": "matches with stats",
+        "totalMatchesWithStats": "total matches with stats",
+        "statsFilter": {
+            "year": "Year",
+            "allYears": "All years",
+            "competition": "Competition",
+            "allCompetitions": "All competitions",
+            "opponent": "Opponent",
+            "allOpponents": "All opponents"
+        },
+        "statsField": {
+            "stat": "Stat",
+            "average": "Average",
+            "total": "Total",
+            "attackBlocked": "Attack Blocked",
+            "attackEfficiency": "Attack Efficiency",
+            "attackErrors": "Attack Errors",
+            "attackKillPct": "Kill %",
+            "attackKills": "Kills",
+            "attackTotal": "Attack Attempts",
+            "blockPoints": "Block Points",
+            "breakPoints": "Break Points",
+            "plusMinus": "+/-",
+            "points": "Points",
+            "receptionErrors": "Reception Errors",
+            "receptionExcellentPct": "Excellent Reception %",
+            "receptionPositivePct": "Positive Reception %",
+            "receptionTotal": "Reception Attempts",
+            "serveAces": "Serve Aces",
+            "serveErrors": "Serve Errors",
+            "serveTotal": "Serve Attempts"
+        },
+        "statsGroup": {
+            "serve": "Serve",
+            "reception": "Reception",
+            "attack": "Attack",
+            "blocks": "Blocks"
+        }
     },
     "coaches": {
         "title": "Coaches",

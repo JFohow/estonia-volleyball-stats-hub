@@ -1,5 +1,6 @@
 import { queryOptions } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 
 export type PlayerListItem = {
     player_id: number;
@@ -21,8 +22,32 @@ export type PlayerListItem = {
     allBench: number;
 };
 
+type PlayerRow = {
+    player_id: number;
+    first_name: string;
+    last_name: string;
+    position: string | null;
+    photo_url: string | null;
+};
+
+type AppearanceMatchRow = {
+    vm: boolean | null;
+    am: boolean | null;
+    mam: boolean | null;
+};
+
+type AppearanceRow = {
+    player_id: number;
+    sets_played: number | null;
+    on_the_bench: boolean | null;
+    matches:
+    | Array<AppearanceMatchRow>
+    | AppearanceMatchRow
+    | null;
+};
+
 async function fetchPlayers(): Promise<PlayerListItem[]> {
-    const { data: players, error } = await supabase
+    const playersResponse = await supabase
         .from("players")
         .select(`
       player_id,
@@ -32,20 +57,29 @@ async function fetchPlayers(): Promise<PlayerListItem[]> {
       photo_url
     `);
 
-    if (error) throw error;
+    const players = playersResponse.data as PlayerRow[] | null;
+    if (playersResponse.error) throw playersResponse.error;
 
-    const { data: apps } = await supabase
+    const appsResponse = await supabase
         .from("appearances")
         .select(`
       player_id,
       sets_played,
       on_the_bench,
       matches(
+        match_id,
+        match_date,
+        opponent,
+        competition,
+        estonia_sets,
+        opponent_sets,
         vm,
         am,
         mam
       )
     `);
+
+    const apps = appsResponse.data as AppearanceRow[] | null;
 
     const stats = new Map<
         number,
@@ -69,6 +103,14 @@ async function fetchPlayers(): Promise<PlayerListItem[]> {
             ? a.matches[0]
             : a.matches;
 
+        const matchType = match?.vm
+            ? "VM"
+            : match?.am
+                ? "AM"
+                : match?.mam
+                    ? "MAM"
+                    : null;
+
         const current = stats.get(a.player_id) ?? {
             amAppearances: 0,
             amGamesPlayed: 0,
@@ -85,7 +127,7 @@ async function fetchPlayers(): Promise<PlayerListItem[]> {
 
         // Official (AM)
 
-        if (match?.am) {
+        if (matchType === "AM") {
             current.amAppearances += 1;
 
             if ((a.sets_played ?? 0) > 0) {
@@ -99,7 +141,7 @@ async function fetchPlayers(): Promise<PlayerListItem[]> {
 
         // Competitive (VM)
 
-        if (match?.vm) {
+        if (matchType === "VM") {
             current.vmAppearances += 1;
 
             if ((a.sets_played ?? 0) > 0) {
@@ -113,7 +155,7 @@ async function fetchPlayers(): Promise<PlayerListItem[]> {
 
         // All Matches (AM + MAM)
 
-        if (match?.am || match?.mam) {
+        if (matchType === "AM" || matchType === "MAM") {
             current.allAppearances += 1;
 
             if ((a.sets_played ?? 0) > 0) {
@@ -171,6 +213,32 @@ export const playersOptions = () =>
         queryFn: fetchPlayers,
     });
 
+export type PlayerMatchStatsSummary = {
+    matchCount: number;
+    totals: Record<string, number>;
+    averages: Record<string, number | null>;
+};
+
+const playerMatchStatFields = [
+    "attack_blocked",
+    "attack_efficiency",
+    "attack_errors",
+    "attack_kill_pct",
+    "attack_kills",
+    "attack_total",
+    "block_points",
+    "break_points",
+    "plus_minus",
+    "points",
+    "reception_errors",
+    "reception_excellent_pct",
+    "reception_positive_pct",
+    "reception_total",
+    "serve_aces",
+    "serve_errors",
+    "serve_total",
+] as const;
+
 export async function fetchPlayer(playerId: number) {
     const { data: player, error } = await supabase
         .from("players")
@@ -194,15 +262,69 @@ export async function fetchPlayer(playerId: number) {
         vm,
         am,
         mam
+      ),
+      player_match_stats(
+        attack_blocked,
+        attack_efficiency,
+        attack_errors,
+        attack_kill_pct,
+        attack_kills,
+        attack_total,
+        block_points,
+        break_points,
+        plus_minus,
+        points,
+        reception_errors,
+        reception_excellent_pct,
+        reception_positive_pct,
+        reception_total,
+        serve_aces,
+        serve_errors,
+        serve_total
       )
     `)
         .eq("player_id", playerId);
 
     if (appError) throw appError;
 
+    const rawStats = (appearances ?? [])
+        .map((a: any) => {
+            const stats = Array.isArray(a.player_match_stats)
+                ? a.player_match_stats[0]
+                : a.player_match_stats;
+            return stats ?? null;
+        })
+        .filter(Boolean);
+
+    const totals: Record<string, number> = {};
+    const averages: Record<string, number | null> = {};
+
+    for (const key of playerMatchStatFields) {
+        let sum = 0;
+        let count = 0;
+
+        for (const stats of rawStats) {
+            const value = stats[key];
+            if (typeof value === "number") {
+                sum += value;
+                count += 1;
+            }
+        }
+
+        totals[key] = sum;
+        averages[key] = count > 0 ? sum / count : null;
+    }
+
+    const statsSummary: PlayerMatchStatsSummary = {
+        matchCount: rawStats.length,
+        totals,
+        averages,
+    };
+
     return {
         player,
         appearances: appearances ?? [],
+        statsSummary,
     };
 }
 

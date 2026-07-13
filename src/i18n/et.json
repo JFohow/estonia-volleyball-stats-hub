@@ -83,7 +83,47 @@
         "national_team_debut": "Rahvuskoondise debüüt",
         "last_match": "Viimane mäng",
         "games": "Mängud",
-        "pos": "Pos"
+        "pos": "Pos",
+        "statsOverviewTitle": "Statistika ülevaade",
+        "statsOverviewSubtitle": "Salvestatud mängude statistika keskmised ja totalsummad.",
+        "matchesWithStats": "mänge statistikaandmetega",
+        "totalMatchesWithStats": "kokku statistikaandmetega mänge",
+        "statsFilter": {
+            "year": "Aasta",
+            "allYears": "Kõik aastad",
+            "competition": "Võistlus",
+            "allCompetitions": "Kõik võistlused",
+            "opponent": "Vastane",
+            "allOpponents": "Kõik vastased"
+        },
+        "statsField": {
+            "stat": "Stat",
+            "average": "Keskmine",
+            "total": "Kokku",
+            "attackBlocked": "Rünnak blokeeritud",
+            "attackEfficiency": "Rünnaku efektiivsus",
+            "attackErrors": "Rünnaku vead",
+            "attackKillPct": "Tapmiste %",
+            "attackKills": "Tapmised",
+            "attackTotal": "Rünnakute arv",
+            "blockPoints": "Blokipunktid",
+            "breakPoints": "Murrupunktid",
+            "plusMinus": "+/-",
+            "points": "Punktid",
+            "receptionErrors": "Vastuvõtu vead",
+            "receptionExcellentPct": "Suurepärane vastuvõtt %",
+            "receptionPositivePct": "Positiivne vastuvõtt %",
+            "receptionTotal": "Vastuvõtud",
+            "serveAces": "Serviässad",
+            "serveErrors": "Servivead",
+            "serveTotal": "Servide arv"
+        },
+        "statsGroup": {
+            "serve": "Serv",
+            "reception": "Vastuvõtt",
+            "attack": "Rünnak",
+            "blocks": "Blokid"
+        }
     },
     "coaches": {
         "title": "Peatreenerid",
