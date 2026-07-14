@@ -53,10 +53,12 @@
         "officialMatches": "Official Matches",
         "allMatches": "All Matches",
         "searchPlaceholder": "Search opponent, competition, city...",
-        "allTypes": "All",
-        "vm": "VM",
-        "am": "AM",
-        "mam": "MAM"
+        "date": "Date",
+        "opponent": "Opponent",
+        "score": "Score",
+        "competition": "Competition",
+        "city": "City",
+        "setScore": "Set score"
     },
     "players": {
         "title": "Players",

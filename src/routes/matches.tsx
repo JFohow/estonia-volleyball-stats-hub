@@ -52,30 +52,13 @@ function MatchesError({ error, reset }: { error: Error; reset: () => void }) {
     </div>
   );
 }
-const typeStyles: Record<"VM" | "AM" | "MAM", string> = {
-  VM: "bg-green-100 text-green-700",
-  AM: "bg-slate-100 text-slate-600",
-  MAM: "bg-amber-100 text-amber-700",
-};
-const typeLabels: Record<"VM" | "AM" | "MAM", string> = {
-  VM: "VM",
-  AM: "AM",
-  MAM: "MAM",
-};
-
-function getMatchType(match: MatchListItem): "VM" | "AM" | "MAM" {
-  if (match.vm) return "VM";
-  if (match.am) return "AM";
-  return "MAM";
-}
-
 function MatchesPage() {
   const { data: matches } = useSuspenseQuery(allMatchesOptions());
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [search, setSearch] = useState("");
-  const [type, setType] = useState<"ALL" | "VM" | "AM" | "MAM">("ALL");
-  const [result, setResult] = useState<"ALL" | "W" | "L">("ALL");
+  const [matchType, setMatchType] = useState<"ALL" | "OFFICIAL" | "COMPETITIVE">("OFFICIAL");
   const [year, setYear] = useState("ALL");
+  const currentLanguage = i18n.language?.startsWith("et") ? "et" : "en";
 
   const years = useMemo(
     () =>
@@ -88,19 +71,24 @@ function MatchesPage() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return matches.filter((m) => {
-      if (type !== "ALL" && getMatchType(m) !== type) return false;
-      if (result === "W" && !(m.estonia_sets > m.opponent_sets)) return false;
-      if (result === "L" && !(m.estonia_sets < m.opponent_sets)) return false;
-      if (year !== "ALL" && !m.match_date.startsWith(year))
-        return false;
+      if (matchType === "OFFICIAL" && !m.am) return false;
+      if (matchType === "COMPETITIVE" && !m.vm) return false;
+      if (year !== "ALL" && !m.match_date.startsWith(year)) return false;
       if (!q) return true;
+
+      const opponent =
+        currentLanguage === "et" ? m.opponent : m.opponent_en ?? m.opponent;
+      const competition =
+        currentLanguage === "et" ? m.competition : m.competition_en ?? m.competition;
+      const city = currentLanguage === "et" ? m.city : m.city_en ?? m.city;
+
       return (
-        m.opponent.toLowerCase().includes(q) ||
-        (m.competition ?? "").toLowerCase().includes(q) ||
-        (m.city ?? "").toLowerCase().includes(q)
+        opponent.toLowerCase().includes(q) ||
+        (competition ?? "").toLowerCase().includes(q) ||
+        (city ?? "").toLowerCase().includes(q)
       );
     });
-  }, [matches, search, type, result, year]);
+  }, [matches, search, matchType, year, currentLanguage]);
 
   const vmMatches = matches.filter((m) => m.vm);
   const vmWins = vmMatches.filter(
@@ -175,7 +163,7 @@ function MatchesPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-6 py-10">
+      <main className="mx-auto w-full max-w-[1400px] px-6 py-10">
         <div className="mb-6 flex flex-wrap items-center gap-3">
           <input
             value={search}
@@ -199,22 +187,12 @@ function MatchesPage() {
           </select>
 
           <Segmented
-            value={type}
-            onChange={(v) => setType(v as typeof type)}
+            value={matchType}
+            onChange={(v) => setMatchType(v as typeof matchType)}
             options={[
-              { value: "ALL", label: t("matches.allTypes") },
-              { value: "VM", label: t("matches.vm") },
-              { value: "AM", label: t("matches.am") },
-              { value: "MAM", label: t("matches.mam") },
-            ]}
-          />
-          <Segmented
-            value={result}
-            onChange={(v) => setResult(v as typeof result)}
-            options={[
-              { value: "ALL", label: t("matches.allResults") },
-              { value: "W", label: t("matches.wins") },
-              { value: "L", label: t("matches.losses") },
+              { value: "OFFICIAL", label: t("matches.officialMatches") },
+              { value: "COMPETITIVE", label: t("matches.competitiveMatches") },
+              { value: "ALL", label: t("matches.allMatches") },
             ]}
           />
 
@@ -224,13 +202,28 @@ function MatchesPage() {
         </div>
 
         <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-          <div className="hidden grid-cols-12 gap-3 border-b border-slate-100 bg-slate-50 px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 md:grid">
-            <div className="col-span-2">Date</div>
-            <div className="col-span-3">Opponent</div>
-            <div className="col-span-1 text-center">Score</div>
-            <div className="col-span-3">Competition</div>
-            <div className="col-span-2">City</div>
-            <div className="col-span-1 text-right">Type</div>
+          <div className="hidden grid-cols-12 gap-3 border-b border-slate-200 bg-slate-50 px-6 py-4 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500 md:grid">
+
+            <div className="col-span-2 text-center">
+              {t("matches.date")}
+            </div>
+
+            <div className="col-span-3 text-center">
+              {t("matches.opponent")}
+            </div>
+
+            <div className="col-span-3 text-center">
+              {t("matches.score")}
+            </div>
+
+            <div className="col-span-2 text-center">
+              {t("matches.competition")}
+            </div>
+
+            <div className="col-span-2 text-center">
+              {t("matches.city")}
+            </div>
+
           </div>
           {filtered.length === 0 ? (
             <div className="p-12 text-center">
@@ -319,16 +312,34 @@ function Segmented({
 }
 
 function MatchRow({ match }: { match: MatchListItem }) {
+  const { i18n } = useTranslation();
+  const currentLanguage = i18n.language?.startsWith("et") ? "et" : "en";
   const resultStyle =
     match.estonia_sets > match.opponent_sets
-      ? "bg-estonia-blue/10 text-estonia-blue"
+      ? "text-estonia-blue"
       : match.estonia_sets === match.opponent_sets
-        ? "bg-green-100 text-green-700"
-        : "bg-slate-100 text-red-700";
+        ? "text-green-700"
+        : "text-red-700";
+  const opponent =
+    currentLanguage === "et" ? match.opponent : match.opponent_en ?? match.opponent;
+  const competition =
+    currentLanguage === "et" ? match.competition : match.competition_en ?? match.competition;
+  const city = currentLanguage === "et" ? match.city : match.city_en ?? match.city;
+  const officialSetsPlayed = match.estonia_sets + match.opponent_sets;
+  const officialSetScores = (match.match_sets ?? [])
+    .slice(0, officialSetsPlayed)
+    .map((set) => `${set.estonia_points}:${set.opponent_points}`)
+    .join(" • ");
+  const additionalSetScores = (match.match_sets ?? [])
+    .slice(officialSetsPlayed)
+    .map((set) => `${set.estonia_points}:${set.opponent_points}`)
+    .join(" • ");
+  const detailParts = [match.notes, additionalSetScores ? `(${additionalSetScores})` : null].filter(Boolean);
+  const detailLine = detailParts.join(" • ");
 
   return (
-    <li className="grid grid-cols-1 gap-2 px-6 py-4 transition-colors hover:bg-slate-50 md:grid-cols-12 md:items-center md:gap-3">
-      <div className="col-span-2 text-sm text-slate-500">
+    <li className={`grid grid-cols-1 gap-2 px-6 py-2.5 transition-colors hover:bg-slate-50 md:grid-cols-12 md:items-center md:gap-3 ${match.am ? "bg-white" : "bg-slate-100"}`}>
+      <div className="col-span-2 text-center text-slate-500">
         {new Date(match.match_date).toLocaleDateString("en-GB", {
           day: "2-digit",
           month: "short",
@@ -336,42 +347,45 @@ function MatchRow({ match }: { match: MatchListItem }) {
         })}
       </div>
 
-      <div className="col-span-3 flex items-center gap-2 text-sm font-semibold uppercase">
-        <span className="text-slate-900">Estonia</span>
-        <span className="text-slate-300">vs</span>
-        <span className="text-slate-900">{match.opponent}</span>
-      </div>
+      <div className="col-span-3 flex items-center justify-center gap-2 text-center">
+        <span className="text-xs uppercase tracking-widest text-slate-400">
+          VS
+        </span>
 
-      <div className="col-span-1 text-center">
-        <span
-          className={`inline-block rounded px-2 py-0.5 font-display text-base ${resultStyle}`}
-        >
-          {match.estonia_sets}–{match.opponent_sets}
+        <span className="font-display text-2xl uppercase text-slate-900">
+          {opponent || "—"}
         </span>
       </div>
 
-      <div className="col-span-3 truncate text-sm text-slate-600">
-        {match.competition ?? "—"}
-      </div>
-
-      <div className="col-span-2 truncate text-sm text-slate-500">
-        {match.city ?? "—"}
-      </div>
-
-      <div className="col-span-1 flex justify-start md:justify-end">
-        <span
-          className={`rounded px-2 py-0.5 text-[10px] font-bold ${typeStyles[getMatchType(match)]
-            }`}
+      <div className="col-span-3 flex justify-center">
+        <div
+          className={`min-w-[110px] rounded-lg px-3 py-2 text-center ${resultStyle}`}
         >
-          {typeLabels[getMatchType(match)]}
-        </span>
-      </div>
+          <div className="font-display text-3xl leading-none">
+            {match.estonia_sets}–{match.opponent_sets}
+          </div>
 
-      {match.notes && (
-        <div className="col-span-12 border-l-2 border-estonia-blue pl-3 text-sm italic text-slate-500">
-          {match.notes}
+          {officialSetScores ? (
+            <div className="mt-1 text-xs font-medium text-slate-700">
+              ({officialSetScores})
+            </div>
+          ) : null}
         </div>
-      )}
+      </div>
+
+      <div className="col-span-2 text-center text-sm font-medium text-slate-700">
+        {competition ?? "—"}
+      </div>
+
+      <div className="col-span-2 text-center text-sm text-slate-500">
+        {city ?? "—"}
+      </div>
+
+      {detailLine ? (
+        <div className="col-span-12 mt-1 rounded-md border-l-4 border-estonia-blue bg-blue-50 px-3 py-2 text-sm text-slate-600">
+          {detailLine}
+        </div>
+      ) : null}
     </li>
   );
 }

@@ -53,10 +53,12 @@
         "officialMatches": "Ametlikud mängud",
         "allMatches": "Kõik mängud",
         "searchPlaceholder": "Otsi vastast, võistlust või linna...",
-        "allTypes": "Kõik",
-        "vm": "VM",
-        "am": "AM",
-        "mam": "MAM"
+        "date": "Kuupäev",
+        "opponent": "Vastane",
+        "score": "Tulemus",
+        "competition": "Võistlus",
+        "city": "Linn",
+        "setScore": "Geimide tulemus"
     },
     "players": {
         "title": "Mängijad",
