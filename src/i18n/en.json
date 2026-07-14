@@ -58,7 +58,8 @@
         "score": "Score",
         "competition": "Competition",
         "city": "City",
-        "setScore": "Set score"
+        "setScore": "Set score",
+        "statistics": "Statistics"
     },
     "players": {
         "title": "Players",

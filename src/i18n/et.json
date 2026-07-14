@@ -58,7 +58,8 @@
         "score": "Tulemus",
         "competition": "Võistlus",
         "city": "Linn",
-        "setScore": "Geimide tulemus"
+        "setScore": "Geimide tulemus",
+        "statistics": "Statistika"
     },
     "players": {
         "title": "Mängijad",

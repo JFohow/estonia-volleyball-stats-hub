@@ -3,6 +3,7 @@ import { useSuspenseQuery, useQueryErrorResetBoundary } from "@tanstack/react-qu
 import { useMemo, useState } from "react";
 import { allMatchesOptions, type MatchListItem } from "@/lib/matches.queries";
 import { useTranslation } from "react-i18next";
+import { FileText } from "lucide-react";
 
 export const Route = createFileRoute("/matches")({
   head: () => ({
@@ -202,7 +203,7 @@ function MatchesPage() {
         </div>
 
         <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-          <div className="hidden grid-cols-12 gap-3 border-b border-slate-200 bg-slate-50 px-6 py-4 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500 md:grid">
+          <div className="hidden grid-cols-13 gap-3 border-b border-slate-200 bg-slate-50 px-6 py-4 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500 md:grid">
 
             <div className="col-span-2 text-center">
               {t("matches.date")}
@@ -224,6 +225,10 @@ function MatchesPage() {
               {t("matches.city")}
             </div>
 
+            <div className="col-span-1 text-center">
+              {t("matches.statistics")}
+            </div>
+
           </div>
           {filtered.length === 0 ? (
             <div className="p-12 text-center">
@@ -233,7 +238,7 @@ function MatchesPage() {
           ) : (
             <ul className="divide-y divide-slate-100">
               {filtered.map((m) => (
-                <MatchRow key={m.match_id} match={m} />
+                <MatchRow key={m.match_id} match={m} matchType={matchType} />
               ))}
             </ul>
           )}
@@ -311,7 +316,7 @@ function Segmented({
   );
 }
 
-function MatchRow({ match }: { match: MatchListItem }) {
+function MatchRow({ match, matchType }: { match: MatchListItem; matchType: "ALL" | "OFFICIAL" | "COMPETITIVE"; }) {
   const { i18n } = useTranslation();
   const currentLanguage = i18n.language?.startsWith("et") ? "et" : "en";
   const resultStyle =
@@ -327,18 +332,24 @@ function MatchRow({ match }: { match: MatchListItem }) {
   const city = currentLanguage === "et" ? match.city : match.city_en ?? match.city;
   const officialSetsPlayed = match.estonia_sets + match.opponent_sets;
   const officialSetScores = (match.match_sets ?? [])
-    .slice(0, officialSetsPlayed)
+    .filter((set) => set.set_number <= 5)
     .map((set) => `${set.estonia_points}:${set.opponent_points}`)
     .join(" • ");
   const additionalSetScores = (match.match_sets ?? [])
-    .slice(officialSetsPlayed)
+    .filter((set) => set.set_number > 5)
     .map((set) => `${set.estonia_points}:${set.opponent_points}`)
     .join(" • ");
-  const detailParts = [match.notes, additionalSetScores ? `(${additionalSetScores})` : null].filter(Boolean);
-  const detailLine = detailParts.join(" • ");
+  const hasAdditionalSets =
+    match.has_additional_sets &&
+    additionalSetScores !== "";
+  const detailLine = match.notes;
+
 
   return (
-    <li className={`grid grid-cols-1 gap-2 px-6 py-2.5 transition-colors hover:bg-slate-50 md:grid-cols-12 md:items-center md:gap-3 ${match.am ? "bg-white" : "bg-slate-100"}`}>
+    <li
+      className={`grid grid-cols-1 gap-2 px-6 py-2 transition-colors hover:bg-slate-50 md:grid-cols-13 md:items-center md:gap-3 ${match.am ? "bg-white" : "bg-slate-100"
+        }`}
+    >
       <div className="col-span-2 text-center text-slate-500">
         {new Date(match.match_date).toLocaleDateString("en-GB", {
           day: "2-digit",
@@ -348,28 +359,34 @@ function MatchRow({ match }: { match: MatchListItem }) {
       </div>
 
       <div className="col-span-3 flex items-center justify-center gap-2 text-center">
-        <span className="text-xs uppercase tracking-widest text-slate-400">
-          VS
-        </span>
 
         <span className="font-display text-2xl uppercase text-slate-900">
           {opponent || "—"}
         </span>
       </div>
 
-      <div className="col-span-3 flex justify-center">
+      <div className="col-span-3 flex items-center justify-center">
         <div
-          className={`min-w-[110px] rounded-lg px-3 py-2 text-center ${resultStyle}`}
+          className={`min-w-[110px] rounded-lg px-3 py-1 text-center ${resultStyle}`}
         >
-          <div className="font-display text-3xl leading-none">
+          <div className="font-display text-2xl leading-none">
             {match.estonia_sets}–{match.opponent_sets}
           </div>
 
           {officialSetScores ? (
             <div className="mt-1 text-xs font-medium text-slate-700">
-              ({officialSetScores})
+              {officialSetScores}
             </div>
           ) : null}
+
+          {matchType === "ALL" && hasAdditionalSets && (
+            <div className="mt-1 text-center text-[10px] italic text-amber-700">
+              {currentLanguage === "et"
+                ? `${match.additional_sets_count} lisageimi: ${additionalSetScores}`
+                : `${match.additional_sets_count} additional sets: ${additionalSetScores}`}
+            </div>
+          )}
+
         </div>
       </div>
 
@@ -381,11 +398,27 @@ function MatchRow({ match }: { match: MatchListItem }) {
         {city ?? "—"}
       </div>
 
-      {detailLine ? (
-        <div className="col-span-12 mt-1 rounded-md border-l-4 border-estonia-blue bg-blue-50 px-3 py-2 text-sm text-slate-600">
-          {detailLine}
-        </div>
-      ) : null}
-    </li>
+      <div className="col-span-1 flex justify-center">
+        {false ? (
+          <a
+            href={`/stats/${match.match_id}`}
+            className="text-red-600 transition-colors hover:text-red-700"
+          >
+            <FileText className="h-5 w-5 text-red-600" />
+          </a>
+        ) : (
+          <FileText className="h-5 w-5 text-slate-300" />
+        )}
+      </div>
+
+      {
+        detailLine ? (
+          <div className="col-span-13 border-l-4 border-estonia-blue bg-blue-50 px-3 py-1 text-sm text-slate-600">
+            {detailLine}
+          </div>
+        ) : null
+      }
+
+    </li >
   );
 }
