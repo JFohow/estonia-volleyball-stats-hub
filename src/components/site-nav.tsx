@@ -50,6 +50,22 @@ export function SiteNav() {
           >
             {t("nav.coaches")}
           </Link>
+
+          <Link
+            to="/game-highs"
+            className="transition-colors hover:text-estonia-blue"
+            activeProps={{ className: "text-estonia-blue" }}
+          >
+            {t("nav.gameHighs")}
+          </Link>
+
+          <Link
+            to="/total-top"
+            className="transition-colors hover:text-estonia-blue"
+            activeProps={{ className: "text-estonia-blue" }}
+          >
+            {t("nav.totalTop")}
+          </Link>
         </div>
 
 

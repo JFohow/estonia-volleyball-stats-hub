@@ -3,8 +3,66 @@
         "home": "Home",
         "matches": "Matches",
         "players": "Players",
-        "coaches": "Coaches"
+        "coaches": "Coaches",
+        "gameHighs": "Game Highs",
+        "totalTop": "Total TOP"
     },
+    "gameHighs": {
+        "title": "Game Highs",
+        "subtitle": "Individual game highs from Estonia Men's National Volleyball Team matches.",
+        "positions": {
+            "all": "All positions"
+        },
+        "table": {
+            "name": "Name",
+            "points": "Pts",
+            "opponent": "Opponent",
+            "score": "Game score",
+            "date": "Date",
+            "competition": "Competition",
+            "rank": "#",
+            "value": "Value",
+            "position": "Position",
+            "matchLink": "Match"
+        }
+    },
+    "totalTop": {
+        "title": "Total TOP",
+        "subtitle": "Totals leaderboards for competitive, official, and all matches.",
+        "positions": {
+            "all": "All positions"
+        },
+        "selectStat": "Select metric",
+        "currentStat": "Selected metric",
+        "table": {
+            "rank": "#",
+            "name": "Name",
+            "position": "Position",
+            "totals": "Totals",
+            "perGame": "Per game",
+            "points": "Points",
+            "appearances": "Appearances",
+            "games": "Games",
+            "sets": "Sets",
+            "bench": "Bench",
+            "pointsPerGame": "PTS / GP",
+            "efficiencyTop": "Eff Max",
+            "efficiencyBottom": "Eff Min"
+        }
+    },
+    "categories": {
+        "points": "Most Points",
+        "serveAces": "Serve Aces",
+        "attackKills": "Attack Kills",
+        "blockPoints": "Block Points"
+    },
+    "categoryDescriptions": {
+        "points": "Highest points in a single game.",
+        "serveAces": "Best single-game serve ace totals.",
+        "attackKills": "Highest kill totals during a match.",
+        "blockPoints": "Most block points in one game."
+    },
+    "currentCategory": "Current category",
     "common": {
         "search": "Search",
         "year": "Year",

@@ -3,8 +3,66 @@
         "home": "Avaleht",
         "matches": "Mängud",
         "players": "Mängijad",
-        "coaches": "Peatreenerid"
+        "coaches": "Peatreenerid",
+        "gameHighs": "Mängu maksimumid",
+        "totalTop": "Total TOP"
     },
+    "gameHighs": {
+        "title": "Mängu maksimumid",
+        "subtitle": "Eesti meeste võrkpallikoondise mängude individuaalsed maksimumid.",
+        "positions": {
+            "all": "Kõik positsioonid"
+        },
+        "table": {
+            "name": "Nimi",
+            "points": "Punkte",
+            "opponent": "Vastane",
+            "score": "Mängu tulemus",
+            "date": "Kuupäev",
+            "competition": "Võistlus",
+            "rank": "#",
+            "value": "Tulemus",
+            "position": "Positsioon",
+            "matchLink": "Mäng"
+        }
+    },
+    "totalTop": {
+        "title": "Total TOP",
+        "subtitle": "Kokkuvõtlikud tulemused võistlus-, ametlikel- ja kõigil mängudel.",
+        "positions": {
+            "all": "Kõik positsioonid"
+        },
+        "selectStat": "Vali mõõdik",
+        "currentStat": "Valitud mõõdik",
+        "table": {
+            "rank": "#",
+            "name": "Nimi",
+            "position": "Positsioon",
+            "totals": "Kokku",
+            "perGame": "Mängu kohta",
+            "points": "Punkte",
+            "appearances": "Osalemised",
+            "games": "Mängud",
+            "sets": "Geimid",
+            "bench": "Pingil",
+            "pointsPerGame": "P/PT",
+            "efficiencyTop": "Eff Max",
+            "efficiencyBottom": "Eff Min"
+        }
+    },
+    "categories": {
+        "points": "Kõige rohkem punkte",
+        "serveAces": "Serviässad",
+        "attackKills": "Ründetapmised",
+        "blockPoints": "Blokipunktid"
+    },
+    "categoryDescriptions": {
+        "points": "Kõige rohkem punkte ühes mängus.",
+        "serveAces": "Kõige rohkem serviässä mängus.",
+        "attackKills": "Kõige rohkem ründetapmisi mängus.",
+        "blockPoints": "Kõige rohkem blokipunkte ühes mängus."
+    },
+    "currentCategory": "Valitud kategooria",
     "common": {
         "search": "Otsi",
         "year": "Aasta",
