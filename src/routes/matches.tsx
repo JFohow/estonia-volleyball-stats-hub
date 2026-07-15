@@ -178,7 +178,7 @@ function MatchesPage() {
             onChange={(e) => setYear(e.target.value)}
             className="h-10 rounded-md border border-slate-200 bg-white px-3 text-xs font-semibold uppercase tracking-wide text-slate-500 shadow-sm"
           >
-            <option value="ALL">Year</option>
+            <option value="ALL">{t("matches.year")}</option>
 
             {years.map((y) => (
               <option key={y} value={y}>
@@ -317,7 +317,7 @@ function Segmented({
 }
 
 function MatchRow({ match, matchType }: { match: MatchListItem; matchType: "ALL" | "OFFICIAL" | "COMPETITIVE"; }) {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const currentLanguage = i18n.language?.startsWith("et") ? "et" : "en";
   const resultStyle =
     match.estonia_sets > match.opponent_sets
@@ -381,9 +381,13 @@ function MatchRow({ match, matchType }: { match: MatchListItem; matchType: "ALL"
 
           {matchType === "ALL" && hasAdditionalSets && (
             <div className="mt-1 text-center text-[10px] italic text-amber-700">
-              {currentLanguage === "et"
-                ? `${match.additional_sets_count} lisageimi: ${additionalSetScores}`
-                : `${match.additional_sets_count} additional sets: ${additionalSetScores}`}
+              <span className="font-medium">
+                {t("matches.additional_set", {
+                  count: match.additional_sets_count,
+                })}
+              </span>
+              {": "}
+              <span>{additionalSetScores}</span>
             </div>
           )}
 
@@ -398,22 +402,29 @@ function MatchRow({ match, matchType }: { match: MatchListItem; matchType: "ALL"
         {city ?? "—"}
       </div>
 
-      <div className="col-span-1 flex justify-center">
-        {false ? (
+      <div className="col-span-1 flex justify-center gap-1">
+        <a
+          href={`/matches/${match.match_id}/stats`}
+          title={t("matches.official_match")}
+          className="text-red-600 transition-colors hover:text-red-700"
+        >
+          <FileText className="h-5 w-5" />
+        </a>
+
+        {matchType === "ALL" && match.has_additional_sets && (
           <a
-            href={`/stats/${match.match_id}`}
-            className="text-red-600 transition-colors hover:text-red-700"
+            href={`/matches/${match.match_id}/stats-all`}
+            title={t("matches.match_with_additional_sets")}
+            className="text-amber-500 transition-colors hover:text-amber-600"
           >
-            <FileText className="h-5 w-5 text-red-600" />
+            <FileText className="h-5 w-5" />
           </a>
-        ) : (
-          <FileText className="h-5 w-5 text-slate-300" />
         )}
-      </div>
+      </div >
 
       {
         detailLine ? (
-          <div className="col-span-13 border-l-4 border-estonia-blue bg-blue-50 px-3 py-1 text-sm text-slate-600">
+          <div className="col-span-13 border-l-4 border-estonia-blue bg-blue-50 px-3 py-1 text-sm text-slate-600" >
             {detailLine}
           </div>
         ) : null

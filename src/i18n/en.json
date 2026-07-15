@@ -59,7 +59,12 @@
         "competition": "Competition",
         "city": "City",
         "setScore": "Set score",
-        "statistics": "Statistics"
+        "statistics": "Statistics",
+        "additional_set_one": "{{count}} additional set",
+        "additional_set_other": "{{count}} additional sets",
+        "year": "Year",
+        "official_match": "Official Match",
+        "match_with_additional_sets": "Match + Additional Sets"
     },
     "players": {
         "title": "Players",

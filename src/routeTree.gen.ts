@@ -15,6 +15,8 @@ import { Route as CoachesRouteImport } from './routes/coaches'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PlayersIndexRouteImport } from './routes/players/index'
 import { Route as PlayersPlayerIdRouteImport } from './routes/players/$playerId'
+import { Route as MatchesMatchIdStatsAllRouteImport } from './routes/matches/$matchId.stats-all'
+import { Route as MatchesMatchIdStatsRouteImport } from './routes/matches/$matchId.stats'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
@@ -46,31 +48,47 @@ const PlayersPlayerIdRoute = PlayersPlayerIdRouteImport.update({
   path: '/players/$playerId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MatchesMatchIdStatsAllRoute = MatchesMatchIdStatsAllRouteImport.update({
+  id: '/$matchId/stats-all',
+  path: '/$matchId/stats-all',
+  getParentRoute: () => MatchesRoute,
+} as any)
+const MatchesMatchIdStatsRoute = MatchesMatchIdStatsRouteImport.update({
+  id: '/$matchId/stats',
+  path: '/$matchId/stats',
+  getParentRoute: () => MatchesRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/coaches': typeof CoachesRoute
-  '/matches': typeof MatchesRoute
+  '/matches': typeof MatchesRouteWithChildren
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/players/$playerId': typeof PlayersPlayerIdRoute
   '/players/': typeof PlayersIndexRoute
+  '/matches/$matchId/stats': typeof MatchesMatchIdStatsRoute
+  '/matches/$matchId/stats-all': typeof MatchesMatchIdStatsAllRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/coaches': typeof CoachesRoute
-  '/matches': typeof MatchesRoute
+  '/matches': typeof MatchesRouteWithChildren
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/players/$playerId': typeof PlayersPlayerIdRoute
   '/players': typeof PlayersIndexRoute
+  '/matches/$matchId/stats': typeof MatchesMatchIdStatsRoute
+  '/matches/$matchId/stats-all': typeof MatchesMatchIdStatsAllRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/coaches': typeof CoachesRoute
-  '/matches': typeof MatchesRoute
+  '/matches': typeof MatchesRouteWithChildren
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/players/$playerId': typeof PlayersPlayerIdRoute
   '/players/': typeof PlayersIndexRoute
+  '/matches/$matchId/stats': typeof MatchesMatchIdStatsRoute
+  '/matches/$matchId/stats-all': typeof MatchesMatchIdStatsAllRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -81,6 +99,8 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/players/$playerId'
     | '/players/'
+    | '/matches/$matchId/stats'
+    | '/matches/$matchId/stats-all'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -89,6 +109,8 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/players/$playerId'
     | '/players'
+    | '/matches/$matchId/stats'
+    | '/matches/$matchId/stats-all'
   id:
     | '__root__'
     | '/'
@@ -97,12 +119,14 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/players/$playerId'
     | '/players/'
+    | '/matches/$matchId/stats'
+    | '/matches/$matchId/stats-all'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CoachesRoute: typeof CoachesRoute
-  MatchesRoute: typeof MatchesRoute
+  MatchesRoute: typeof MatchesRouteWithChildren
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   PlayersPlayerIdRoute: typeof PlayersPlayerIdRoute
   PlayersIndexRoute: typeof PlayersIndexRoute
@@ -152,13 +176,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PlayersPlayerIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/matches/$matchId/stats-all': {
+      id: '/matches/$matchId/stats-all'
+      path: '/$matchId/stats-all'
+      fullPath: '/matches/$matchId/stats-all'
+      preLoaderRoute: typeof MatchesMatchIdStatsAllRouteImport
+      parentRoute: typeof MatchesRoute
+    }
+    '/matches/$matchId/stats': {
+      id: '/matches/$matchId/stats'
+      path: '/$matchId/stats'
+      fullPath: '/matches/$matchId/stats'
+      preLoaderRoute: typeof MatchesMatchIdStatsRouteImport
+      parentRoute: typeof MatchesRoute
+    }
   }
 }
+
+interface MatchesRouteChildren {
+  MatchesMatchIdStatsRoute: typeof MatchesMatchIdStatsRoute
+  MatchesMatchIdStatsAllRoute: typeof MatchesMatchIdStatsAllRoute
+}
+
+const MatchesRouteChildren: MatchesRouteChildren = {
+  MatchesMatchIdStatsRoute: MatchesMatchIdStatsRoute,
+  MatchesMatchIdStatsAllRoute: MatchesMatchIdStatsAllRoute,
+}
+
+const MatchesRouteWithChildren =
+  MatchesRoute._addFileChildren(MatchesRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CoachesRoute: CoachesRoute,
-  MatchesRoute: MatchesRoute,
+  MatchesRoute: MatchesRouteWithChildren,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   PlayersPlayerIdRoute: PlayersPlayerIdRoute,
   PlayersIndexRoute: PlayersIndexRoute,

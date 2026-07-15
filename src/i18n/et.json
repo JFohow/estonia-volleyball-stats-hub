@@ -59,7 +59,12 @@
         "competition": "Võistlus",
         "city": "Linn",
         "setScore": "Geimide tulemus",
-        "statistics": "Statistika"
+        "statistics": "Statistika",
+        "additional_set_one": "{{count}} lisageim",
+        "additional_set_other": "{{count}} lisageimi",
+        "year": "Aasta",
+        "official_match": "Ametlik mäng",
+        "match_with_additional_sets": "Mäng koos lisageimidega"
     },
     "players": {
         "title": "Mängijad",
