@@ -1,9 +1,13 @@
-import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useSuspenseQuery, useQueryErrorResetBoundary } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { allMatchesOptions, type MatchListItem } from "@/lib/matches.queries";
 import { useTranslation } from "react-i18next";
 import { FileText } from "lucide-react";
+import {
+  createFileRoute,
+  useRouter,
+  Outlet,
+} from "@tanstack/react-router";
 
 export const Route = createFileRoute("/matches")({
   head: () => ({
@@ -112,139 +116,143 @@ function MatchesPage() {
   const allLosses = allMatches.length - allWins;
 
   return (
-    <div className="text-slate-900">
-      <header className="bg-estonia-dark px-6 py-12 text-white">
-        <div className="mx-auto max-w-7xl">
-          <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
-            <div>
-              <h1 className="mt-2 font-display text-4xl uppercase italic md:text-5xl">
-                {t("matches.title")}
-              </h1>
+    <>
+      <div className="text-slate-900">
+        <header className="bg-estonia-dark px-6 py-12 text-white">
+          <div className="mx-auto max-w-7xl">
+            <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <h1 className="mt-2 font-display text-4xl uppercase italic md:text-5xl">
+                  {t("matches.title")}
+                </h1>
 
-              <p className="mt-2 max-w-2xl text-sm text-white/60">
-                {t("matches.subtitle")}
-              </p>
-            </div>
+                <p className="mt-2 max-w-2xl text-sm text-white/60">
+                  {t("matches.subtitle")}
+                </p>
+              </div>
 
-            <div className="w-full max-w-xl">
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
-                <div>
+              <div className="w-full max-w-xl">
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
+                  <div>
 
-                  <p className="text-xs leading-relaxed text-white/75">
-                    {t("common.databaseExplanation")}
-                  </p>
+                    <p className="text-xs leading-relaxed text-white/75">
+                      {t("common.databaseExplanation")}
+                    </p>
 
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <div className="mt-8 grid gap-4 md:grid-cols-3">
-            <StatGroup
-              title={t("matches.competitiveMatches")}
-              total={vmMatches.length}
-              wins={vmWins}
-              losses={vmLosses}
+            <div className="mt-8 grid gap-4 md:grid-cols-3">
+              <StatGroup
+                title={t("matches.competitiveMatches")}
+                total={vmMatches.length}
+                wins={vmWins}
+                losses={vmLosses}
+              />
+
+              <StatGroup
+                title={t("matches.officialMatches")}
+                total={amMatches.length}
+                wins={amWins}
+                losses={amLosses}
+              />
+
+              <StatGroup
+                title={t("matches.allMatches")}
+                total={allMatches.length}
+                wins={allWins}
+                losses={allLosses}
+              />
+            </div>
+          </div>
+        </header>
+
+        <main className="mx-auto w-full max-w-[1400px] px-6 py-10">
+          <div className="mb-6 flex flex-wrap items-center gap-3">
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={t("matches.searchPlaceholder")}
+              className="w-full max-w-sm rounded-md border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm outline-none focus:border-estonia-blue"
             />
 
-            <StatGroup
-              title={t("matches.officialMatches")}
-              total={amMatches.length}
-              wins={amWins}
-              losses={amLosses}
-            />
+            <select
+              value={year}
+              onChange={(e) => setYear(e.target.value)}
+              className="h-10 rounded-md border border-slate-200 bg-white px-3 text-xs font-semibold uppercase tracking-wide text-slate-500 shadow-sm"
+            >
+              <option value="ALL">{t("matches.year")}</option>
 
-            <StatGroup
-              title={t("matches.allMatches")}
-              total={allMatches.length}
-              wins={allWins}
-              losses={allLosses}
-            />
-          </div>
-        </div>
-      </header>
-
-      <main className="mx-auto w-full max-w-[1400px] px-6 py-10">
-        <div className="mb-6 flex flex-wrap items-center gap-3">
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={t("matches.searchPlaceholder")}
-            className="w-full max-w-sm rounded-md border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm outline-none focus:border-estonia-blue"
-          />
-
-          <select
-            value={year}
-            onChange={(e) => setYear(e.target.value)}
-            className="h-10 rounded-md border border-slate-200 bg-white px-3 text-xs font-semibold uppercase tracking-wide text-slate-500 shadow-sm"
-          >
-            <option value="ALL">{t("matches.year")}</option>
-
-            {years.map((y) => (
-              <option key={y} value={y}>
-                {y}
-              </option>
-            ))}
-          </select>
-
-          <Segmented
-            value={matchType}
-            onChange={(v) => setMatchType(v as typeof matchType)}
-            options={[
-              { value: "OFFICIAL", label: t("matches.officialMatches") },
-              { value: "COMPETITIVE", label: t("matches.competitiveMatches") },
-              { value: "ALL", label: t("matches.allMatches") },
-            ]}
-          />
-
-          <div className="ml-auto text-xs uppercase tracking-widest text-slate-400">
-            {filtered.length} match{filtered.length === 1 ? "" : "es"}
-          </div>
-        </div>
-
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-          <div className="hidden grid-cols-13 gap-3 border-b border-slate-200 bg-slate-50 px-6 py-4 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500 md:grid">
-
-            <div className="col-span-2 text-center">
-              {t("matches.date")}
-            </div>
-
-            <div className="col-span-3 text-center">
-              {t("matches.opponent")}
-            </div>
-
-            <div className="col-span-3 text-center">
-              {t("matches.score")}
-            </div>
-
-            <div className="col-span-2 text-center">
-              {t("matches.competition")}
-            </div>
-
-            <div className="col-span-2 text-center">
-              {t("matches.city")}
-            </div>
-
-            <div className="col-span-1 text-center">
-              {t("matches.statistics")}
-            </div>
-
-          </div>
-          {filtered.length === 0 ? (
-            <div className="p-12 text-center">
-              <p className="font-display text-xl uppercase italic text-slate-400">{t("common.noResults")}</p>
-              <p className="mt-2 text-sm text-slate-500">Adjust filters or clear the search.</p>
-            </div>
-          ) : (
-            <ul className="divide-y divide-slate-100">
-              {filtered.map((m) => (
-                <MatchRow key={m.match_id} match={m} matchType={matchType} />
+              {years.map((y) => (
+                <option key={y} value={y}>
+                  {y}
+                </option>
               ))}
-            </ul>
-          )}
-        </div>
-      </main>
-    </div >
+            </select>
+
+            <Segmented
+              value={matchType}
+              onChange={(v) => setMatchType(v as typeof matchType)}
+              options={[
+                { value: "OFFICIAL", label: t("matches.officialMatches") },
+                { value: "COMPETITIVE", label: t("matches.competitiveMatches") },
+                { value: "ALL", label: t("matches.allMatches") },
+              ]}
+            />
+
+            <div className="ml-auto text-xs uppercase tracking-widest text-slate-400">
+              {filtered.length} match{filtered.length === 1 ? "" : "es"}
+            </div>
+          </div>
+
+          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div className="hidden grid-cols-13 gap-3 border-b border-slate-200 bg-slate-50 px-6 py-4 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500 md:grid">
+
+              <div className="col-span-2 text-center">
+                {t("matches.date")}
+              </div>
+
+              <div className="col-span-3 text-center">
+                {t("matches.opponent")}
+              </div>
+
+              <div className="col-span-3 text-center">
+                {t("matches.score")}
+              </div>
+
+              <div className="col-span-2 text-center">
+                {t("matches.competition")}
+              </div>
+
+              <div className="col-span-2 text-center">
+                {t("matches.city")}
+              </div>
+
+              <div className="col-span-1 text-center">
+                {t("matches.statistics")}
+              </div>
+
+            </div>
+            {filtered.length === 0 ? (
+              <div className="p-12 text-center">
+                <p className="font-display text-xl uppercase italic text-slate-400">{t("common.noResults")}</p>
+                <p className="mt-2 text-sm text-slate-500">Adjust filters or clear the search.</p>
+              </div>
+            ) : (
+              <ul className="divide-y divide-slate-100">
+                {filtered.map((m) => (
+                  <MatchRow key={m.match_id} match={m} matchType={matchType} />
+                ))}
+              </ul>
+            )}
+          </div>
+        </main>
+      </div>
+
+      <Outlet />
+    </>
   );
 }
 
@@ -404,7 +412,7 @@ function MatchRow({ match, matchType }: { match: MatchListItem; matchType: "ALL"
 
       <div className="col-span-1 flex justify-center gap-1">
         <a
-          href={`/matches/${match.match_id}/stats`}
+          href={`/matches/${match.match_id}`}
           title={t("matches.official_match")}
           className="text-red-600 transition-colors hover:text-red-700"
         >
@@ -413,7 +421,7 @@ function MatchRow({ match, matchType }: { match: MatchListItem; matchType: "ALL"
 
         {matchType === "ALL" && match.has_additional_sets && (
           <a
-            href={`/matches/${match.match_id}/stats-all`}
+            href={`/matches/${match.match_id}-all`}
             title={t("matches.match_with_additional_sets")}
             className="text-amber-500 transition-colors hover:text-amber-600"
           >

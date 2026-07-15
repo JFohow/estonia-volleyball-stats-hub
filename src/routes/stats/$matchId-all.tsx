@@ -1,16 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-export const Route = createFileRoute("/matches/$matchId/stats")({
-    component: MatchStatsPage,
+export const Route = createFileRoute("/stats/$matchId-all")({
+    component: MatchStatsAllPage,
 });
 
-function MatchStatsPage() {
+function MatchStatsAllPage() {
     const { matchId } = Route.useParams();
 
     return (
         <div className="mx-auto max-w-6xl px-6 py-12">
             <h1 className="font-display text-4xl uppercase italic">
-                Match Statistics
+                Match Statistics + Additional Sets
             </h1>
 
             <p className="mt-4 text-slate-500">
