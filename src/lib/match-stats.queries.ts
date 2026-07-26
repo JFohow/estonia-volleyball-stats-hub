@@ -7,12 +7,51 @@ export type MatchDetails = Awaited<
     >
 >;
 
+export type PlayerMatchStats = {
+    appearance_id: number;
+    player_id: number;
+    shirt_number: number | null;
+    sets_played: number | null;
+    on_the_bench: boolean;
+    players: {
+        player_id: number;
+        first_name: string;
+        last_name: string;
+        position: string | null;
+        photo_url: string | null;
+    };
+    player_match_stats: Array<{
+        points: number | null;
+        block_points: number | null;
+        plus_minus: number | null;
+        serve_total: number | null;
+        serve_aces: number | null;
+        serve_errors: number | null;
+        reception_total: number | null;
+        reception_errors: number | null;
+        reception_positive_pct: number | null;
+        reception_excellent_pct: number | null;
+        attack_total: number | null;
+        attack_errors: number | null;
+        attack_blocked: number | null;
+        attack_efficiency: number | null;
+        attack_kills: number | null;
+        attack_kill_pct: number | null;
+        break_points: number | null;
+    }>;
+};
+
+export type MatchDetailsWithPlayers = {
+    match: any;
+    players: PlayerMatchStats[];
+};
+
 export function matchOptions(matchId: number) {
     return queryOptions({
         queryKey: ["match-stats", matchId],
 
         queryFn: async () => {
-            const { data, error } = await supabase
+            const { data: match, error: matchError } = await supabase
                 .from("matches")
                 .select(`
           *,
@@ -23,11 +62,56 @@ export function matchOptions(matchId: number) {
                 .eq("match_id", matchId)
                 .single();
 
-            if (error) {
-                throw error;
+            if (matchError) {
+                throw matchError;
             }
 
-            return data;
+            const { data: appearances, error: appearanceError } = await supabase
+                .from("appearances")
+                .select(`
+          appearance_id,
+          player_id,
+          shirt_number,
+          sets_played,
+          on_the_bench,
+          players (
+            player_id,
+            first_name,
+            last_name,
+            position,
+            photo_url
+          ),
+          player_match_stats (
+            points,
+            block_points,
+            plus_minus,
+            serve_total,
+            serve_aces,
+            serve_errors,
+            reception_total,
+            reception_errors,
+            reception_positive_pct,
+            reception_excellent_pct,
+            attack_total,
+            attack_errors,
+            attack_blocked,
+            attack_efficiency,
+            attack_kills,
+            attack_kill_pct,
+            break_points
+          )
+        `)
+                .eq("match_id", matchId)
+                .order("shirt_number", { ascending: true, nullsFirst: false });
+
+            if (appearanceError) {
+                throw appearanceError;
+            }
+
+            return {
+                match,
+                players: appearances || [],
+            } as MatchDetailsWithPlayers;
         },
     });
 }

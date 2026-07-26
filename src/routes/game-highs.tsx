@@ -125,7 +125,7 @@ function GameHighsPage() {
                   className={`rounded-md border px-3 py-2 text-sm transition-colors ${selectedPosition === position
                     ? "border-estonia-blue bg-estonia-blue text-white"
                     : "border-slate-300 bg-white text-slate-600 hover:bg-slate-50"
-                  }`}
+                    }`}
                 >
                   {position === "ALL" ? t("gameHighs.positions.all") : t(`positions.${position}`)}
                 </button>
@@ -145,7 +145,7 @@ function GameHighsPage() {
                   className={`rounded-md border px-3 py-2 text-sm transition-colors ${matchType === option.value
                     ? "border-estonia-blue bg-estonia-blue text-white"
                     : "border-slate-300 bg-white text-slate-600 hover:bg-slate-50"
-                  }`}
+                    }`}
                 >
                   {option.label}
                 </button>
@@ -176,7 +176,7 @@ function GameHighsPage() {
                   className={`rounded-md border px-3 py-2 text-sm transition-colors ${category === option.value
                     ? "border-estonia-blue bg-estonia-blue text-white"
                     : "border-slate-300 bg-white text-slate-600 hover:bg-slate-50"
-                  }`}
+                    }`}
                 >
                   {option.label}
                 </button>
@@ -189,38 +189,38 @@ function GameHighsPage() {
           <Table className="min-w-full">
             <TableHeader>
               <TableRow className="bg-slate-50">
-                  <TableHead className="p-3 text-center">{t("gameHighs.table.rank")}</TableHead>
-                  <TableHead className="p-3 text-center">{t("gameHighs.table.name")}</TableHead>
-                  <TableHead className="p-3 text-center">{t("gameHighs.table.value")}</TableHead>
-                  <TableHead className="p-3 text-center">{t("gameHighs.table.position")}</TableHead>
-                  <TableHead className="p-3 text-center">{t("gameHighs.table.opponent")}</TableHead>
-                  <TableHead className="p-3 text-center">{t("gameHighs.table.score")}</TableHead>
-                  <TableHead className="p-3 text-center">{t("gameHighs.table.date")}</TableHead>
-                  <TableHead className="p-3 text-center">{t("gameHighs.table.competition")}</TableHead>
-                  <TableHead className="p-3 text-center">{t("gameHighs.table.matchLink")}</TableHead>
+                <TableHead className="p-3 text-center">{t("gameHighs.table.rank")}</TableHead>
+                <TableHead className="p-3 text-center">{t("gameHighs.table.name")}</TableHead>
+                <TableHead className="p-3 text-center">{t("gameHighs.table.value")}</TableHead>
+                <TableHead className="p-3 text-center">{t("gameHighs.table.position")}</TableHead>
+                <TableHead className="p-3 text-center">{t("gameHighs.table.opponent")}</TableHead>
+                <TableHead className="p-3 text-center">{t("gameHighs.table.score")}</TableHead>
+                <TableHead className="p-3 text-center">{t("gameHighs.table.date")}</TableHead>
+                <TableHead className="p-3 text-center">{t("gameHighs.table.competition")}</TableHead>
+                <TableHead className="p-3 text-center">{t("gameHighs.table.matchLink")}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((row, index) => (
+                <TableRow key={row.appearanceId}>
+                  <TableCell className="p-3 text-center font-medium text-slate-900">{index + 1}</TableCell>
+                  <TableCell className="p-3 text-center font-medium text-slate-900">{row.name}</TableCell>
+                  <TableCell className="p-3 text-center font-semibold text-estonia-dark">{row[category] ?? 0}</TableCell>
+                  <TableCell className="p-3 text-center">{row.position}</TableCell>
+                  <TableCell className="p-3 text-center">{row.opponent}</TableCell>
+                  <TableCell className="p-3 text-center">{row.score}</TableCell>
+                  <TableCell className="p-3 text-center">{new Date(row.matchDate).toLocaleDateString("en-GB", {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                  })}</TableCell>
+                  <TableCell className="p-3 text-center">{row.competition ?? "—"}</TableCell>
+                  <TableCell className="p-3 text-center">
+                    <a href={`/match/${row.matchId}`} className="text-estonia-blue hover:underline">
+                      PDF
+                    </a>
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rows.map((row, index) => (
-                  <TableRow key={row.appearanceId}>
-                    <TableCell className="p-3 text-center font-medium text-slate-900">{index + 1}</TableCell>
-                    <TableCell className="p-3 text-center font-medium text-slate-900">{row.name}</TableCell>
-                    <TableCell className="p-3 text-center font-semibold text-estonia-dark">{row[category] ?? 0}</TableCell>
-                    <TableCell className="p-3 text-center">{row.position}</TableCell>
-                    <TableCell className="p-3 text-center">{row.opponent}</TableCell>
-                    <TableCell className="p-3 text-center">{row.score}</TableCell>
-                    <TableCell className="p-3 text-center">{new Date(row.matchDate).toLocaleDateString("en-GB", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    })}</TableCell>
-                    <TableCell className="p-3 text-center">{row.competition ?? "—"}</TableCell>
-                    <TableCell className="p-3 text-center">
-                      <a href={`/stats/${row.matchId}`} className="text-estonia-blue hover:underline">
-                        PDF
-                      </a>
-                    </TableCell>
-                  </TableRow>
               ))}
             </TableBody>
           </Table>

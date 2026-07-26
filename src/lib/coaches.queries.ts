@@ -96,3 +96,73 @@ export const coachesOptions = () =>
         queryKey: ["coaches"],
         queryFn: fetchCoaches,
     });
+
+export type CoachDetails = {
+    coach_id: number;
+    first_name: string;
+    last_name: string;
+    photo_url: string | null;
+    birth_date: string | null;
+    birth_country: string | null;
+    debut_date: string | null;
+};
+
+export type CoachMatch = {
+    match_id: number;
+    match_date: string;
+    opponent: string;
+    competition: string | null;
+    estonia_sets: number;
+    opponent_sets: number;
+    vm: boolean | null;
+    am: boolean | null;
+    mam: boolean | null;
+};
+
+export type CoachPageData = {
+    coach: CoachDetails;
+    matches: CoachMatch[];
+    lastMatchDate: string | null;
+};
+
+async function fetchCoach(coachId: number): Promise<CoachPageData> {
+    const { data: coach, error: coachError } = await supabase
+        .from("coaches")
+        .select("*")
+        .eq("coach_id", coachId)
+        .single();
+
+    if (coachError) throw coachError;
+
+    const { data: matches, error: matchesError } = await supabase
+        .from("matches")
+        .select(`
+            match_id,
+            match_date,
+            opponent,
+            competition,
+            estonia_sets,
+            opponent_sets,
+            vm,
+            am,
+            mam
+        `)
+        .eq("coach_id", coachId)
+        .order("match_date", { ascending: false });
+
+    if (matchesError) throw matchesError;
+
+    const lastMatchDate = matches && matches.length > 0 ? matches[0].match_date : null;
+
+    return {
+        coach,
+        matches: matches || [],
+        lastMatchDate,
+    };
+}
+
+export const coachOptions = (coachId: number) =>
+    queryOptions({
+        queryKey: ["coach", coachId],
+        queryFn: () => fetchCoach(coachId),
+    });

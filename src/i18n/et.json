@@ -107,8 +107,10 @@
     "matches": {
         "title": "Mängud",
         "subtitle": "Kõik Eesti meeste võrkpallikoondise teadaolevad kohtumised.",
+        "sourceLink": "Viide statistikale",
         "competitiveMatches": "Võistlusmängud",
         "officialMatches": "Ametlikud mängud",
+        "nonOfficialMatches": "Mitteametlikud mängud",
         "allMatches": "Kõik mängud",
         "searchPlaceholder": "Otsi vastast, võistlust või linna...",
         "date": "Kuupäev",
@@ -148,6 +150,8 @@
         "shirt_numbers": "Särginumbrid",
         "national_team_debut": "Rahvuskoondise debüüt",
         "last_match": "Viimane mäng",
+        "dateOfBirth": "Sünnikuupäev",
+        "from": "Päritolu",
         "games": "Mängud",
         "pos": "Pos",
         "statsOverviewTitle": "Statistika ülevaade",
@@ -196,5 +200,13 @@
         "subtitle": "Eesti meeste võrkpallikoondise peatreenerid alates 1992. aastast.",
         "name": "Nimi",
         "headCoaches": "Peatreenereid"
+    },
+    "coaches": {
+        "title": "Treenerid",
+        "subtitle": "Kõik treenerid, kes on juhtinud Eesti meeste võrkpallikoondist.",
+        "debut": "Debüüt",
+        "lastGame": "Viimane mäng",
+        "matchHistory": "Mängude ajalugu",
+        "noMatches": "Mänge ei leitud"
     }
 }

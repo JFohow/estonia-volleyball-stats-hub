@@ -61,7 +61,7 @@ function MatchesPage() {
   const { data: matches } = useSuspenseQuery(allMatchesOptions());
   const { t, i18n } = useTranslation();
   const [search, setSearch] = useState("");
-  const [matchType, setMatchType] = useState<"ALL" | "OFFICIAL" | "COMPETITIVE">("OFFICIAL");
+  const [matchType, setMatchType] = useState<"ALL" | "OFFICIAL" | "COMPETITIVE" | "NON_OFFICIAL">("OFFICIAL");
   const [year, setYear] = useState("ALL");
   const currentLanguage = i18n.language?.startsWith("et") ? "et" : "en";
 
@@ -78,6 +78,7 @@ function MatchesPage() {
     return matches.filter((m) => {
       if (matchType === "OFFICIAL" && !m.am) return false;
       if (matchType === "COMPETITIVE" && !m.vm) return false;
+      if (matchType === "NON_OFFICIAL" && !m.mam) return false;
       if (year !== "ALL" && !m.match_date.startsWith(year)) return false;
       if (!q) return true;
 
@@ -198,6 +199,7 @@ function MatchesPage() {
               options={[
                 { value: "OFFICIAL", label: t("matches.officialMatches") },
                 { value: "COMPETITIVE", label: t("matches.competitiveMatches") },
+                { value: "NON_OFFICIAL", label: t("matches.nonOfficialMatches") },
                 { value: "ALL", label: t("matches.allMatches") },
               ]}
             />
@@ -324,7 +326,7 @@ function Segmented({
   );
 }
 
-function MatchRow({ match, matchType }: { match: MatchListItem; matchType: "ALL" | "OFFICIAL" | "COMPETITIVE"; }) {
+function MatchRow({ match, matchType }: { match: MatchListItem; matchType: "ALL" | "OFFICIAL" | "COMPETITIVE" | "NON_OFFICIAL"; }) {
   const { t, i18n } = useTranslation();
   const currentLanguage = i18n.language?.startsWith("et") ? "et" : "en";
   const resultStyle =
@@ -412,7 +414,7 @@ function MatchRow({ match, matchType }: { match: MatchListItem; matchType: "ALL"
 
       <div className="col-span-1 flex justify-center gap-1">
         <a
-          href={`/matches/${match.match_id}`}
+          href={`/match/${match.match_id}`}
           title={t("matches.official_match")}
           className="text-red-600 transition-colors hover:text-red-700"
         >
@@ -421,7 +423,7 @@ function MatchRow({ match, matchType }: { match: MatchListItem; matchType: "ALL"
 
         {matchType === "ALL" && match.has_additional_sets && (
           <a
-            href={`/matches/${match.match_id}-all`}
+            href={`/match/${match.match_id}-all`}
             title={t("matches.match_with_additional_sets")}
             className="text-amber-500 transition-colors hover:text-amber-600"
           >

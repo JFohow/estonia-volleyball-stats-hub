@@ -109,6 +109,7 @@
         "subtitle": "Every recorded match of the Estonia Men's National Volleyball Team.",
         "competitiveMatches": "Competitive Matches",
         "officialMatches": "Official Matches",
+        "nonOfficialMatches": "Non-Official Matches",
         "allMatches": "All Matches",
         "searchPlaceholder": "Search opponent, competition, city...",
         "date": "Date",
@@ -118,6 +119,7 @@
         "city": "City",
         "setScore": "Set score",
         "statistics": "Statistics",
+        "sourceLink": "Source for statistics",
         "additional_set_one": "{{count}} additional set",
         "additional_set_other": "{{count}} additional sets",
         "year": "Year",
@@ -148,6 +150,8 @@
         "shirt_numbers": "Shirt Numbers",
         "national_team_debut": "National Team Debut",
         "last_match": "Last Match",
+        "dateOfBirth": "Date of Birth",
+        "from": "From",
         "games": "Games",
         "pos": "Pos",
         "statsOverviewTitle": "Stats Overview",
@@ -196,5 +200,13 @@
         "subtitle": "Head coaches of the Estonia Men's National Volleyball Team since 1992.",
         "name": "Name",
         "headCoaches": "Head Coaches"
+    },
+    "coaches": {
+        "title": "Coaches",
+        "subtitle": "All coaches who have led the Estonia Men's National Volleyball Team.",
+        "debut": "Debut",
+        "lastGame": "Last Game",
+        "matchHistory": "Match History",
+        "noMatches": "No matches found"
     }
 }
