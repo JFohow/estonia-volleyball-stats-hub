@@ -5,7 +5,8 @@
         "players": "Players",
         "coaches": "Coaches",
         "gameHighs": "Game Highs",
-        "totalTop": "Total TOP"
+        "totalTop": "Total TOP",
+        "statistics": "Statistics"
     },
     "gameHighs": {
         "title": "Game Highs",
@@ -76,6 +77,8 @@
         "competitive": "Competitive Matches",
         "official": "Official Matches",
         "allMatches": "All Matches",
+        "nonCompetitive": "Non-Competitive Matches",
+        "estonia": "ESTONIA",
         "winPct": "Win %",
         "databaseLogic": "Database Logic",
         "databaseExplanation": "Site is based off the official records of the Estonian Volleyball Federation, but also tracks separately competitive matches and all known matches, including additional sets and non-official matches against national teams and clubs."
@@ -208,5 +211,23 @@
         "lastGame": "Last Game",
         "matchHistory": "Match History",
         "noMatches": "No matches found"
+    },
+    "statistics": {
+        "filters": {
+            "official": "Official Games",
+            "competitive": "Competitive Games",
+            "nonCompetitive": "Non-Competitive Games",
+            "all": "All Games"
+        },
+        "table": {
+            "player": "Player",
+            "appearances": "Apps",
+            "points": "Points",
+            "serve": "Serve",
+            "reception": "Reception",
+            "attack": "Attack",
+            "block": "Block"
+        },
+        "empty": "No player statistics available for this filter."
     }
 }

@@ -66,6 +66,14 @@ export function SiteNav() {
           >
             {t("nav.totalTop")}
           </Link>
+
+          <Link
+            to="/statistics"
+            className="transition-colors hover:text-estonia-blue"
+            activeProps={{ className: "text-estonia-blue" }}
+          >
+            {t("nav.statistics")}
+          </Link>
         </div>
 
 

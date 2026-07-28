@@ -5,7 +5,8 @@
         "players": "Mängijad",
         "coaches": "Peatreenerid",
         "gameHighs": "Mängu maksimumid",
-        "totalTop": "Total TOP"
+        "totalTop": "Total TOP",
+        "statistics": "Statistika"
     },
     "gameHighs": {
         "title": "Mängu maksimumid",
@@ -76,6 +77,8 @@
         "competitive": "Võistlusmängud",
         "official": "Ametlikud mängud",
         "allMatches": "Kõik mängud",
+        "nonCompetitive": "Mittevõistlusmängud",
+        "estonia": "EESTI",
         "winPct": "Võidu%",
         "databaseLogic": "Andmebaasi ülesehitus",
         "databaseExplanation": "Lehekülg lähtub EVF-i ametlike mängude arvestusest, kuid kajastab eraldi ka võistlusmänge ning kõiki teadaolevaid kohtumisi, sh lisageime ja mitteametlikke kohtumisi koondiste ja klubidega."
@@ -208,5 +211,23 @@
         "lastGame": "Viimane mäng",
         "matchHistory": "Mängude ajalugu",
         "noMatches": "Mänge ei leitud"
+    },
+    "statistics": {
+        "filters": {
+            "official": "Ametlikud mängud",
+            "competitive": "Võistlusmängud",
+            "nonCompetitive": "Mittevõistlusmängud",
+            "all": "Kõik mängud"
+        },
+        "table": {
+            "player": "Mängija",
+            "appearances": "Mänge",
+            "points": "Punktid",
+            "serve": "Serv",
+            "reception": "Vastuvõtt",
+            "attack": "Rünnak",
+            "block": "Blokk"
+        },
+        "empty": "Selle filtri jaoks pole mängijastatistikat."
     }
 }

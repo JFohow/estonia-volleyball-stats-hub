@@ -186,6 +186,7 @@ function HomePage() {
 }
 
 function MatchRow({ match }: { match: RecentMatch }) {
+  const { t } = useTranslation();
   const won = match.estonia_sets > match.opponent_sets;
   const typeStyles: Record<string, string> = {
     VM: "bg-green-100 text-green-700",
@@ -220,7 +221,7 @@ function MatchRow({ match }: { match: RecentMatch }) {
             {match.city ? ` • ${match.city}` : ""}
           </div>
           <div className="flex items-center gap-3 text-lg font-bold">
-            ESTONIA
+            {t("common.estonia")}
             <span className={won ? "text-estonia-blue" : "text-red-700"}>
               {match.estonia_sets} – {match.opponent_sets}
             </span>

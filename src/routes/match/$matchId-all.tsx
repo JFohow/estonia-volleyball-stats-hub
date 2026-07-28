@@ -27,6 +27,7 @@ function MatchStatsAllPage() {
     const opponent = currentLanguage === "et" ? match.opponent : match.opponent_en ?? match.opponent;
     const competition = currentLanguage === "et" ? match.competition : match.competition_en ?? match.competition;
     const city = currentLanguage === "et" ? match.city : match.city_en ?? match.city;
+    const estoniaLabel = t("common.estonia");
 
     const officialSetScores = (match.match_sets ?? [])
         .filter((set) => set.set_number <= 5)
@@ -134,7 +135,7 @@ function MatchStatsAllPage() {
                         {/* Estonia Flag */}
                         <div className="flex-shrink-0">
                             <div className="text-7xl">🇪🇪</div>
-                            <p className="mt-2 text-center text-xs font-semibold text-slate-600">Eesti</p>
+                            <p className="mt-2 text-center text-xs font-semibold text-slate-600">{estoniaLabel}</p>
                         </div>
 
                         {/* Match Info */}
@@ -260,10 +261,10 @@ function MatchStatsAllPage() {
                                 <th className="border-r-2 border-slate-300 px-4 py-2 text-left text-[10px] font-semibold text-slate-600" />
 
                                 {/* Set columns */}
-                                {setColumns.map((set) => (
+                                {setColumns.map((set, idx) => (
                                     <th
                                         key={`set-${set}`}
-                                        className="border-r border-slate-200 px-2 py-2 text-center text-[10px] font-semibold text-slate-600"
+                                        className={`px-2 py-2 text-center text-[10px] font-semibold text-slate-600 ${idx === setColumns.length - 1 ? "border-r-2 border-slate-300" : "border-r border-slate-200"}`}
                                     >
                                         {set}
                                     </th>
@@ -337,10 +338,10 @@ function MatchStatsAllPage() {
                                         </td>
 
                                         {/* Set appearances - showing if they played that set */}
-                                        {setColumns.map((set) => (
+                                        {setColumns.map((set, idx) => (
                                             <td
                                                 key={`set-${set}`}
-                                                className="border-r border-slate-200 px-2 py-3 text-center text-sm text-slate-700"
+                                                className={`px-2 py-3 text-center text-sm text-slate-700 ${idx === setColumns.length - 1 ? "border-r-2 border-slate-300" : "border-r border-slate-200"}`}
                                             >
                                                 {(player.sets_played ?? 0) >= set ? set : "—"}
                                             </td>
@@ -410,10 +411,10 @@ function MatchStatsAllPage() {
                                 </td>
 
                                 {/* Set totals - not applicable */}
-                                {setColumns.map((set) => (
+                                {setColumns.map((set, idx) => (
                                     <td
                                         key={`set-total-${set}`}
-                                        className="border-r border-slate-200 px-2 py-3 text-center text-sm text-slate-700"
+                                        className={`px-2 py-3 text-center text-sm text-slate-700 ${idx === setColumns.length - 1 ? "border-r-2 border-slate-300" : "border-r border-slate-200"}`}
                                     >
                                         —
                                     </td>

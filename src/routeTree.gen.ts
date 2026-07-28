@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TotalTopRouteImport } from './routes/total-top'
+import { Route as StatisticsRouteImport } from './routes/statistics'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as MatchesRouteImport } from './routes/matches'
 import { Route as GameHighsRouteImport } from './routes/game-highs'
@@ -26,6 +27,11 @@ import { Route as CoachesCoachIdRouteImport } from './routes/coaches/$coachId'
 const TotalTopRoute = TotalTopRouteImport.update({
   id: '/total-top',
   path: '/total-top',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StatisticsRoute = StatisticsRouteImport.update({
+  id: '/statistics',
+  path: '/statistics',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -95,6 +101,7 @@ export interface FileRoutesByFullPath {
   '/game-highs': typeof GameHighsRoute
   '/matches': typeof MatchesRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/statistics': typeof StatisticsRoute
   '/total-top': typeof TotalTopRoute
   '/coaches/$coachId': typeof CoachesCoachIdRoute
   '/match/$matchId': typeof MatchMatchIdRoute
@@ -110,6 +117,7 @@ export interface FileRoutesByTo {
   '/game-highs': typeof GameHighsRoute
   '/matches': typeof MatchesRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/statistics': typeof StatisticsRoute
   '/total-top': typeof TotalTopRoute
   '/coaches/$coachId': typeof CoachesCoachIdRoute
   '/match/$matchId': typeof MatchMatchIdRoute
@@ -126,6 +134,7 @@ export interface FileRoutesById {
   '/game-highs': typeof GameHighsRoute
   '/matches': typeof MatchesRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/statistics': typeof StatisticsRoute
   '/total-top': typeof TotalTopRoute
   '/coaches/$coachId': typeof CoachesCoachIdRoute
   '/match/$matchId': typeof MatchMatchIdRoute
@@ -143,6 +152,7 @@ export interface FileRouteTypes {
     | '/game-highs'
     | '/matches'
     | '/sitemap.xml'
+    | '/statistics'
     | '/total-top'
     | '/coaches/$coachId'
     | '/match/$matchId'
@@ -158,6 +168,7 @@ export interface FileRouteTypes {
     | '/game-highs'
     | '/matches'
     | '/sitemap.xml'
+    | '/statistics'
     | '/total-top'
     | '/coaches/$coachId'
     | '/match/$matchId'
@@ -173,6 +184,7 @@ export interface FileRouteTypes {
     | '/game-highs'
     | '/matches'
     | '/sitemap.xml'
+    | '/statistics'
     | '/total-top'
     | '/coaches/$coachId'
     | '/match/$matchId'
@@ -189,6 +201,7 @@ export interface RootRouteChildren {
   GameHighsRoute: typeof GameHighsRoute
   MatchesRoute: typeof MatchesRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  StatisticsRoute: typeof StatisticsRoute
   TotalTopRoute: typeof TotalTopRoute
   MatchMatchIdRoute: typeof MatchMatchIdRoute
   MatchMatchIdAllRoute: typeof MatchMatchIdAllRoute
@@ -205,6 +218,13 @@ declare module '@tanstack/react-router' {
       path: '/total-top'
       fullPath: '/total-top'
       preLoaderRoute: typeof TotalTopRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/statistics': {
+      id: '/statistics'
+      path: '/statistics'
+      fullPath: '/statistics'
+      preLoaderRoute: typeof StatisticsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sitemap.xml': {
@@ -311,6 +331,7 @@ const rootRouteChildren: RootRouteChildren = {
   GameHighsRoute: GameHighsRoute,
   MatchesRoute: MatchesRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  StatisticsRoute: StatisticsRoute,
   TotalTopRoute: TotalTopRoute,
   MatchMatchIdRoute: MatchMatchIdRoute,
   MatchMatchIdAllRoute: MatchMatchIdAllRoute,
