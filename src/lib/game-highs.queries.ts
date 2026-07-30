@@ -9,6 +9,7 @@ export type GameHighRow = {
   name: string;
   position: string | null;
   points: number;
+  plusMinus: number | null;
   serveTotal: number | null;
   serveAces: number | null;
   serveErrors: number | null;
@@ -25,6 +26,7 @@ export type GameHighRow = {
   blockPoints: number | null;
   opponent: string;
   competition: string | null;
+  competitionEn: string | null;
   matchDate: string;
   score: string;
   vm: boolean | null;
@@ -37,55 +39,57 @@ type GameHighAppearanceRow = {
   player_position_in_match: string | null;
   match_id: number;
   players:
-    | {
-        player_id: number;
-        first_name: string;
-        last_name: string;
-        position: string | null;
-      }
-    | Array<{
-        player_id: number;
-        first_name: string;
-        last_name: string;
-        position: string | null;
-      }>
-    | null;
+  | {
+    player_id: number;
+    first_name: string;
+    last_name: string;
+    position: string | null;
+  }
+  | Array<{
+    player_id: number;
+    first_name: string;
+    last_name: string;
+    position: string | null;
+  }>
+  | null;
   player_match_stats:
-    | {
-        points: number | null;
-        serve_total: number | null;
-        serve_aces: number | null;
-        serve_errors: number | null;
-        reception_total: number | null;
-        reception_errors: number | null;
-        reception_positive_pct: number | null;
-        reception_excellent_pct: number | null;
-        attack_total: number | null;
-        attack_errors: number | null;
-        attack_blocked: number | null;
-        attack_kills: number | null;
-        attack_kill_pct: number | null;
-        attack_efficiency: number | null;
-        block_points: number | null;
-      }
-    | Array<{
-        points: number | null;
-        serve_total: number | null;
-        serve_aces: number | null;
-        serve_errors: number | null;
-        reception_total: number | null;
-        reception_errors: number | null;
-        reception_positive_pct: number | null;
-        reception_excellent_pct: number | null;
-        attack_total: number | null;
-        attack_errors: number | null;
-        attack_blocked: number | null;
-        attack_kills: number | null;
-        attack_kill_pct: number | null;
-        attack_efficiency: number | null;
-        block_points: number | null;
-      }>
-    | null;
+  | {
+    points: number | null;
+    plus_minus: number | null;
+    serve_total: number | null;
+    serve_aces: number | null;
+    serve_errors: number | null;
+    reception_total: number | null;
+    reception_errors: number | null;
+    reception_positive_pct: number | null;
+    reception_excellent_pct: number | null;
+    attack_total: number | null;
+    attack_errors: number | null;
+    attack_blocked: number | null;
+    attack_kills: number | null;
+    attack_kill_pct: number | null;
+    attack_efficiency: number | null;
+    block_points: number | null;
+  }
+  | Array<{
+    points: number | null;
+    plus_minus: number | null;
+    serve_total: number | null;
+    serve_aces: number | null;
+    serve_errors: number | null;
+    reception_total: number | null;
+    reception_errors: number | null;
+    reception_positive_pct: number | null;
+    reception_excellent_pct: number | null;
+    attack_total: number | null;
+    attack_errors: number | null;
+    attack_blocked: number | null;
+    attack_kills: number | null;
+    attack_kill_pct: number | null;
+    attack_efficiency: number | null;
+    block_points: number | null;
+  }>
+  | null;
 };
 
 type MatchRow = {
@@ -93,6 +97,7 @@ type MatchRow = {
   match_date: string;
   opponent: string;
   competition: string | null;
+  competition_en: string | null;
   estonia_sets: number;
   opponent_sets: number;
   vm: boolean | null;
@@ -111,7 +116,7 @@ async function fetchGameHighs(): Promise<GameHighRow[]> {
   const { data, error } = await supabase
     .from("appearances")
     .select(
-      `appearance_id, player_position_in_match, match_id, players(player_id, first_name, last_name, position), player_match_stats(points, serve_total, serve_aces, serve_errors, reception_total, reception_errors, reception_positive_pct, reception_excellent_pct, attack_total, attack_errors, attack_blocked, attack_kills, attack_kill_pct, attack_efficiency, block_points)`
+      `appearance_id, player_position_in_match, match_id, players(player_id, first_name, last_name, position), player_match_stats(points, plus_minus, serve_total, serve_aces, serve_errors, reception_total, reception_errors, reception_positive_pct, reception_excellent_pct, attack_total, attack_errors, attack_blocked, attack_kills, attack_kill_pct, attack_efficiency, block_points)`
     );
 
   if (error) throw error;
@@ -121,7 +126,7 @@ async function fetchGameHighs(): Promise<GameHighRow[]> {
 
   const { data: matchesData, error: matchError } = await supabase
     .from("matches")
-    .select("match_id, match_date, opponent, competition, estonia_sets, opponent_sets, vm, am, mam")
+    .select("match_id, match_date, opponent, competition, competition_en, estonia_sets, opponent_sets, vm, am, mam")
     .in("match_id", matchIds);
 
   if (matchError) throw matchError;
@@ -148,6 +153,7 @@ async function fetchGameHighs(): Promise<GameHighRow[]> {
       name: `${player.first_name} ${player.last_name}`,
       position: player.position ?? item.player_position_in_match ?? "Unknown",
       points: stats.points,
+      plusMinus: stats.plus_minus,
       serveTotal: stats.serve_total,
       serveAces: stats.serve_aces,
       serveErrors: stats.serve_errors,
@@ -164,6 +170,7 @@ async function fetchGameHighs(): Promise<GameHighRow[]> {
       blockPoints: stats.block_points,
       opponent: match.opponent,
       competition: match.competition,
+      competitionEn: match.competition_en,
       matchDate: match.match_date,
       score: `${match.estonia_sets}-${match.opponent_sets}`,
       vm: match.vm,

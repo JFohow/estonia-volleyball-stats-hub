@@ -45,11 +45,14 @@ function StatisticsPage() {
     const { data } = useSuspenseQuery(statisticsOptions());
 
     const [mode, setMode] = useState<StatisticsMode>("official");
+    const [selectedPosition, setSelectedPosition] = useState<string>("ALL");
     const [sortField, setSortField] = useState<SortField | "appearances">("appearances");
     const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
 
+    const positions = useMemo(() => ["ALL", "SET", "OPP", "OH", "MB", "LIB"], []);
+
     const rows = useMemo(() => {
-        const copy = [...data];
+        const copy = data.filter((row) => selectedPosition === "ALL" || row.position === selectedPosition);
 
         copy.sort((a, b) => {
             if (sortField === "name") {
@@ -69,7 +72,7 @@ function StatisticsPage() {
         });
 
         return copy;
-    }, [data, mode, sortDirection, sortField]);
+    }, [data, mode, sortDirection, sortField, selectedPosition]);
 
     function handleSort(field: SortField | "appearances") {
         if (sortField === field) {
@@ -83,20 +86,50 @@ function StatisticsPage() {
 
     return (
         <main className="mx-auto max-w-7xl px-6 py-10">
-            <div className="mb-6 flex flex-wrap gap-2">
-                {modes.map((currentMode) => (
-                    <button
-                        key={currentMode}
-                        type="button"
-                        onClick={() => setMode(currentMode)}
-                        className={`rounded-full border px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] transition ${mode === currentMode
-                            ? "border-slate-900 bg-slate-900 text-white"
-                            : "border-slate-200 bg-white text-slate-700 hover:bg-slate-100"
-                            }`}
-                    >
-                        {t(`statistics.filters.${currentMode}`)}
-                    </button>
-                ))}
+            <div className="mb-6 rounded-2xl bg-estonia-dark p-6 text-white shadow-sm md:p-8">
+                <div className="grid gap-5 lg:grid-cols-2">
+                    <div className="text-center">
+                        <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/60">
+                            {t("gameHighs.filters.matchType")}
+                        </div>
+                        <div className="mx-auto grid w-full max-w-[440px] grid-cols-2 gap-2">
+                            {modes.map((currentMode) => (
+                                <button
+                                    key={currentMode}
+                                    type="button"
+                                    onClick={() => setMode(currentMode)}
+                                    className={`w-full rounded-md border px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] transition ${mode === currentMode
+                                        ? "border-estonia-blue bg-estonia-blue text-white"
+                                        : "border-white/30 bg-white/10 text-white/90 hover:bg-white/20"
+                                        }`}
+                                >
+                                    {t(`statistics.filters.${currentMode}`)}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="text-center">
+                        <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/60">
+                            {t("gameHighs.filters.position")}
+                        </div>
+                        <div className="mx-auto grid w-full max-w-[440px] grid-cols-3 gap-2">
+                            {positions.map((position) => (
+                                <button
+                                    key={position}
+                                    type="button"
+                                    onClick={() => setSelectedPosition(position)}
+                                    className={`w-full rounded-md border px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] transition ${selectedPosition === position
+                                        ? "border-estonia-blue bg-estonia-blue text-white"
+                                        : "border-white/30 bg-white/10 text-white/90 hover:bg-white/20"
+                                        }`}
+                                >
+                                    {position === "ALL" ? "ALL" : position}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -199,7 +232,9 @@ function PlayerStatisticsTableRow({
     return (
         <tr className={index % 2 === 0 ? "bg-white" : "bg-slate-50"}>
             <td className="sticky left-0 z-10 border-r-2 border-slate-300 bg-inherit px-4 py-3 text-sm font-semibold text-slate-900">
-                {row.name}
+                <a href={`/players/${row.playerId}`} className="text-estonia-dark underline-offset-2 hover:text-estonia-blue hover:underline">
+                    {row.name}
+                </a>
             </td>
 
             <td className="border-r-2 border-slate-300 px-2 py-3 text-center text-sm text-slate-700">

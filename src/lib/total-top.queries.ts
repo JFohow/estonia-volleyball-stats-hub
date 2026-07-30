@@ -1,6 +1,5 @@
 import { queryOptions } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import type { Database } from "@/integrations/supabase/types";
 
 export type PlayerTotals = {
   appearances: number;
@@ -8,9 +7,22 @@ export type PlayerTotals = {
   sets: number;
   bench: number;
   points: number;
-  pointsPerGame: number;
-  efficiencyTop: number | null;
-  efficiencyBottom: number | null;
+  blockPoints: number;
+  plusMinus: number;
+  serveTotal: number;
+  serveAces: number;
+  serveErrors: number;
+  receptionTotal: number;
+  receptionErrors: number;
+  receptionPositivePct: number;
+  receptionExcellentPct: number;
+  attackTotal: number;
+  attackErrors: number;
+  attackBlocked: number;
+  attackKills: number;
+  attackKillPct: number;
+  attackEfficiency: number;
+  breakPoints: number;
 };
 
 export type TotalTopRow = {
@@ -19,6 +31,7 @@ export type TotalTopRow = {
   position: string | null;
   official: PlayerTotals;
   competitive: PlayerTotals;
+  nonOfficial: PlayerTotals;
   all: PlayerTotals;
 };
 
@@ -27,27 +40,57 @@ type AppearanceRow = {
   sets_played: number | null;
   on_the_bench: boolean | null;
   matches:
-    | {
-        vm: boolean | null;
-        am: boolean | null;
-        mam: boolean | null;
-      }
-    | Array<{
-        vm: boolean | null;
-        am: boolean | null;
-        mam: boolean | null;
-      }>
-    | null;
+  | {
+    vm: boolean | null;
+    am: boolean | null;
+    mam: boolean | null;
+  }
+  | Array<{
+    vm: boolean | null;
+    am: boolean | null;
+    mam: boolean | null;
+  }>
+  | null;
   player_match_stats:
-    | {
-        points: number | null;
-        attack_efficiency: number | null;
-      }
-    | Array<{
-        points: number | null;
-        attack_efficiency: number | null;
-      }>
-    | null;
+  | {
+    points: number | null;
+    block_points: number | null;
+    plus_minus: number | null;
+    serve_total: number | null;
+    serve_aces: number | null;
+    serve_errors: number | null;
+    reception_total: number | null;
+    reception_errors: number | null;
+    reception_positive_pct: number | null;
+    reception_excellent_pct: number | null;
+    attack_total: number | null;
+    attack_errors: number | null;
+    attack_blocked: number | null;
+    attack_kills: number | null;
+    attack_kill_pct: number | null;
+    attack_efficiency: number | null;
+    break_points: number | null;
+  }
+  | Array<{
+    points: number | null;
+    block_points: number | null;
+    plus_minus: number | null;
+    serve_total: number | null;
+    serve_aces: number | null;
+    serve_errors: number | null;
+    reception_total: number | null;
+    reception_errors: number | null;
+    reception_positive_pct: number | null;
+    reception_excellent_pct: number | null;
+    attack_total: number | null;
+    attack_errors: number | null;
+    attack_blocked: number | null;
+    attack_kills: number | null;
+    attack_kill_pct: number | null;
+    attack_efficiency: number | null;
+    break_points: number | null;
+  }>
+  | null;
 };
 
 type PlayerRow = {
@@ -71,9 +114,22 @@ function createTotals(): PlayerTotals {
     sets: 0,
     bench: 0,
     points: 0,
-    pointsPerGame: 0,
-    efficiencyTop: null,
-    efficiencyBottom: null,
+    blockPoints: 0,
+    plusMinus: 0,
+    serveTotal: 0,
+    serveAces: 0,
+    serveErrors: 0,
+    receptionTotal: 0,
+    receptionErrors: 0,
+    receptionPositivePct: 0,
+    receptionExcellentPct: 0,
+    attackTotal: 0,
+    attackErrors: 0,
+    attackBlocked: 0,
+    attackKills: 0,
+    attackKillPct: 0,
+    attackEfficiency: 0,
+    breakPoints: 0,
   };
 }
 
@@ -91,12 +147,22 @@ function updateTotals(totals: PlayerTotals, appearance: AppearanceRow, stats: No
   }
 
   totals.points += stats.points ?? 0;
-
-  const efficiency = stats.attack_efficiency;
-  if (efficiency != null) {
-    totals.efficiencyTop = totals.efficiencyTop === null ? efficiency : Math.max(totals.efficiencyTop, efficiency);
-    totals.efficiencyBottom = totals.efficiencyBottom === null ? efficiency : Math.min(totals.efficiencyBottom, efficiency);
-  }
+  totals.blockPoints += stats.block_points ?? 0;
+  totals.plusMinus += stats.plus_minus ?? 0;
+  totals.serveTotal += stats.serve_total ?? 0;
+  totals.serveAces += stats.serve_aces ?? 0;
+  totals.serveErrors += stats.serve_errors ?? 0;
+  totals.receptionTotal += stats.reception_total ?? 0;
+  totals.receptionErrors += stats.reception_errors ?? 0;
+  totals.receptionPositivePct += stats.reception_positive_pct ?? 0;
+  totals.receptionExcellentPct += stats.reception_excellent_pct ?? 0;
+  totals.attackTotal += stats.attack_total ?? 0;
+  totals.attackErrors += stats.attack_errors ?? 0;
+  totals.attackBlocked += stats.attack_blocked ?? 0;
+  totals.attackKills += stats.attack_kills ?? 0;
+  totals.attackKillPct += stats.attack_kill_pct ?? 0;
+  totals.attackEfficiency += stats.attack_efficiency ?? 0;
+  totals.breakPoints += stats.break_points ?? 0;
 }
 
 async function fetchTotalTop(): Promise<TotalTopRow[]> {
@@ -109,12 +175,12 @@ async function fetchTotalTop(): Promise<TotalTopRow[]> {
   const appearancesResponse = await supabase
     .from("appearances")
     .select(
-      `player_id, sets_played, on_the_bench, matches(vm, am, mam), player_match_stats(points, attack_efficiency)`
+      `player_id, sets_played, on_the_bench, matches(vm, am, mam), player_match_stats(points, block_points, plus_minus, serve_total, serve_aces, serve_errors, reception_total, reception_errors, reception_positive_pct, reception_excellent_pct, attack_total, attack_errors, attack_blocked, attack_kills, attack_kill_pct, attack_efficiency, break_points)`
     );
 
   if (appearancesResponse.error) throw appearancesResponse.error;
 
-  const totalsByPlayer = new Map<number, { official: PlayerTotals; competitive: PlayerTotals; all: PlayerTotals }>();
+  const totalsByPlayer = new Map<number, { official: PlayerTotals; competitive: PlayerTotals; nonOfficial: PlayerTotals; all: PlayerTotals }>();
   const appearances = (appearancesResponse.data ?? []) as AppearanceRow[];
 
   for (const appearance of appearances) {
@@ -127,15 +193,12 @@ async function fetchTotalTop(): Promise<TotalTopRow[]> {
 
     const isOfficial = match.am === true;
     const isCompetitive = match.vm === true;
-    const isAll = match.am === true || match.mam === true;
-
-    if (!isOfficial && !isCompetitive && !isAll) {
-      continue;
-    }
+    const isNonOfficial = match.am !== true;
 
     const totals = totalsByPlayer.get(appearance.player_id) ?? {
       official: createTotals(),
       competitive: createTotals(),
+      nonOfficial: createTotals(),
       all: createTotals(),
     };
 
@@ -147,9 +210,11 @@ async function fetchTotalTop(): Promise<TotalTopRow[]> {
       updateTotals(totals.competitive, appearance, stats);
     }
 
-    if (isAll) {
-      updateTotals(totals.all, appearance, stats);
+    if (isNonOfficial) {
+      updateTotals(totals.nonOfficial, appearance, stats);
     }
+
+    updateTotals(totals.all, appearance, stats);
 
     totalsByPlayer.set(appearance.player_id, totals);
   }
@@ -160,12 +225,9 @@ async function fetchTotalTop(): Promise<TotalTopRow[]> {
     const totals = totalsByPlayer.get(player.player_id) ?? {
       official: createTotals(),
       competitive: createTotals(),
+      nonOfficial: createTotals(),
       all: createTotals(),
     };
-
-    [totals.official, totals.competitive, totals.all].forEach((group) => {
-      group.pointsPerGame = group.games > 0 ? Number((group.points / group.games).toFixed(2)) : 0;
-    });
 
     return {
       playerId: player.player_id,
@@ -173,6 +235,7 @@ async function fetchTotalTop(): Promise<TotalTopRow[]> {
       position: player.position,
       official: totals.official,
       competitive: totals.competitive,
+      nonOfficial: totals.nonOfficial,
       all: totals.all,
     };
   });
