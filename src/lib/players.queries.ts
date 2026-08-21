@@ -153,9 +153,13 @@ async function fetchPlayers(): Promise<PlayerListItem[]> {
             }
         }
 
-        // All Matches (AM + MAM)
+        // All Matches (AM + VM + MAM)
 
-        if (matchType === "AM" || matchType === "MAM") {
+        if (
+            matchType === "AM" ||
+            matchType === "VM" ||
+            matchType === "MAM"
+        ) {
             current.allAppearances += 1;
 
             if ((a.sets_played ?? 0) > 0) {
