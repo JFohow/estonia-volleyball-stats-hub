@@ -1,10 +1,11 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { fetchPlayer } from "@/lib/players.queries";
 import { useTranslation } from "react-i18next";
 
 type RawMatchRecord = {
+    match_id: number;
     match_date: string;
     opponent: string;
     competition: string | null;
@@ -56,6 +57,8 @@ type PlayerPageData = {
         first_name: string;
         last_name: string;
         position: string | null;
+        position_name: string | null;
+        position_name_ee: string | null;
         photo_url: string | null;
         height_cm: number | null;
         birth_date: string | null;
@@ -78,7 +81,7 @@ export const Route = createFileRoute("/players/$playerId")({
 function PlayerPage() {
     const { playerId } = Route.useParams();
 
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
 
     const { data } = useSuspenseQuery<PlayerPageData>({
         queryKey: ["player", Number(playerId)],
@@ -225,15 +228,6 @@ function PlayerPage() {
         });
     }, [appearanceMatchesWithStats, selectedYear, selectedCompetition, selectedOpponent]);
 
-    const playedCount = filteredAppearances.filter(
-        (a) => (a.sets_played ?? 0) > 0
-    ).length;
-    const benchCount = filteredAppearances.filter((a) => a.on_the_bench).length;
-    const totalSets = filteredAppearances.reduce(
-        (sum, a) => sum + (a.sets_played ?? 0),
-        0
-    );
-
     const filteredSummary = useMemo(() => {
         const totals: Record<string, number> = {};
         const counts: Record<string, number> = {};
@@ -268,9 +262,6 @@ function PlayerPage() {
             averages,
         };
     }, [filteredAppearances, statColumns]);
-
-    const filteredCount = filteredAppearances.length;
-    const availableCount = appearanceMatchesWithStats.length;
 
     const formatStatValue = (value: number | null) =>
         value == null ? "-" : Number(value.toFixed(1)).toString();
@@ -323,6 +314,27 @@ function PlayerPage() {
         LIB: "Libero",
     };
 
+    const currentLanguage = i18n.language?.startsWith("et") ? "et" : "en";
+
+    const localizedPosition =
+        currentLanguage === "et"
+            ? player.position_name_ee ??
+            player.position_name ??
+            positionLabels[player.position ?? ""] ??
+            player.position ??
+            "N/A"
+            : player.position_name ??
+            positionLabels[player.position ?? ""] ??
+            player.position ??
+            "N/A";
+
+    const matchHistoryTitle = currentLanguage === "et" ? "Kõik mängud" : "Match History";
+    const matchHistoryDateLabel = currentLanguage === "et" ? "Kuupäev" : "Date";
+    const matchHistoryOpponentLabel = currentLanguage === "et" ? "Vastane" : "Opponent";
+    const matchHistoryScoreLabel = currentLanguage === "et" ? "Tulemus" : "Score";
+    const matchHistoryCompetitionLabel = currentLanguage === "et" ? "Võistlus" : "Competition";
+    const matchHistorySetsLabel = currentLanguage === "et" ? "Geime" : "Sets";
+
     return (
         <div>
             <header className="bg-estonia-dark px-6 py-12 text-white">
@@ -351,11 +363,7 @@ function PlayerPage() {
                                             {t("players.position")}
                                         </div>
                                         <div className="mt-1">
-                                            🏐 {
-                                                positionLabels[player.position ?? ""] ??
-                                                player.position ??
-                                                "N/A"
-                                            }
+                                            🏐 {localizedPosition}
                                         </div>
                                     </div>
 
@@ -454,50 +462,8 @@ function PlayerPage() {
 
             <main className="mx-auto max-w-7xl px-6 py-10">
                 <section className="mb-10 rounded-3xl border border-slate-200 bg-slate-50 p-6 shadow-sm">
-                    <div className="mb-6 grid gap-4">
-                        <div>
-                            <h2 className="font-display text-3xl uppercase italic">
-                                {t("players.statsOverviewTitle")}
-                            </h2>
-                            <p className="mt-2 text-sm text-slate-600">
-                                {t("players.statsOverviewSubtitle")}
-                            </p>
-                        </div>
-
-                        <div className="grid gap-3 sm:grid-cols-4">
-                            <div className="rounded-2xl bg-white px-4 py-3 text-center text-sm font-semibold text-slate-700 shadow-sm">
-                                <div className="text-xs uppercase tracking-[0.18em] text-slate-500">
-                                    {t("players.statsMatches")}
-                                </div>
-                                <div className="mt-1 text-2xl">{filteredCount}</div>
-                            </div>
-                            <div className="rounded-2xl bg-white px-4 py-3 text-center text-sm font-semibold text-slate-700 shadow-sm">
-                                <div className="text-xs uppercase tracking-[0.18em] text-slate-500">
-                                    {t("players.statsPlayed")}
-                                </div>
-                                <div className="mt-1 text-2xl">{playedCount}</div>
-                            </div>
-                            <div className="rounded-2xl bg-white px-4 py-3 text-center text-sm font-semibold text-slate-700 shadow-sm">
-                                <div className="text-xs uppercase tracking-[0.18em] text-slate-500">
-                                    {t("players.statsBench")}
-                                </div>
-                                <div className="mt-1 text-2xl">{benchCount}</div>
-                            </div>
-                            <div className="rounded-2xl bg-white px-4 py-3 text-center text-sm font-semibold text-slate-700 shadow-sm">
-                                <div className="text-xs uppercase tracking-[0.18em] text-slate-500">
-                                    {t("players.statsSets")}
-                                </div>
-                                <div className="mt-1 text-2xl">{totalSets}</div>
-                            </div>
-                        </div>
-
-                        <div className="rounded-2xl bg-white px-4 py-3 text-center text-sm font-semibold text-slate-700 shadow-sm">
-                            {filteredCount} {t("players.matchesWithStats")} {filteredCount !== availableCount ? `(${availableCount} ${t("players.totalMatchesWithStats")})` : ""}
-                        </div>
-                    </div>
-
                     <div className="mb-6 grid gap-2">
-                        <div className="grid gap-2">
+                        <div className="grid grid-cols-3 gap-2">
                             {(["official", "competitive", "all"] as const).map((mode) => (
                                 <button
                                     key={mode}
@@ -622,27 +588,43 @@ function PlayerPage() {
                 </section>
 
                 <h2 className="mb-6 font-display text-3xl uppercase italic">
-                    Match History
+                    {matchHistoryTitle}
                 </h2>
 
                 <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-                    <div className="grid grid-cols-12 gap-3 border-b border-slate-100 bg-slate-50 px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                        <div className="col-span-2">Date</div>
-                        <div className="col-span-3">Opponent</div>
-                        <div className="col-span-2 text-center">Score</div>
-                        <div className="col-span-4">Competition</div>
-                        <div className="col-span-1 text-center">Sets</div>
+                    <div className="grid grid-cols-13 gap-3 border-b border-slate-100 bg-slate-50 px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                        <div className="col-span-1 text-center">#</div>
+                        <div className="col-span-2">{matchHistoryDateLabel}</div>
+                        <div className="col-span-3">{matchHistoryOpponentLabel}</div>
+                        <div className="col-span-2 text-center">{matchHistoryScoreLabel}</div>
+                        <div className="col-span-4">{matchHistoryCompetitionLabel}</div>
+                        <div className="col-span-1 text-center">{matchHistorySetsLabel}</div>
                     </div>
 
-                    {appearances.map((a) => {
+                    {sortedAppearances.map((a, index) => {
                         const match = getMatch(a);
                         if (!match) return null;
+
+                        const scoreTarget =
+                            match.match_type === "MAM"
+                                ? "/match/$matchId-all"
+                                : "/match/$matchId";
+                        const resultStyle =
+                            match.estonia_sets > match.opponent_sets
+                                ? "text-estonia-blue"
+                                : match.estonia_sets === match.opponent_sets
+                                    ? "text-green-700"
+                                    : "text-red-700";
 
                         return (
                             <div
                                 key={a.appearance_id}
-                                className="grid grid-cols-12 gap-3 border-t border-slate-100 px-6 py-4"
+                                className="grid grid-cols-13 gap-3 border-t border-slate-100 px-6 py-4"
                             >
+                                <div className="col-span-1 text-center text-slate-500">
+                                    {index + 1}
+                                </div>
+
                                 <div className="col-span-2">
                                     {new Date(
                                         match.match_date
@@ -654,8 +636,16 @@ function PlayerPage() {
                                 </div>
 
                                 <div className="col-span-2 text-center">
-                                    {match.estonia_sets}–
-                                    {match.opponent_sets}
+                                    <Link
+                                        to={scoreTarget}
+                                        params={{
+                                            matchId: String(a.match_id),
+                                        }}
+                                        className={`font-semibold hover:underline ${resultStyle}`}
+                                    >
+                                        {match.estonia_sets}–
+                                        {match.opponent_sets}
+                                    </Link>
                                 </div>
 
                                 <div className="col-span-4">

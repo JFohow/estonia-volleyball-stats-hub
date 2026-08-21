@@ -102,14 +102,9 @@ async function fetchPlayers(): Promise<PlayerListItem[]> {
         const match = Array.isArray(a.matches)
             ? a.matches[0]
             : a.matches;
-
-        const matchType = match?.vm
-            ? "VM"
-            : match?.am
-                ? "AM"
-                : match?.mam
-                    ? "MAM"
-                    : null;
+        const isAM = Boolean(match?.am);
+        const isVM = Boolean(match?.vm);
+        const isMAM = Boolean(match?.mam);
 
         const current = stats.get(a.player_id) ?? {
             amAppearances: 0,
@@ -127,7 +122,7 @@ async function fetchPlayers(): Promise<PlayerListItem[]> {
 
         // Official (AM)
 
-        if (matchType === "AM") {
+        if (isAM) {
             current.amAppearances += 1;
 
             if ((a.sets_played ?? 0) > 0) {
@@ -141,7 +136,7 @@ async function fetchPlayers(): Promise<PlayerListItem[]> {
 
         // Competitive (VM)
 
-        if (matchType === "VM") {
+        if (isVM) {
             current.vmAppearances += 1;
 
             if ((a.sets_played ?? 0) > 0) {
@@ -153,13 +148,9 @@ async function fetchPlayers(): Promise<PlayerListItem[]> {
             }
         }
 
-        // All Matches (AM + VM + MAM)
+        // All Matches (AM + MAM)
 
-        if (
-            matchType === "AM" ||
-            matchType === "VM" ||
-            matchType === "MAM"
-        ) {
+        if (isAM || isMAM) {
             current.allAppearances += 1;
 
             if ((a.sets_played ?? 0) > 0) {
@@ -223,6 +214,11 @@ export type PlayerMatchStatsSummary = {
     averages: Record<string, number | null>;
 };
 
+type PositionRow = {
+    position_name: string | null;
+    position_name_ee: string | null;
+};
+
 const playerMatchStatFields = [
     "attack_blocked",
     "attack_efficiency",
@@ -251,6 +247,36 @@ export async function fetchPlayer(playerId: number) {
         .single();
 
     if (error) throw error;
+
+    let positionDetails: PositionRow | null = null;
+
+    if (player.position) {
+        const normalizedPosition = player.position.trim();
+
+        const { data: positionRow, error: positionError } = await supabase
+            .from("positions")
+            .select("position_name, position_name_ee")
+            .eq("position", normalizedPosition)
+            .maybeSingle();
+
+        // Position labels are optional metadata. If lookup fails
+        // (e.g. due RLS policy), keep rendering with fallback values.
+        if (!positionError) {
+            positionDetails = positionRow;
+
+            if (!positionDetails && normalizedPosition !== normalizedPosition.toUpperCase()) {
+                const { data: fallbackPositionRow, error: fallbackPositionError } = await supabase
+                    .from("positions")
+                    .select("position_name, position_name_ee")
+                    .eq("position", normalizedPosition.toUpperCase())
+                    .maybeSingle();
+
+                if (!fallbackPositionError) {
+                    positionDetails = fallbackPositionRow;
+                }
+            }
+        }
+    }
 
     const { data: appearances, error: appError } = await supabase
         .from("appearances")
@@ -326,7 +352,11 @@ export async function fetchPlayer(playerId: number) {
     };
 
     return {
-        player,
+        player: {
+            ...player,
+            position_name: positionDetails?.position_name ?? null,
+            position_name_ee: positionDetails?.position_name_ee ?? null,
+        },
         appearances: appearances ?? [],
         statsSummary,
     };
