@@ -60,26 +60,43 @@ async function fetchPlayers(): Promise<PlayerListItem[]> {
     const players = playersResponse.data as PlayerRow[] | null;
     if (playersResponse.error) throw playersResponse.error;
 
-    const appsResponse = await supabase
-        .from("appearances")
-        .select(`
-      player_id,
-      sets_played,
-      on_the_bench,
-      matches(
-        match_id,
-        match_date,
-        opponent,
-        competition,
-        estonia_sets,
-        opponent_sets,
-        vm,
-        am,
-        mam
-      )
-    `);
+    const apps: AppearanceRow[] = [];
+    const pageSize = 10000;
+    let pageStart = 0;
 
-    const apps = appsResponse.data as AppearanceRow[] | null;
+    while (true) {
+        const { data: appsPage, error: appsError } = await supabase
+            .from("appearances")
+            .select(`
+                player_id,
+                sets_played,
+                on_the_bench,
+                matches(
+                    match_id,
+                    match_date,
+                    opponent,
+                    competition,
+                    estonia_sets,
+                    opponent_sets,
+                    vm,
+                    am,
+                    mam
+                )
+            `)
+            .order("appearance_id", { ascending: true })
+            .range(pageStart, pageStart + pageSize - 1);
+
+        if (appsError) throw appsError;
+
+        const pageRows = (appsPage ?? []) as AppearanceRow[];
+        apps.push(...pageRows);
+
+        if (pageRows.length < pageSize) {
+            break;
+        }
+
+        pageStart += pageSize;
+    }
 
     const stats = new Map<
         number,
@@ -148,18 +165,16 @@ async function fetchPlayers(): Promise<PlayerListItem[]> {
             }
         }
 
-        // All Matches (AM + MAM)
+        // All Matches (total appearances)
 
-        if (isAM || isMAM) {
-            current.allAppearances += 1;
+        current.allAppearances += 1;
 
-            if ((a.sets_played ?? 0) > 0) {
-                current.allGamesPlayed += 1;
-            }
+        if ((a.sets_played ?? 0) > 0) {
+            current.allGamesPlayed += 1;
+        }
 
-            if (a.on_the_bench) {
-                current.allBench += 1;
-            }
+        if (a.on_the_bench) {
+            current.allBench += 1;
         }
 
         stats.set(a.player_id, current);
