@@ -61,7 +61,7 @@ async function fetchPlayers(): Promise<PlayerListItem[]> {
     if (playersResponse.error) throw playersResponse.error;
 
     const apps: AppearanceRow[] = [];
-    const pageSize = 10000;
+    const pageSize = 1000;
     let pageStart = 0;
 
     while (true) {
