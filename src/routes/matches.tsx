@@ -421,15 +421,7 @@ function MatchRow({ match, matchType }: { match: MatchListItem; matchType: "ALL"
           <FileText className="h-5 w-5" />
         </a>
 
-        {matchType === "ALL" && match.has_additional_sets && (
-          <a
-            href={`/match/${match.match_id}-all`}
-            title={t("matches.match_with_additional_sets")}
-            className="text-amber-500 transition-colors hover:text-amber-600"
-          >
-            <FileText className="h-5 w-5" />
-          </a>
-        )}
+        {/* additional sets link removed: match page now supports toggling official/all stats */}
       </div >
 
       {

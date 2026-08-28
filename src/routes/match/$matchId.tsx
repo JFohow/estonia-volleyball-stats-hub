@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { matchOptions } from "@/lib/match-stats.queries";
 import { useTranslation } from "react-i18next";
+import { useState } from "react";
 
 export const Route = createFileRoute("/match/$matchId")({
     loader: ({ context, params }) =>
@@ -22,6 +23,7 @@ function MatchStatsPage() {
 
     const match = data.match;
     const players = data.players;
+    const [statsMode, setStatsMode] = useState<"official" | "all">("official");
     const currentLanguage = i18n.language?.startsWith("et") ? "et" : "en";
 
     const opponent = currentLanguage === "et" ? match.opponent : match.opponent_en ?? match.opponent;
@@ -46,6 +48,20 @@ function MatchStatsPage() {
             return value % 1 === 0 ? Math.round(value).toString() : value.toFixed(1);
         }
         return "-";
+    };
+
+    const safeInt = (v: any) => (typeof v === "number" && Number.isInteger(v) ? v : 0);
+
+    const computeAttackEff = (stats: any) => {
+        if (!stats) return 0;
+        const attackExc = safeInt(stats.attack_kills);
+        const attackBlk = safeInt(stats.attack_blocked);
+        const attackErr = safeInt(stats.attack_errors);
+        const attackTot = safeInt(stats.attack_total);
+
+        if (attackTot === 0) return 0;
+
+        return ((attackExc - attackBlk - attackErr) / attackTot) * 100;
     };
 
     const setColumns = [1, 2, 3, 4, 5];
@@ -93,8 +109,52 @@ function MatchStatsPage() {
             counts[col.field] = 0;
         });
 
+        const getPlayerStats = (player: any) => {
+            if (statsMode === "official") {
+                return player.player_match_stats?.[0] ?? null;
+            }
+
+            const rows = player.player_match_stats ?? [];
+            if (!rows || rows.length === 0) return null;
+
+            const combined: any = {};
+            const pctCounts: Record<string, number> = {};
+
+            allFields.forEach((col) => {
+                combined[col.field] = 0;
+                pctCounts[col.field] = 0;
+            });
+
+            rows.forEach((r: any) => {
+                allFields.forEach((col) => {
+                    const v = r[col.field as keyof typeof r];
+                    if (typeof v === "number") {
+                        if (col.label.includes("%")) {
+                            combined[col.field] += v;
+                            pctCounts[col.field] += 1;
+                        } else {
+                            combined[col.field] += v;
+                        }
+                    }
+                });
+            });
+
+            // finalize percentage fields by averaging
+            allFields.forEach((col) => {
+                if (col.label.includes("%")) {
+                    const cnt = pctCounts[col.field] || 1;
+                    combined[col.field] = combined[col.field] / Math.max(cnt, 1);
+                }
+            });
+
+            // compute attack_efficiency from raw totals
+            combined.attack_efficiency = computeAttackEff(combined);
+
+            return combined;
+        };
+
         players.forEach((player) => {
-            const stats = player.player_match_stats?.[0];
+            const stats = getPlayerStats(player);
             if (!stats) return;
 
             allFields.forEach((col) => {
@@ -175,19 +235,34 @@ function MatchStatsPage() {
                                 </p>
                             )}
 
-                            {officialSetScores && (
-                                <div className="mt-3 text-xs">
-                                    <a
-                                        href={match.source_row || `https://www.cev.eu/`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="inline-flex items-center text-estonia-blue hover:text-estonia-dark"
+                            <div className="mt-3 text-xs">
+                                <a
+                                    href={match.source_row || `https://www.cev.eu/`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center text-estonia-blue hover:text-estonia-dark"
+                                >
+                                    📊 {t("matches.sourceLink")}
+                                    <span className="ml-1">↗</span>
+                                </a>
+                            </div>
+
+                            <div className="mt-4 flex justify-center">
+                                <div className="inline-flex overflow-hidden rounded-md border border-slate-200 bg-white text-xs font-semibold uppercase tracking-wide">
+                                    <button
+                                        onClick={() => setStatsMode("official")}
+                                        className={statsMode === "official" ? "bg-estonia-blue px-3 py-2 text-white" : "px-3 py-2 text-slate-500 hover:bg-slate-50"}
                                     >
-                                        📊 {t("matches.sourceLink")}
-                                        <span className="ml-1">↗</span>
-                                    </a>
+                                        {t("matches.statsMode.official")}
+                                    </button>
+                                    <button
+                                        onClick={() => setStatsMode("all")}
+                                        className={statsMode === "all" ? "bg-estonia-blue px-3 py-2 text-white" : "px-3 py-2 text-slate-500 hover:bg-slate-50"}
+                                    >
+                                        {t("matches.statsMode.all")}
+                                    </button>
                                 </div>
-                            )}
+                            </div>
                         </div>
 
                         {/* Opponent Flag */}
@@ -373,7 +448,11 @@ function MatchStatsPage() {
                                                 key={col.field}
                                                 className={`px-2 py-3 text-center text-sm text-slate-700 ${col === attackColumns[attackColumns.length - 1] ? "border-r-2 border-slate-300" : "border-r border-slate-200"}`}
                                             >
-                                                {stats ? formatStat(stats[col.field as keyof typeof stats] as number | null) : "-"}
+                                                {stats
+                                                    ? col.field === "attack_efficiency"
+                                                        ? formatStat(computeAttackEff(stats))
+                                                        : formatStat(stats[col.field as keyof typeof stats] as number | null)
+                                                    : "-"}
                                             </td>
                                         ))}
 
