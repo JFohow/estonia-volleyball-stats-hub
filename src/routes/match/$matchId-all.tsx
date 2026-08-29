@@ -39,13 +39,13 @@ function MatchStatsAllPage() {
         .map((set) => `${set.estonia_points}:${set.opponent_points}`)
         .join(" • ");
 
-    const formatStat = (value: number | null): string => {
-        if (value == null) return "-";
+    const formatStat = (fieldName: string, value: number | null): string => {
+        if (value == null) return "";
         if (typeof value === "number") {
             if (value > 100) return Math.round(value).toString();
             return value % 1 === 0 ? Math.round(value).toString() : value.toFixed(1);
         }
-        return "-";
+        return "";
     };
 
     const setColumns = [1, 2, 3, 4, 5];
@@ -343,7 +343,8 @@ function MatchStatsAllPage() {
                                                 key={`set-${set}`}
                                                 className={`px-2 py-3 text-center text-sm text-slate-700 ${idx === setColumns.length - 1 ? "border-r-2 border-slate-300" : "border-r border-slate-200"}`}
                                             >
-                                                {(player.sets_played ?? 0) >= set ? set : "—"}
+                                                {/* Show blank when no per-set information is present */}
+                                                {(player as any)?.[`set${set}_position`] ?? ""}
                                             </td>
                                         ))}
 
@@ -354,7 +355,7 @@ function MatchStatsAllPage() {
                                                 className={`px-2 py-3 text-center text-sm text-slate-700 ${idx === statColumns.length - 1 ? "border-r-2 border-slate-300" : "border-r border-slate-200"
                                                     }`}
                                             >
-                                                {stats ? formatStat(stats[col.field as keyof typeof stats] as number | null) : "-"}
+                                                {stats ? formatStat(col.field, stats[col.field as keyof typeof stats] as number | null) : "-"}
                                             </td>
                                         ))}
 
@@ -364,7 +365,7 @@ function MatchStatsAllPage() {
                                                 key={col.field}
                                                 className={`px-2 py-3 text-center text-sm text-slate-700 border-r-2 border-slate-300`}
                                             >
-                                                {stats ? formatStat(stats[col.field as keyof typeof stats] as number | null) : "-"}
+                                                {stats ? formatStat(col.field, stats[col.field as keyof typeof stats] as number | null) : "-"}
                                             </td>
                                         ))}
 
@@ -374,7 +375,7 @@ function MatchStatsAllPage() {
                                                 key={col.field}
                                                 className={`px-2 py-3 text-center text-sm text-slate-700 border-r-2 border-slate-300`}
                                             >
-                                                {stats ? formatStat(stats[col.field as keyof typeof stats] as number | null) : "-"}
+                                                {stats ? formatStat(col.field, stats[col.field as keyof typeof stats] as number | null) : "-"}
                                             </td>
                                         ))}
 
@@ -384,7 +385,7 @@ function MatchStatsAllPage() {
                                                 key={col.field}
                                                 className={`px-2 py-3 text-center text-sm text-slate-700 border-r-2 border-slate-300`}
                                             >
-                                                {stats ? formatStat(stats[col.field as keyof typeof stats] as number | null) : "-"}
+                                                {stats ? (col.field === "attack_efficiency" ? (stats[col.field as keyof typeof stats] == null ? "" : `${Math.round(Number(stats[col.field as keyof typeof stats]))}%`) : formatStat(col.field, stats[col.field as keyof typeof stats] as number | null)) : "-"}
                                             </td>
                                         ))}
 

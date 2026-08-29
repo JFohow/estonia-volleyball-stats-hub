@@ -81,25 +81,31 @@ export function matchOptions(matchId: number) {
             position,
             photo_url
           ),
-          player_match_stats (
-            points,
-            block_points,
-            plus_minus,
-            serve_total,
-            serve_aces,
-            serve_errors,
-            reception_total,
-            reception_errors,
-            reception_positive_pct,
-            reception_excellent_pct,
-            attack_total,
-            attack_errors,
-            attack_blocked,
-            attack_efficiency,
-            attack_kills,
-            attack_kill_pct,
-            break_points
-          )
+                    player_match_stats (
+                        points,
+                        block_points,
+                        plus_minus,
+                        serve_total,
+                        serve_aces,
+                        serve_errors,
+                        reception_total,
+                        reception_errors,
+                        reception_positive_pct,
+                        reception_excellent_pct,
+                        attack_total,
+                        attack_errors,
+                        attack_blocked,
+                        attack_efficiency,
+                        attack_kills,
+                        attack_kill_pct,
+                        break_points,
+                        stats_version,
+                        set1_position,
+                        set2_position,
+                        set3_position,
+                        set4_position,
+                        set5_position
+                    )
         `)
                 .eq("match_id", matchId)
                 .order("shirt_number", { ascending: true, nullsFirst: false });

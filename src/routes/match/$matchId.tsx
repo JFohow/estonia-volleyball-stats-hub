@@ -23,7 +23,19 @@ function MatchStatsPage() {
 
     const match = data.match;
     const players = data.players;
-    const [statsMode, setStatsMode] = useState<"official" | "all">("official");
+
+    // determine available stats versions across players (e.g. 'ALL', 'AM')
+    const availableStatVersions = new Set<string>();
+    players.forEach((p: any) => {
+        (p.player_match_stats ?? []).forEach((r: any) => {
+            if (r?.stats_version) availableStatVersions.add(r.stats_version);
+        });
+    });
+
+    const hasMultipleStatVersions = availableStatVersions.size > 1;
+    const showStatsToggle = !!match.has_additional_sets && hasMultipleStatVersions;
+
+    const [statsMode, setStatsMode] = useState<"official" | "all">(showStatsToggle ? "official" : "all");
     const currentLanguage = i18n.language?.startsWith("et") ? "et" : "en";
 
     const opponent = currentLanguage === "et" ? match.opponent : match.opponent_en ?? match.opponent;
@@ -50,16 +62,32 @@ function MatchStatsPage() {
         return "-";
     };
 
+    const formatField = (fieldName: string, value: number | null): string => {
+        if (value == null) return "";
+
+        if (fieldName === "attack_efficiency") {
+            // round to integer and append percent sign
+            return `${Math.round(Number(value))}%`;
+        }
+        if (fieldName.includes("pct") || fieldName === "attack_kill_pct") {
+            return `${formatStat(Number(value))}%`;
+        }
+        return formatStat(Number(value));
+    };
+
     const safeInt = (v: any) => (typeof v === "number" && Number.isInteger(v) ? v : 0);
 
     const computeAttackEff = (stats: any) => {
-        if (!stats) return 0;
+        if (!stats) return null;
+        const attackTotRaw = stats.attack_total;
+        const attackTot = safeInt(attackTotRaw);
+
+        // If attack total is null/zero or invalid, show no value
+        if (attackTotRaw == null || attackTot === 0) return null;
+
         const attackExc = safeInt(stats.attack_kills);
         const attackBlk = safeInt(stats.attack_blocked);
         const attackErr = safeInt(stats.attack_errors);
-        const attackTot = safeInt(stats.attack_total);
-
-        if (attackTot === 0) return 0;
 
         return ((attackExc - attackBlk - attackErr) / attackTot) * 100;
     };
@@ -110,13 +138,16 @@ function MatchStatsPage() {
         });
 
         const getPlayerStats = (player: any) => {
-            if (statsMode === "official") {
-                return player.player_match_stats?.[0] ?? null;
-            }
-
+            // If showing official stats, prefer the AM row when present
             const rows = player.player_match_stats ?? [];
             if (!rows || rows.length === 0) return null;
 
+            if (statsMode === "official") {
+                const amRow = rows.find((r: any) => r?.stats_version === "AM");
+                return amRow ?? rows[0] ?? null;
+            }
+
+            // For 'all' mode, combine rows (average % fields, sum others)
             const combined: any = {};
             const pctCounts: Record<string, number> = {};
 
@@ -179,11 +210,15 @@ function MatchStatsPage() {
     const getStatValue = (fieldName: string): string => {
         const value = totals[fieldName];
         if (value === undefined) return "-";
-        // For percentage fields, show average
-        if (fieldName.includes("pct") || fieldName === "attack_efficiency" || fieldName === "attack_kill_pct") {
-            const count = counts[fieldName] || 1;
-            return formatStat(value / Math.max(count, 1));
+        // Don't calculate totals for percent fields (Pos%, Exc%, Exc.%, Eff%)
+        if (
+            fieldName === "attack_efficiency" ||
+            fieldName === "attack_kill_pct" ||
+            fieldName.includes("pct")
+        ) {
+            return "-";
         }
+
         return formatStat(value);
     };
 
@@ -247,22 +282,24 @@ function MatchStatsPage() {
                                 </a>
                             </div>
 
-                            <div className="mt-4 flex justify-center">
-                                <div className="inline-flex overflow-hidden rounded-md border border-slate-200 bg-white text-xs font-semibold uppercase tracking-wide">
-                                    <button
-                                        onClick={() => setStatsMode("official")}
-                                        className={statsMode === "official" ? "bg-estonia-blue px-3 py-2 text-white" : "px-3 py-2 text-slate-500 hover:bg-slate-50"}
-                                    >
-                                        {t("matches.statsMode.official")}
-                                    </button>
-                                    <button
-                                        onClick={() => setStatsMode("all")}
-                                        className={statsMode === "all" ? "bg-estonia-blue px-3 py-2 text-white" : "px-3 py-2 text-slate-500 hover:bg-slate-50"}
-                                    >
-                                        {t("matches.statsMode.all")}
-                                    </button>
+                            {showStatsToggle && (
+                                <div className="mt-4 flex justify-center">
+                                    <div className="inline-flex overflow-hidden rounded-md border border-slate-200 bg-white text-xs font-semibold uppercase tracking-wide">
+                                        <button
+                                            onClick={() => setStatsMode("official")}
+                                            className={statsMode === "official" ? "bg-estonia-blue px-3 py-2 text-white" : "px-3 py-2 text-slate-500 hover:bg-slate-50"}
+                                        >
+                                            {t("matches.statsMode.official")}
+                                        </button>
+                                        <button
+                                            onClick={() => setStatsMode("all")}
+                                            className={statsMode === "all" ? "bg-estonia-blue px-3 py-2 text-white" : "px-3 py-2 text-slate-500 hover:bg-slate-50"}
+                                        >
+                                            {t("matches.statsMode.all")}
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
+                            )}
                         </div>
 
                         {/* Opponent Flag */}
@@ -407,7 +444,19 @@ function MatchStatsPage() {
                                                 key={`set-${set}`}
                                                 className={`px-2 py-3 text-center text-sm text-slate-700 ${idx === setColumns.length - 1 ? "border-r-2 border-slate-300" : "border-r border-slate-200"}`}
                                             >
-                                                {(player.sets_played ?? 0) >= set ? set : "—"}
+                                                {(() => {
+                                                    // Try multiple places where per-set position might be stored
+                                                    const statPos = stats?.[`set${set}_position` as any];
+                                                    const playerPosField = (player as any)?.[`set${set}_position`];
+                                                    const appearancePos = (player as any)?.player_position_in_match;
+
+                                                    if (statPos !== undefined && statPos !== null) return statPos;
+                                                    if (playerPosField !== undefined && playerPosField !== null) return playerPosField;
+                                                    if (appearancePos !== undefined && appearancePos !== null) return appearancePos;
+
+                                                    // If no per-set position information, show blank
+                                                    return "";
+                                                })()}
                                             </td>
                                         ))}
 
@@ -418,7 +467,7 @@ function MatchStatsPage() {
                                                 className={`px-2 py-3 text-center text-sm text-slate-700 ${idx === statColumns.length - 1 ? "border-r-2 border-slate-300" : "border-r border-slate-200"
                                                     }`}
                                             >
-                                                {stats ? formatStat(stats[col.field as keyof typeof stats] as number | null) : "-"}
+                                                {stats ? formatField(col.field, stats[col.field as keyof typeof stats] as number | null) : "-"}
                                             </td>
                                         ))}
 
@@ -428,7 +477,7 @@ function MatchStatsPage() {
                                                 key={col.field}
                                                 className={`px-2 py-3 text-center text-sm text-slate-700 ${col === serveColumns[serveColumns.length - 1] ? "border-r-2 border-slate-300" : "border-r border-slate-200"}`}
                                             >
-                                                {stats ? formatStat(stats[col.field as keyof typeof stats] as number | null) : "-"}
+                                                {stats ? formatField(col.field, stats[col.field as keyof typeof stats] as number | null) : "-"}
                                             </td>
                                         ))}
 
@@ -438,7 +487,7 @@ function MatchStatsPage() {
                                                 key={col.field}
                                                 className={`px-2 py-3 text-center text-sm text-slate-700 ${col === receptionColumns[receptionColumns.length - 1] ? "border-r-2 border-slate-300" : "border-r border-slate-200"}`}
                                             >
-                                                {stats ? formatStat(stats[col.field as keyof typeof stats] as number | null) : "-"}
+                                                {stats ? formatField(col.field, stats[col.field as keyof typeof stats] as number | null) : "-"}
                                             </td>
                                         ))}
 
@@ -450,8 +499,8 @@ function MatchStatsPage() {
                                             >
                                                 {stats
                                                     ? col.field === "attack_efficiency"
-                                                        ? formatStat(computeAttackEff(stats))
-                                                        : formatStat(stats[col.field as keyof typeof stats] as number | null)
+                                                        ? formatField("attack_efficiency", computeAttackEff(stats))
+                                                        : formatField(col.field, stats[col.field as keyof typeof stats] as number | null)
                                                     : "-"}
                                             </td>
                                         ))}
@@ -462,7 +511,7 @@ function MatchStatsPage() {
                                                 key={col.field}
                                                 className="px-2 py-3 text-center text-sm text-slate-700"
                                             >
-                                                {stats ? formatStat(stats[col.field as keyof typeof stats] as number | null) : "-"}
+                                                {stats ? formatField(col.field, stats[col.field as keyof typeof stats] as number | null) : "-"}
                                             </td>
                                         ))}
                                     </tr>

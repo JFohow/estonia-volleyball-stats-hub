@@ -148,13 +148,15 @@ function PlayerPage() {
     const safeInt = (v: any) => (typeof v === "number" && Number.isInteger(v) ? v : 0);
 
     const computeAttackEff = (stats: any) => {
-        if (!stats) return 0;
+        if (!stats) return null;
+        const attackTotRaw = stats.attack_total;
+        const attackTot = safeInt(attackTotRaw);
+
+        if (attackTotRaw == null || attackTot === 0) return null;
+
         const attackExc = safeInt(stats.attack_kills);
         const attackBlk = safeInt(stats.attack_blocked);
         const attackErr = safeInt(stats.attack_errors);
-        const attackTot = safeInt(stats.attack_total);
-
-        if (attackTot === 0) return 0;
 
         const eff = ((attackExc - attackBlk - attackErr) / attackTot) * 100;
         return eff;
@@ -341,8 +343,10 @@ function PlayerPage() {
         };
     }, [filteredAppearances, statColumns]);
 
-    const formatStatValue = (value: number | null) =>
-        value == null ? "-" : Number(value.toFixed(1)).toString();
+    const formatStatValue = (field: string, value: number | null) => {
+        if (value == null) return "";
+        return Number(value.toFixed(1)).toString();
+    };
 
     const allSortedAppearances = [...appearances].sort((a, b) => {
         const aMatch = getMatch(a);
@@ -648,7 +652,7 @@ function PlayerPage() {
                                     <td className="sticky left-0 z-10 border-r-2 border-slate-300 bg-inherit px-4 py-3">AVG</td>
                                     {statColumns.map((column) => (
                                         <td key={`${column.field}-avg`} className={`px-2 py-3 text-center text-sm text-slate-700 ${column.field === "plus_minus" || column.field === "serve_errors" || column.field === "reception_excellent_pct" || column.field === "attack_efficiency" ? "border-r-2 border-slate-300" : "border-r border-slate-200"}`}>
-                                            {formatStatValue(filteredSummary.averages[column.field])}
+                                            {formatStatValue(column.field, filteredSummary.averages[column.field])}
                                         </td>
                                     ))}
                                 </tr>
@@ -657,7 +661,7 @@ function PlayerPage() {
                                     <td className="sticky left-0 z-10 border-r-2 border-slate-300 bg-inherit px-4 py-3">TOT</td>
                                     {statColumns.map((column) => (
                                         <td key={`${column.field}-tot`} className={`px-2 py-3 text-center text-sm text-slate-700 ${column.field === "plus_minus" || column.field === "serve_errors" || column.field === "reception_excellent_pct" || column.field === "attack_efficiency" ? "border-r-2 border-slate-300" : "border-r border-slate-200"}`}>
-                                            {formatStatValue(filteredSummary.totals[column.field])}
+                                            {formatStatValue(column.field, filteredSummary.totals[column.field])}
                                         </td>
                                     ))}
                                 </tr>
