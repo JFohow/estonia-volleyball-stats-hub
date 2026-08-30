@@ -38,6 +38,7 @@ export type PlayerMatchStats = {
         attack_kills: number | null;
         attack_kill_pct: number | null;
         break_points: number | null;
+        stats_version: string | null;
     }>;
 };
 
@@ -99,12 +100,7 @@ export function matchOptions(matchId: number) {
                         attack_kills,
                         attack_kill_pct,
                         break_points,
-                        stats_version,
-                        set1_position,
-                        set2_position,
-                        set3_position,
-                        set4_position,
-                        set5_position
+                        stats_version
                     )
         `)
                 .eq("match_id", matchId)

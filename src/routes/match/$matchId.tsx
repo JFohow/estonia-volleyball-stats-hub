@@ -44,13 +44,13 @@ function MatchStatsPage() {
     const estoniaLabel = t("common.estonia");
 
     const officialSetScores = (match.match_sets ?? [])
-        .filter((set) => set.set_number <= 5)
-        .map((set) => `${set.estonia_points}:${set.opponent_points}`)
+        .filter((set: { set_number: number; estonia_points: number; opponent_points: number }) => set.set_number <= 5)
+        .map((set: { estonia_points: number; opponent_points: number }) => `${set.estonia_points}:${set.opponent_points}`)
         .join(" • ");
 
     const additionalSetScores = (match.match_sets ?? [])
-        .filter((set) => set.set_number > 5)
-        .map((set) => `${set.estonia_points}:${set.opponent_points}`)
+        .filter((set: { set_number: number; estonia_points: number; opponent_points: number }) => set.set_number > 5)
+        .map((set: { estonia_points: number; opponent_points: number }) => `${set.estonia_points}:${set.opponent_points}`)
         .join(" • ");
 
     const formatStat = (value: number | null): string => {
@@ -446,7 +446,7 @@ function MatchStatsPage() {
                                             >
                                                 {(() => {
                                                     // Try multiple places where per-set position might be stored
-                                                    const statPos = stats?.[`set${set}_position` as any];
+                                                    const statPos = (stats as Record<string, string | null | undefined> | undefined)?.[`set${set}_position`];
                                                     const playerPosField = (player as any)?.[`set${set}_position`];
                                                     const appearancePos = (player as any)?.player_position_in_match;
 

@@ -111,6 +111,7 @@ export type CoachMatch = {
     match_id: number;
     match_date: string;
     opponent: string;
+    opponent_en: string | null;
     competition: string | null;
     estonia_sets: number;
     opponent_sets: number;
@@ -140,6 +141,7 @@ async function fetchCoach(coachId: number): Promise<CoachPageData> {
             match_id,
             match_date,
             opponent,
+            opponent_en,
             competition,
             estonia_sets,
             opponent_sets,
@@ -155,7 +157,11 @@ async function fetchCoach(coachId: number): Promise<CoachPageData> {
     const lastMatchDate = matches && matches.length > 0 ? matches[0].match_date : null;
 
     return {
-        coach,
+        coach: {
+            ...coach,
+            birth_country: null,
+            debut_date: null,
+        },
         matches: matches || [],
         lastMatchDate,
     };

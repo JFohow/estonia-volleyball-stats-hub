@@ -17,12 +17,12 @@ import { Route as GameHighsRouteImport } from './routes/game-highs'
 import { Route as CoachesRouteImport } from './routes/coaches'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PlayersIndexRouteImport } from './routes/players/index'
-import { Route as StatsMatchIdAllRouteImport } from './routes/stats/$matchId-all'
 import { Route as StatsMatchIdRouteImport } from './routes/stats/$matchId'
 import { Route as PlayersPlayerIdRouteImport } from './routes/players/$playerId'
-import { Route as MatchMatchIdAllRouteImport } from './routes/match/$matchId-all'
 import { Route as MatchMatchIdRouteImport } from './routes/match/$matchId'
 import { Route as CoachesCoachIdRouteImport } from './routes/coaches/$coachId'
+import { Route as StatsMatchIdAllRouteImport } from './routes/stats/$matchId/all'
+import { Route as MatchMatchIdAllRouteImport } from './routes/match/$matchId/all'
 
 const TotalTopRoute = TotalTopRouteImport.update({
   id: '/total-top',
@@ -64,11 +64,6 @@ const PlayersIndexRoute = PlayersIndexRouteImport.update({
   path: '/players/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const StatsMatchIdAllRoute = StatsMatchIdAllRouteImport.update({
-  id: '/stats/$matchId-all',
-  path: '/stats/$matchId-all',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const StatsMatchIdRoute = StatsMatchIdRouteImport.update({
   id: '/stats/$matchId',
   path: '/stats/$matchId',
@@ -77,11 +72,6 @@ const StatsMatchIdRoute = StatsMatchIdRouteImport.update({
 const PlayersPlayerIdRoute = PlayersPlayerIdRouteImport.update({
   id: '/players/$playerId',
   path: '/players/$playerId',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MatchMatchIdAllRoute = MatchMatchIdAllRouteImport.update({
-  id: '/match/$matchId-all',
-  path: '/match/$matchId-all',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MatchMatchIdRoute = MatchMatchIdRouteImport.update({
@@ -94,6 +84,16 @@ const CoachesCoachIdRoute = CoachesCoachIdRouteImport.update({
   path: '/$coachId',
   getParentRoute: () => CoachesRoute,
 } as any)
+const StatsMatchIdAllRoute = StatsMatchIdAllRouteImport.update({
+  id: '/all',
+  path: '/all',
+  getParentRoute: () => StatsMatchIdRoute,
+} as any)
+const MatchMatchIdAllRoute = MatchMatchIdAllRouteImport.update({
+  id: '/all',
+  path: '/all',
+  getParentRoute: () => MatchMatchIdRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -104,12 +104,12 @@ export interface FileRoutesByFullPath {
   '/statistics': typeof StatisticsRoute
   '/total-top': typeof TotalTopRoute
   '/coaches/$coachId': typeof CoachesCoachIdRoute
-  '/match/$matchId': typeof MatchMatchIdRoute
-  '/match/$matchId-all': typeof MatchMatchIdAllRoute
+  '/match/$matchId': typeof MatchMatchIdRouteWithChildren
   '/players/$playerId': typeof PlayersPlayerIdRoute
-  '/stats/$matchId': typeof StatsMatchIdRoute
-  '/stats/$matchId-all': typeof StatsMatchIdAllRoute
+  '/stats/$matchId': typeof StatsMatchIdRouteWithChildren
   '/players/': typeof PlayersIndexRoute
+  '/match/$matchId/all': typeof MatchMatchIdAllRoute
+  '/stats/$matchId/all': typeof StatsMatchIdAllRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -120,12 +120,12 @@ export interface FileRoutesByTo {
   '/statistics': typeof StatisticsRoute
   '/total-top': typeof TotalTopRoute
   '/coaches/$coachId': typeof CoachesCoachIdRoute
-  '/match/$matchId': typeof MatchMatchIdRoute
-  '/match/$matchId-all': typeof MatchMatchIdAllRoute
+  '/match/$matchId': typeof MatchMatchIdRouteWithChildren
   '/players/$playerId': typeof PlayersPlayerIdRoute
-  '/stats/$matchId': typeof StatsMatchIdRoute
-  '/stats/$matchId-all': typeof StatsMatchIdAllRoute
+  '/stats/$matchId': typeof StatsMatchIdRouteWithChildren
   '/players': typeof PlayersIndexRoute
+  '/match/$matchId/all': typeof MatchMatchIdAllRoute
+  '/stats/$matchId/all': typeof StatsMatchIdAllRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -137,12 +137,12 @@ export interface FileRoutesById {
   '/statistics': typeof StatisticsRoute
   '/total-top': typeof TotalTopRoute
   '/coaches/$coachId': typeof CoachesCoachIdRoute
-  '/match/$matchId': typeof MatchMatchIdRoute
-  '/match/$matchId-all': typeof MatchMatchIdAllRoute
+  '/match/$matchId': typeof MatchMatchIdRouteWithChildren
   '/players/$playerId': typeof PlayersPlayerIdRoute
-  '/stats/$matchId': typeof StatsMatchIdRoute
-  '/stats/$matchId-all': typeof StatsMatchIdAllRoute
+  '/stats/$matchId': typeof StatsMatchIdRouteWithChildren
   '/players/': typeof PlayersIndexRoute
+  '/match/$matchId/all': typeof MatchMatchIdAllRoute
+  '/stats/$matchId/all': typeof StatsMatchIdAllRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -156,11 +156,11 @@ export interface FileRouteTypes {
     | '/total-top'
     | '/coaches/$coachId'
     | '/match/$matchId'
-    | '/match/$matchId-all'
     | '/players/$playerId'
     | '/stats/$matchId'
-    | '/stats/$matchId-all'
     | '/players/'
+    | '/match/$matchId/all'
+    | '/stats/$matchId/all'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -172,11 +172,11 @@ export interface FileRouteTypes {
     | '/total-top'
     | '/coaches/$coachId'
     | '/match/$matchId'
-    | '/match/$matchId-all'
     | '/players/$playerId'
     | '/stats/$matchId'
-    | '/stats/$matchId-all'
     | '/players'
+    | '/match/$matchId/all'
+    | '/stats/$matchId/all'
   id:
     | '__root__'
     | '/'
@@ -188,11 +188,11 @@ export interface FileRouteTypes {
     | '/total-top'
     | '/coaches/$coachId'
     | '/match/$matchId'
-    | '/match/$matchId-all'
     | '/players/$playerId'
     | '/stats/$matchId'
-    | '/stats/$matchId-all'
     | '/players/'
+    | '/match/$matchId/all'
+    | '/stats/$matchId/all'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -203,11 +203,9 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   StatisticsRoute: typeof StatisticsRoute
   TotalTopRoute: typeof TotalTopRoute
-  MatchMatchIdRoute: typeof MatchMatchIdRoute
-  MatchMatchIdAllRoute: typeof MatchMatchIdAllRoute
+  MatchMatchIdRoute: typeof MatchMatchIdRouteWithChildren
   PlayersPlayerIdRoute: typeof PlayersPlayerIdRoute
-  StatsMatchIdRoute: typeof StatsMatchIdRoute
-  StatsMatchIdAllRoute: typeof StatsMatchIdAllRoute
+  StatsMatchIdRoute: typeof StatsMatchIdRouteWithChildren
   PlayersIndexRoute: typeof PlayersIndexRoute
 }
 
@@ -269,13 +267,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PlayersIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/stats/$matchId-all': {
-      id: '/stats/$matchId-all'
-      path: '/stats/$matchId-all'
-      fullPath: '/stats/$matchId-all'
-      preLoaderRoute: typeof StatsMatchIdAllRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/stats/$matchId': {
       id: '/stats/$matchId'
       path: '/stats/$matchId'
@@ -288,13 +279,6 @@ declare module '@tanstack/react-router' {
       path: '/players/$playerId'
       fullPath: '/players/$playerId'
       preLoaderRoute: typeof PlayersPlayerIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/match/$matchId-all': {
-      id: '/match/$matchId-all'
-      path: '/match/$matchId-all'
-      fullPath: '/match/$matchId-all'
-      preLoaderRoute: typeof MatchMatchIdAllRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/match/$matchId': {
@@ -311,6 +295,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CoachesCoachIdRouteImport
       parentRoute: typeof CoachesRoute
     }
+    '/stats/$matchId/all': {
+      id: '/stats/$matchId/all'
+      path: '/all'
+      fullPath: '/stats/$matchId/all'
+      preLoaderRoute: typeof StatsMatchIdAllRouteImport
+      parentRoute: typeof StatsMatchIdRoute
+    }
+    '/match/$matchId/all': {
+      id: '/match/$matchId/all'
+      path: '/all'
+      fullPath: '/match/$matchId/all'
+      preLoaderRoute: typeof MatchMatchIdAllRouteImport
+      parentRoute: typeof MatchMatchIdRoute
+    }
   }
 }
 
@@ -325,6 +323,30 @@ const CoachesRouteChildren: CoachesRouteChildren = {
 const CoachesRouteWithChildren =
   CoachesRoute._addFileChildren(CoachesRouteChildren)
 
+interface MatchMatchIdRouteChildren {
+  MatchMatchIdAllRoute: typeof MatchMatchIdAllRoute
+}
+
+const MatchMatchIdRouteChildren: MatchMatchIdRouteChildren = {
+  MatchMatchIdAllRoute: MatchMatchIdAllRoute,
+}
+
+const MatchMatchIdRouteWithChildren = MatchMatchIdRoute._addFileChildren(
+  MatchMatchIdRouteChildren,
+)
+
+interface StatsMatchIdRouteChildren {
+  StatsMatchIdAllRoute: typeof StatsMatchIdAllRoute
+}
+
+const StatsMatchIdRouteChildren: StatsMatchIdRouteChildren = {
+  StatsMatchIdAllRoute: StatsMatchIdAllRoute,
+}
+
+const StatsMatchIdRouteWithChildren = StatsMatchIdRoute._addFileChildren(
+  StatsMatchIdRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CoachesRoute: CoachesRouteWithChildren,
@@ -333,11 +355,9 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   StatisticsRoute: StatisticsRoute,
   TotalTopRoute: TotalTopRoute,
-  MatchMatchIdRoute: MatchMatchIdRoute,
-  MatchMatchIdAllRoute: MatchMatchIdAllRoute,
+  MatchMatchIdRoute: MatchMatchIdRouteWithChildren,
   PlayersPlayerIdRoute: PlayersPlayerIdRoute,
-  StatsMatchIdRoute: StatsMatchIdRoute,
-  StatsMatchIdAllRoute: StatsMatchIdAllRoute,
+  StatsMatchIdRoute: StatsMatchIdRouteWithChildren,
   PlayersIndexRoute: PlayersIndexRoute,
 }
 export const routeTree = rootRouteImport

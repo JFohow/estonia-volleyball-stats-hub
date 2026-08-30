@@ -25,6 +25,7 @@ export type GameHighRow = {
   attackEfficiency: number | null;
   blockPoints: number | null;
   opponent: string;
+  opponentEn: string | null;
   competition: string | null;
   competitionEn: string | null;
   matchDate: string;
@@ -96,6 +97,7 @@ type MatchRow = {
   match_id: number;
   match_date: string;
   opponent: string;
+  opponent_en: string | null;
   competition: string | null;
   competition_en: string | null;
   estonia_sets: number;
@@ -116,7 +118,7 @@ async function fetchGameHighs(): Promise<GameHighRow[]> {
   const { data, error } = await supabase
     .from("appearances")
     .select(
-      `appearance_id, player_position_in_match, match_id, players(player_id, first_name, last_name, position), player_match_stats(points, plus_minus, serve_total, serve_aces, serve_errors, reception_total, reception_errors, reception_positive_pct, reception_excellent_pct, attack_total, attack_errors, attack_blocked, attack_kills, attack_kill_pct, attack_efficiency, block_points)`
+      `appearance_id, player_position_in_match, match_id, players(player_id, first_name, last_name, position), player_match_stats!inner(points, plus_minus, serve_total, serve_aces, serve_errors, reception_total, reception_errors, reception_positive_pct, reception_excellent_pct, attack_total, attack_errors, attack_blocked, attack_kills, attack_kill_pct, attack_efficiency, block_points)`
     );
 
   if (error) throw error;
@@ -126,7 +128,7 @@ async function fetchGameHighs(): Promise<GameHighRow[]> {
 
   const { data: matchesData, error: matchError } = await supabase
     .from("matches")
-    .select("match_id, match_date, opponent, competition, competition_en, estonia_sets, opponent_sets, vm, am, mam")
+    .select("match_id, match_date, opponent, opponent_en, competition, competition_en, estonia_sets, opponent_sets, vm, am, mam")
     .in("match_id", matchIds);
 
   if (matchError) throw matchError;
@@ -169,6 +171,7 @@ async function fetchGameHighs(): Promise<GameHighRow[]> {
       attackEfficiency: stats.attack_efficiency,
       blockPoints: stats.block_points,
       opponent: match.opponent,
+      opponentEn: match.opponent_en,
       competition: match.competition,
       competitionEn: match.competition_en,
       matchDate: match.match_date,

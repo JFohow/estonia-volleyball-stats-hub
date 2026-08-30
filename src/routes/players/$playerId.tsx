@@ -9,7 +9,9 @@ type RawMatchRecord = {
     match_id: number;
     match_date: string;
     opponent: string;
+    opponent_en: string | null;
     competition: string | null;
+    competition_en: string | null;
     estonia_sets: number;
     opponent_sets: number;
     vm: boolean | null;
@@ -408,6 +410,18 @@ function PlayerPage() {
     };
 
     const currentLanguage = i18n.language?.startsWith("et") ? "et" : "en";
+    const debutOpponent = currentLanguage === "et"
+        ? debutMatchRecord?.opponent
+        : debutMatchRecord?.opponent_en ?? debutMatchRecord?.opponent;
+    const debutCompetition = currentLanguage === "et"
+        ? debutMatchRecord?.competition
+        : debutMatchRecord?.competition_en ?? debutMatchRecord?.competition;
+    const lastOpponent = currentLanguage === "et"
+        ? lastMatchRecord?.opponent
+        : lastMatchRecord?.opponent_en ?? lastMatchRecord?.opponent;
+    const lastCompetition = currentLanguage === "et"
+        ? lastMatchRecord?.competition
+        : lastMatchRecord?.competition_en ?? lastMatchRecord?.competition;
 
     const localizedPosition =
         currentLanguage === "et"
@@ -538,15 +552,15 @@ function PlayerPage() {
                             <InfoCard
                                 title={t("players.national_team_debut")}
                                 date={debutMatchRecord?.match_date}
-                                opponent={debutMatchRecord?.opponent ?? undefined}
-                                competition={debutMatchRecord?.competition ?? undefined}
+                                opponent={debutOpponent ?? undefined}
+                                competition={debutCompetition ?? undefined}
                             />
 
                             <InfoCard
                                 title={t("players.last_match")}
                                 date={lastMatchRecord?.match_date}
-                                opponent={lastMatchRecord?.opponent ?? undefined}
-                                competition={lastMatchRecord?.competition ?? undefined}
+                                opponent={lastOpponent ?? undefined}
+                                competition={lastCompetition ?? undefined}
                             />
                         </div>
                     </div>
@@ -690,7 +704,7 @@ function PlayerPage() {
 
                         const scoreTarget =
                             match.match_type === "MAM"
-                                ? "/match/$matchId-all"
+                                ? "/match/$matchId/all"
                                 : "/match/$matchId";
                         const resultStyle =
                             match.estonia_sets > match.opponent_sets

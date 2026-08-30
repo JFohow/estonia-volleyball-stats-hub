@@ -93,6 +93,26 @@ type AppearanceRow = {
   | null;
 };
 
+type PlayerMatchStatsRow = {
+  points: number | null;
+  block_points: number | null;
+  plus_minus: number | null;
+  serve_total: number | null;
+  serve_aces: number | null;
+  serve_errors: number | null;
+  reception_total: number | null;
+  reception_errors: number | null;
+  reception_positive_pct: number | null;
+  reception_excellent_pct: number | null;
+  attack_total: number | null;
+  attack_errors: number | null;
+  attack_blocked: number | null;
+  attack_kills: number | null;
+  attack_kill_pct: number | null;
+  attack_efficiency: number | null;
+  break_points: number | null;
+};
+
 type PlayerRow = {
   player_id: number;
   first_name: string;
@@ -133,7 +153,7 @@ function createTotals(): PlayerTotals {
   };
 }
 
-function updateTotals(totals: PlayerTotals, appearance: AppearanceRow, stats: NonNullable<ReturnType<typeof normalizeRelation<AppearanceRow["player_match_stats"]>>>) {
+function updateTotals(totals: PlayerTotals, appearance: AppearanceRow, stats: PlayerMatchStatsRow) {
   totals.appearances += 1;
   const sets = appearance.sets_played ?? 0;
   totals.sets += sets;
@@ -175,7 +195,7 @@ async function fetchTotalTop(): Promise<TotalTopRow[]> {
   const appearancesResponse = await supabase
     .from("appearances")
     .select(
-      `player_id, sets_played, on_the_bench, matches(vm, am, mam), player_match_stats(points, block_points, plus_minus, serve_total, serve_aces, serve_errors, reception_total, reception_errors, reception_positive_pct, reception_excellent_pct, attack_total, attack_errors, attack_blocked, attack_kills, attack_kill_pct, attack_efficiency, break_points)`
+      `player_id, sets_played, on_the_bench, matches(vm, am, mam), player_match_stats!inner(points, block_points, plus_minus, serve_total, serve_aces, serve_errors, reception_total, reception_errors, reception_positive_pct, reception_excellent_pct, attack_total, attack_errors, attack_blocked, attack_kills, attack_kill_pct, attack_efficiency, break_points)`
     );
 
   if (appearancesResponse.error) throw appearancesResponse.error;

@@ -120,7 +120,7 @@ async function fetchPlayerStatistics(): Promise<PlayerStatisticsRow[]> {
     const appearancesResponse = await supabase
         .from("appearances")
         .select(
-            `player_id, matches(vm, am, mam), player_match_stats(points, block_points, plus_minus, serve_total, serve_aces, serve_errors, reception_total, reception_errors, reception_positive_pct, reception_excellent_pct, attack_total, attack_errors, attack_blocked, attack_kills, attack_kill_pct, attack_efficiency, break_points)`
+            `player_id, matches(vm, am, mam), player_match_stats!inner(points, block_points, plus_minus, serve_total, serve_aces, serve_errors, reception_total, reception_errors, reception_positive_pct, reception_excellent_pct, attack_total, attack_errors, attack_blocked, attack_kills, attack_kill_pct, attack_efficiency, break_points)`
         );
 
     if (appearancesResponse.error) throw appearancesResponse.error;

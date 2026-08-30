@@ -382,35 +382,43 @@ function GameHighsPage() {
                 <TableHead className="p-3 text-center">{t("gameHighs.table.score")}</TableHead>
                 <TableHead className="p-3 text-center">{t("gameHighs.table.date")}</TableHead>
                 <TableHead className="p-3 text-center">{t("gameHighs.table.competition")}</TableHead>
-                <TableHead className="p-3 text-center">{t("gameHighs.table.matchLink")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {visibleRows.map((row, index) => (
-                <TableRow key={row.appearanceId}>
-                  <TableCell className="p-3 text-center font-medium text-slate-900">{index + 1}</TableCell>
-                  <TableCell className="p-3 text-center font-medium text-slate-900">
-                    <a href={`/players/${row.playerId}`} className="text-estonia-dark underline-offset-2 hover:text-estonia-blue hover:underline">
-                      {row.name}
-                    </a>
-                  </TableCell>
-                  <TableCell className="p-3 text-center font-semibold text-estonia-dark">{formatCategoryValue(getCategoryValue(row, category), category)}</TableCell>
-                  <TableCell className="p-3 text-center">{row.position ?? t("positions.Unknown")}</TableCell>
-                  <TableCell className="p-3 text-center">{row.opponent}</TableCell>
-                  <TableCell className="p-3 text-center">{row.score}</TableCell>
-                  <TableCell className="p-3 text-center">{new Date(row.matchDate).toLocaleDateString("en-GB", {
-                    day: "numeric",
-                    month: "short",
-                    year: "numeric",
-                  })}</TableCell>
-                  <TableCell className="p-3 text-center">{isEstonian ? (row.competition ?? "—") : (row.competitionEn ?? row.competition ?? "—")}</TableCell>
-                  <TableCell className="p-3 text-center">
-                    <a href={`/match/${row.matchId}`} className="text-estonia-blue hover:underline">
-                      PDF
-                    </a>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {visibleRows.map((row, index) => {
+                const resultStyle =
+                  Number.parseInt(row.score.split("-")[0] ?? "0", 10) > Number.parseInt(row.score.split("-")[1] ?? "0", 10)
+                    ? "text-estonia-blue"
+                    : Number.parseInt(row.score.split("-")[0] ?? "0", 10) === Number.parseInt(row.score.split("-")[1] ?? "0", 10)
+                      ? "text-green-700"
+                      : "text-red-700";
+                const opponent = isEstonian ? row.opponent : row.opponentEn ?? row.opponent;
+
+                return (
+                  <TableRow key={row.appearanceId}>
+                    <TableCell className="p-3 text-center font-medium text-slate-900">{index + 1}</TableCell>
+                    <TableCell className="p-3 text-center font-medium text-slate-900">
+                      <a href={`/players/${row.playerId}`} className="text-estonia-dark underline-offset-2 hover:text-estonia-blue hover:underline">
+                        {row.name}
+                      </a>
+                    </TableCell>
+                    <TableCell className="p-3 text-center font-semibold text-estonia-dark">{formatCategoryValue(getCategoryValue(row, category), category)}</TableCell>
+                    <TableCell className="p-3 text-center">{row.position ?? t("positions.Unknown")}</TableCell>
+                    <TableCell className="p-3 text-center">{opponent}</TableCell>
+                    <TableCell className="p-3 text-center">
+                      <a href={`/match/${row.matchId}`} className={`font-semibold hover:underline ${resultStyle}`}>
+                        {row.score}
+                      </a>
+                    </TableCell>
+                    <TableCell className="p-3 text-center">{new Date(row.matchDate).toLocaleDateString("en-GB", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })}</TableCell>
+                    <TableCell className="p-3 text-center">{isEstonian ? (row.competition ?? "—") : (row.competitionEn ?? row.competition ?? "—")}</TableCell>
+                  </TableRow>
+                )
+              })}
             </TableBody>
           </Table>
         </div>

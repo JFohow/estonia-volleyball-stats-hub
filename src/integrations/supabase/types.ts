@@ -65,6 +65,33 @@ export type Database = {
           },
         ]
       }
+      coaches: {
+        Row: {
+          birth_date: string | null
+          coach: string | null
+          coach_id: number
+          first_name: string
+          last_name: string
+          photo_url: string | null
+        }
+        Insert: {
+          birth_date?: string | null
+          coach?: string | null
+          coach_id?: number
+          first_name: string
+          last_name: string
+          photo_url?: string | null
+        }
+        Update: {
+          birth_date?: string | null
+          coach?: string | null
+          coach_id?: number
+          first_name?: string
+          last_name?: string
+          photo_url?: string | null
+        }
+        Relationships: []
+      }
       match_sets: {
         Row: {
           estonia_points: number
@@ -101,44 +128,68 @@ export type Database = {
         Row: {
           additional_sets_count: number
           city: string | null
+          city_en: string | null
           coach: string | null
+          coach_id: number | null
           competition: string | null
+          competition_en: string | null
           created_at: string
           estonia_sets: number
           has_additional_sets: boolean
           match_date: string
           match_id: number
           match_type: Database["public"]["Enums"]["match_type"]
+          notes: string | null
           opponent: string
+          opponent_en: string | null
           opponent_sets: number
+          vm: boolean | null
+          am: boolean | null
+          mam: boolean | null
         }
         Insert: {
           additional_sets_count?: number
           city?: string | null
+          city_en?: string | null
           coach?: string | null
+          coach_id?: number | null
           competition?: string | null
+          competition_en?: string | null
           created_at?: string
           estonia_sets?: number
           has_additional_sets?: boolean
           match_date: string
           match_id?: number
           match_type: Database["public"]["Enums"]["match_type"]
+          notes?: string | null
           opponent: string
+          opponent_en?: string | null
           opponent_sets?: number
+          vm?: boolean | null
+          am?: boolean | null
+          mam?: boolean | null
         }
         Update: {
           additional_sets_count?: number
           city?: string | null
+          city_en?: string | null
           coach?: string | null
+          coach_id?: number | null
           competition?: string | null
+          competition_en?: string | null
           created_at?: string
           estonia_sets?: number
           has_additional_sets?: boolean
           match_date?: string
           match_id?: number
           match_type?: Database["public"]["Enums"]["match_type"]
+          notes?: string | null
           opponent?: string
+          opponent_en?: string | null
           opponent_sets?: number
+          vm?: boolean | null
+          am?: boolean | null
+          mam?: boolean | null
         }
         Relationships: []
       }
@@ -259,47 +310,41 @@ export type Database = {
           position?: string | null
           photo_url?: string | null
         }
-        Relationships: [
-          birth_county?: string | null
-          birth_date?: string | null
-          created_at?: string
-          first_name: string
-          handedness?: string | null
-          height_cm?: number | null
-          last_name: string
-          place_of_birth?: string | null
-          player_id?: number
-          position?: string | null
-        }
-      Update: {
-        birth_county?: string | null
-        birth_date?: string | null
-        created_at?: string
-        first_name?: string
-        handedness?: string | null
-        height_cm?: number | null
-        last_name?: string
-        place_of_birth?: string | null
-        player_id?: number
-        position?: string | null
+        Relationships: []
       }
-      Relationships: []
+      positions: {
+        Row: {
+          position: string
+          position_name: string | null
+          position_name_ee: string | null
+        }
+        Insert: {
+          position: string
+          position_name?: string | null
+          position_name_ee?: string | null
+        }
+        Update: {
+          position?: string
+          position_name?: string | null
+          position_name_ee?: string | null
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      match_type: "VM" | "AM" | "MAM"
+      stats_version: "ALL" | "AM"
+    }
+    CompositeTypes: {
+      [_ in never]: never
     }
   }
-  Views: {
-    [_ in never]: never
-  }
-  Functions: {
-    [_ in never]: never
-  }
-  Enums: {
-    match_type: "VM" | "AM" | "MAM"
-    stats_version: "ALL" | "AM"
-  }
-  CompositeTypes: {
-    [_ in never]: never
-  }
-}
 }
 
 type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">

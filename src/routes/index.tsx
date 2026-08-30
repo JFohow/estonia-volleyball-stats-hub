@@ -186,8 +186,10 @@ function HomePage() {
 }
 
 function MatchRow({ match }: { match: RecentMatch }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const won = match.estonia_sets > match.opponent_sets;
+  const currentLanguage = i18n.language?.startsWith("et") ? "et" : "en";
+  const opponent = currentLanguage === "et" ? match.opponent : match.opponent_en ?? match.opponent;
   const typeStyles: Record<string, string> = {
     VM: "bg-green-100 text-green-700",
     AM: "bg-slate-100 text-slate-600",
@@ -225,7 +227,7 @@ function MatchRow({ match }: { match: RecentMatch }) {
             <span className={won ? "text-estonia-blue" : "text-red-700"}>
               {match.estonia_sets} – {match.opponent_sets}
             </span>
-            <span className="uppercase">{match.opponent}</span>
+            <span className="uppercase">{opponent}</span>
           </div>
         </div>
         <span

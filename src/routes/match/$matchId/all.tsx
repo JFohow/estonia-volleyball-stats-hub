@@ -3,7 +3,7 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { matchOptions } from "@/lib/match-stats.queries";
 import { useTranslation } from "react-i18next";
 
-export const Route = createFileRoute("/match/$matchId-all")({
+export const Route = createFileRoute("/match/$matchId/all")({
     loader: ({ context, params }) =>
         context.queryClient.ensureQueryData(
             matchOptions(Number(params.matchId))
@@ -30,16 +30,16 @@ function MatchStatsAllPage() {
     const estoniaLabel = t("common.estonia");
 
     const officialSetScores = (match.match_sets ?? [])
-        .filter((set) => set.set_number <= 5)
-        .map((set) => `${set.estonia_points}:${set.opponent_points}`)
+        .filter((set: { set_number: number; estonia_points: number; opponent_points: number }) => set.set_number <= 5)
+        .map((set: { estonia_points: number; opponent_points: number }) => `${set.estonia_points}:${set.opponent_points}`)
         .join(" • ");
 
     const additionalSetScores = (match.match_sets ?? [])
-        .filter((set) => set.set_number > 5)
-        .map((set) => `${set.estonia_points}:${set.opponent_points}`)
+        .filter((set: { set_number: number; estonia_points: number; opponent_points: number }) => set.set_number > 5)
+        .map((set: { estonia_points: number; opponent_points: number }) => `${set.estonia_points}:${set.opponent_points}`)
         .join(" • ");
 
-    const formatStat = (fieldName: string, value: number | null): string => {
+    const formatStat = (value: number | null): string => {
         if (value == null) return "";
         if (typeof value === "number") {
             if (value > 100) return Math.round(value).toString();
@@ -82,7 +82,6 @@ function MatchStatsAllPage() {
         { field: "break_points", label: "PTS" },
     ];
 
-    // Calculate totals
     const calculateTotals = () => {
         const totals: Record<string, number> = {};
         const counts: Record<string, number> = {};
@@ -129,16 +128,13 @@ function MatchStatsAllPage() {
     return (
         <div className="text-slate-900">
             <div className="mx-auto max-w-7xl px-6 py-10">
-                {/* Enhanced Match Header */}
                 <div className="rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
                     <div className="flex items-center justify-between gap-6">
-                        {/* Estonia Flag */}
                         <div className="flex-shrink-0">
                             <div className="text-7xl">🇪🇪</div>
                             <p className="mt-2 text-center text-xs font-semibold text-slate-600">{estoniaLabel}</p>
                         </div>
 
-                        {/* Match Info */}
                         <div className="flex-1 text-center">
                             <h1 className="font-display text-4xl uppercase italic">
                                 {match.estonia_sets}–{match.opponent_sets}
@@ -201,7 +197,6 @@ function MatchStatsAllPage() {
                             )}
                         </div>
 
-                        {/* Opponent Flag */}
                         <div className="flex-shrink-0 text-center">
                             <div className="text-7xl">🏐</div>
                             <p className="mt-2 text-center text-xs font-semibold text-slate-600 uppercase">
@@ -211,11 +206,9 @@ function MatchStatsAllPage() {
                     </div>
                 </div>
 
-                {/* Statistics Table */}
                 <div className="mt-8 overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
                     <table className="w-full border-collapse">
                         <thead>
-                            {/* Section Headers */}
                             <tr className="border-b-2 border-slate-300 bg-slate-50">
                                 <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-600 border-r border-slate-200">
                                     #
@@ -223,44 +216,29 @@ function MatchStatsAllPage() {
                                 <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-600 border-r-2 border-slate-300">
                                     Player
                                 </th>
-
-                                {/* Sets Section */}
                                 <th colSpan={5} className="border-r-2 border-slate-300 px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-slate-500">
                                     Sets
                                 </th>
-
-                                {/* Points Section */}
                                 <th colSpan={3} className="border-r-2 border-slate-300 px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-slate-500">
                                     Points
                                 </th>
-
-                                {/* Serve Section */}
                                 <th colSpan={3} className="border-r-2 border-slate-300 px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-slate-500">
                                     Serve
                                 </th>
-
-                                {/* Reception Section */}
                                 <th colSpan={4} className="border-r-2 border-slate-300 px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-slate-500">
                                     Reception
                                 </th>
-
-                                {/* Attack Section */}
                                 <th colSpan={6} className="border-r-2 border-slate-300 px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-slate-500">
                                     Attack
                                 </th>
-
-                                {/* Block Section */}
                                 <th colSpan={1} className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-slate-500">
                                     Block
                                 </th>
                             </tr>
 
-                            {/* Column Headers */}
                             <tr className="border-b-2 border-slate-300 bg-slate-50">
                                 <th className="border-r border-slate-200 px-4 py-2 text-center text-[10px] font-semibold text-slate-600" />
                                 <th className="border-r-2 border-slate-300 px-4 py-2 text-left text-[10px] font-semibold text-slate-600" />
-
-                                {/* Set columns */}
                                 {setColumns.map((set, idx) => (
                                     <th
                                         key={`set-${set}`}
@@ -269,49 +247,38 @@ function MatchStatsAllPage() {
                                         {set}
                                     </th>
                                 ))}
-
-                                {/* Points columns */}
                                 {statColumns.map((col, idx) => (
                                     <th
                                         key={col.field}
-                                        className={`px-2 py-2 text-center text-[10px] font-semibold text-slate-600 ${idx === statColumns.length - 1 ? "border-r-2 border-slate-300" : "border-r border-slate-200"
-                                            }`}
+                                        className={`px-2 py-2 text-center text-[10px] font-semibold text-slate-600 ${idx === statColumns.length - 1 ? "border-r-2 border-slate-300" : "border-r border-slate-200"}`}
                                     >
                                         {col.label}
                                     </th>
                                 ))}
-
-                                {/* Serve columns */}
                                 {serveColumns.map((col) => (
                                     <th
                                         key={col.field}
-                                        className={`px-2 py-2 text-center text-[10px] font-semibold text-slate-600 border-r-2 border-slate-300`}
+                                        className="px-2 py-2 text-center text-[10px] font-semibold text-slate-600 border-r-2 border-slate-300"
                                     >
                                         {col.label}
                                     </th>
                                 ))}
-
-                                {/* Reception columns */}
                                 {receptionColumns.map((col) => (
                                     <th
                                         key={col.field}
-                                        className={`px-2 py-2 text-center text-[10px] font-semibold text-slate-600 border-r-2 border-slate-300`}
+                                        className="px-2 py-2 text-center text-[10px] font-semibold text-slate-600 border-r-2 border-slate-300"
                                     >
                                         {col.label}
                                     </th>
                                 ))}
-
-                                {/* Attack columns */}
                                 {attackColumns.map((col) => (
                                     <th
                                         key={col.field}
-                                        className={`px-2 py-2 text-center text-[10px] font-semibold text-slate-600 border-r-2 border-slate-300`}
+                                        className="px-2 py-2 text-center text-[10px] font-semibold text-slate-600 border-r-2 border-slate-300"
                                     >
                                         {col.label}
                                     </th>
                                 ))}
-
-                                {/* Block columns */}
                                 {blockColumns.map((col) => (
                                     <th
                                         key={col.field}
@@ -324,7 +291,6 @@ function MatchStatsAllPage() {
                         </thead>
 
                         <tbody className="divide-y divide-slate-100">
-                            {/* Player Rows */}
                             {players.map((player, idx) => {
                                 const stats = player.player_match_stats?.[0];
 
@@ -336,60 +302,46 @@ function MatchStatsAllPage() {
                                         <td className="border-r-2 border-slate-300 px-4 py-3 text-left text-sm font-medium text-slate-900">
                                             {Array.isArray(player.players) ? `${player.players[0]?.first_name} ${player.players[0]?.last_name}` : `${player.players?.first_name} ${player.players?.last_name}`}
                                         </td>
-
-                                        {/* Set appearances - showing if they played that set */}
                                         {setColumns.map((set, idx) => (
                                             <td
                                                 key={`set-${set}`}
                                                 className={`px-2 py-3 text-center text-sm text-slate-700 ${idx === setColumns.length - 1 ? "border-r-2 border-slate-300" : "border-r border-slate-200"}`}
                                             >
-                                                {/* Show blank when no per-set information is present */}
-                                                {(player as any)?.[`set${set}_position`] ?? ""}
+                                                {((player as unknown) as Record<string, string | null | undefined>)[`set${set}_position`] ?? ""}
                                             </td>
                                         ))}
-
-                                        {/* Points Stats */}
                                         {statColumns.map((col, idx) => (
                                             <td
                                                 key={col.field}
-                                                className={`px-2 py-3 text-center text-sm text-slate-700 ${idx === statColumns.length - 1 ? "border-r-2 border-slate-300" : "border-r border-slate-200"
-                                                    }`}
+                                                className={`px-2 py-3 text-center text-sm text-slate-700 ${idx === statColumns.length - 1 ? "border-r-2 border-slate-300" : "border-r border-slate-200"}`}
                                             >
-                                                {stats ? formatStat(col.field, stats[col.field as keyof typeof stats] as number | null) : "-"}
+                                                {stats ? formatStat(stats[col.field as keyof typeof stats] as number | null) : "-"}
                                             </td>
                                         ))}
-
-                                        {/* Serve Stats */}
                                         {serveColumns.map((col) => (
                                             <td
                                                 key={col.field}
-                                                className={`px-2 py-3 text-center text-sm text-slate-700 border-r-2 border-slate-300`}
+                                                className="px-2 py-3 text-center text-sm text-slate-700 border-r-2 border-slate-300"
                                             >
-                                                {stats ? formatStat(col.field, stats[col.field as keyof typeof stats] as number | null) : "-"}
+                                                {stats ? formatStat(stats[col.field as keyof typeof stats] as number | null) : "-"}
                                             </td>
                                         ))}
-
-                                        {/* Reception Stats */}
                                         {receptionColumns.map((col) => (
                                             <td
                                                 key={col.field}
-                                                className={`px-2 py-3 text-center text-sm text-slate-700 border-r-2 border-slate-300`}
+                                                className="px-2 py-3 text-center text-sm text-slate-700 border-r-2 border-slate-300"
                                             >
-                                                {stats ? formatStat(col.field, stats[col.field as keyof typeof stats] as number | null) : "-"}
+                                                {stats ? formatStat(stats[col.field as keyof typeof stats] as number | null) : "-"}
                                             </td>
                                         ))}
-
-                                        {/* Attack Stats */}
                                         {attackColumns.map((col) => (
                                             <td
                                                 key={col.field}
-                                                className={`px-2 py-3 text-center text-sm text-slate-700 border-r-2 border-slate-300`}
+                                                className="px-2 py-3 text-center text-sm text-slate-700 border-r-2 border-slate-300"
                                             >
-                                                {stats ? (col.field === "attack_efficiency" ? (stats[col.field as keyof typeof stats] == null ? "" : `${Math.round(Number(stats[col.field as keyof typeof stats]))}%`) : formatStat(col.field, stats[col.field as keyof typeof stats] as number | null)) : "-"}
+                                                {stats ? (col.field === "attack_efficiency" ? (stats[col.field as keyof typeof stats] == null ? "" : `${Math.round(Number(stats[col.field as keyof typeof stats]))}%`) : formatStat(stats[col.field as keyof typeof stats] as number | null)) : "-"}
                                             </td>
                                         ))}
-
-                                        {/* Block Stats */}
                                         {blockColumns.map((col) => (
                                             <td
                                                 key={col.field}
@@ -402,7 +354,6 @@ function MatchStatsAllPage() {
                                 );
                             })}
 
-                            {/* Totals Row */}
                             <tr className="border-t-2 border-slate-300 bg-slate-50 font-bold">
                                 <td className="border-r border-slate-200 px-4 py-3 text-center text-slate-900">
                                     Σ
@@ -410,8 +361,6 @@ function MatchStatsAllPage() {
                                 <td className="border-r-2 border-slate-300 px-4 py-3 text-left text-slate-900">
                                     TOTALS
                                 </td>
-
-                                {/* Set totals - not applicable */}
                                 {setColumns.map((set, idx) => (
                                     <td
                                         key={`set-total-${set}`}
@@ -420,49 +369,38 @@ function MatchStatsAllPage() {
                                         —
                                     </td>
                                 ))}
-
-                                {/* Points totals */}
                                 {statColumns.map((col, idx) => (
                                     <td
                                         key={`total-${col.field}`}
-                                        className={`px-2 py-3 text-center text-sm text-slate-900 ${idx === statColumns.length - 1 ? "border-r-2 border-slate-300" : "border-r border-slate-200"
-                                            }`}
+                                        className={`px-2 py-3 text-center text-sm text-slate-900 ${idx === statColumns.length - 1 ? "border-r-2 border-slate-300" : "border-r border-slate-200"}`}
                                     >
                                         {getStatValue(col.field)}
                                     </td>
                                 ))}
-
-                                {/* Serve totals */}
                                 {serveColumns.map((col) => (
                                     <td
                                         key={`total-${col.field}`}
-                                        className={`px-2 py-3 text-center text-sm text-slate-900 border-r-2 border-slate-300`}
+                                        className="px-2 py-3 text-center text-sm text-slate-900 border-r-2 border-slate-300"
                                     >
                                         {getStatValue(col.field)}
                                     </td>
                                 ))}
-
-                                {/* Reception totals */}
                                 {receptionColumns.map((col) => (
                                     <td
                                         key={`total-${col.field}`}
-                                        className={`px-2 py-3 text-center text-sm text-slate-900 border-r-2 border-slate-300`}
+                                        className="px-2 py-3 text-center text-sm text-slate-900 border-r-2 border-slate-300"
                                     >
                                         {getStatValue(col.field)}
                                     </td>
                                 ))}
-
-                                {/* Attack totals */}
                                 {attackColumns.map((col) => (
                                     <td
                                         key={`total-${col.field}`}
-                                        className={`px-2 py-3 text-center text-sm text-slate-900 border-r-2 border-slate-300`}
+                                        className="px-2 py-3 text-center text-sm text-slate-900 border-r-2 border-slate-300"
                                     >
                                         {getStatValue(col.field)}
                                     </td>
                                 ))}
-
-                                {/* Block totals */}
                                 {blockColumns.map((col) => (
                                     <td
                                         key={`total-${col.field}`}

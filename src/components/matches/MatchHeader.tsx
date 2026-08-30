@@ -5,6 +5,12 @@ type MatchHeaderProps = {
     showAdditionalSets?: boolean;
 };
 
+type MatchSet = {
+    set_number: number;
+    estonia_points: number;
+    opponent_points: number;
+};
+
 export function MatchHeader({
     match,
     showAdditionalSets = false,
@@ -30,13 +36,13 @@ export function MatchHeader({
             : match.city_en ?? match.city;
 
     const officialSetScores = (match.match_sets ?? [])
-        .filter((set) => set.set_number <= 5)
-        .map((set) => `${set.estonia_points}:${set.opponent_points}`)
+        .filter((set: MatchSet) => set.set_number <= 5)
+        .map((set: MatchSet) => `${set.estonia_points}:${set.opponent_points}`)
         .join(" • ");
 
     const additionalSetScores = (match.match_sets ?? [])
-        .filter((set) => set.set_number > 5)
-        .map((set) => `${set.estonia_points}:${set.opponent_points}`)
+        .filter((set: MatchSet) => set.set_number > 5)
+        .map((set: MatchSet) => `${set.estonia_points}:${set.opponent_points}`)
         .join(" • ");
 
     return (

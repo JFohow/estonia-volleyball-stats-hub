@@ -51,7 +51,7 @@ function CoachPage() {
                 : "text-red-700";
 
     const getMatchRoute = (match: typeof matches[number]) =>
-        getMatchType(match) === "MAM" ? "/match/$matchId-all" : "/match/$matchId";
+        getMatchType(match) === "MAM" ? "/match/$matchId/all" : "/match/$matchId";
 
     const sortedMatches = useMemo(
         () =>
@@ -246,6 +246,7 @@ function CoachPage() {
 
                     {sortedFilteredMatches.length > 0 ? (
                         sortedFilteredMatches.map((match, index) => (
+
                             <div
                                 key={match.match_id}
                                 className="grid grid-cols-12 gap-3 border-t border-slate-100 px-6 py-4"
@@ -259,7 +260,7 @@ function CoachPage() {
                                 </div>
 
                                 <div className="col-span-3">
-                                    {match.opponent}
+                                    {currentLanguage === "et" ? match.opponent : match.opponent_en ?? match.opponent}
                                 </div>
 
                                 <div className="col-span-2 text-center">
