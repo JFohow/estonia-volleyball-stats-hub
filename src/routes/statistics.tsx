@@ -1,17 +1,23 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import MultiSelect from "@/components/ui/multi-select";
 import {
+    addStats,
+    createGroup,
+    firstRelation,
     formatDisplayValue,
     getDisplayValue,
     statisticsOptions,
+    type StatisticsAppearanceRow,
+    type StatisticsMatchRow,
     type PlayerStatisticsRow,
     type StatisticsField,
     type StatisticsMode,
 } from "@/lib/statistics.queries";
 import { useTranslation } from "react-i18next";
 
-type SortField = StatisticsField | "name";
+type SortField = StatisticsField | "name" | "sets";
 
 const columns: Array<{ field: StatisticsField; label: string }> = [
     { field: "points", label: "PTS" },
@@ -41,18 +47,206 @@ export const Route = createFileRoute("/statistics")({
 });
 
 function StatisticsPage() {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const { data } = useSuspenseQuery(statisticsOptions());
+    const currentLanguage = i18n.language?.startsWith("et") ? "et" : "en";
 
     const [mode, setMode] = useState<StatisticsMode>("official");
     const [selectedPosition, setSelectedPosition] = useState<string>("ALL");
+    const [selectedYear, setSelectedYear] = useState<string[]>(["all"]);
+    const [selectedCompetition, setSelectedCompetition] = useState<string[]>(["all"]);
+    const [selectedOpponent, setSelectedOpponent] = useState<string[]>(["all"]);
+    const [selectedMatches, setSelectedMatches] = useState<string[]>([]);
     const [sortField, setSortField] = useState<SortField | "appearances">("appearances");
     const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
 
     const positions = useMemo(() => ["ALL", "SET", "OPP", "OH", "MB", "LIB"], []);
 
+    const countSetsFromPositions = (stats: Record<string, unknown>) => {
+        const setValues = [
+            stats["set1_position"],
+            stats["set2_position"],
+            stats["set3_position"],
+            stats["set4_position"],
+            stats["set5_position"],
+        ];
+
+        return setValues.filter((value) => typeof value === "string" && value.trim() !== "").length;
+    };
+
+    const getLocalizedOpponent = (match: StatisticsMatchRow) =>
+        currentLanguage === "et"
+            ? match.opponent
+            : match.opponent_en ?? match.opponent;
+
+    const getLocalizedCompetition = (match: StatisticsMatchRow) =>
+        currentLanguage === "et"
+            ? match.competition
+            : match.competition_en ?? match.competition;
+
+    const modeFilteredAppearances = useMemo(() => {
+        return data.appearances.filter((appearance) => {
+            const match = firstRelation(appearance.matches);
+            const stats = firstRelation(appearance.player_match_stats);
+            if (!match || !stats) return false;
+
+            if (mode === "official") return Boolean(match.am);
+            if (mode === "competitive") return Boolean(match.vm);
+            if (mode === "nonCompetitive") return Boolean(match.mam);
+            return true;
+        });
+    }, [data.appearances, mode]);
+
+    const yearOptions = useMemo(() => {
+        const values = new Set<string>();
+        modeFilteredAppearances.forEach((appearance) => {
+            const match = firstRelation(appearance.matches);
+            if (!match) return;
+            const localizedCompetition = getLocalizedCompetition(match);
+            const localizedOpponent = getLocalizedOpponent(match);
+
+            if (!selectedCompetition.includes("all") && localizedCompetition && !selectedCompetition.includes(localizedCompetition)) return;
+            if (!selectedOpponent.includes("all") && localizedOpponent && !selectedOpponent.includes(localizedOpponent)) return;
+
+            values.add(new Date(match.match_date).getFullYear().toString());
+        });
+        return [...values].sort();
+    }, [modeFilteredAppearances, selectedCompetition, selectedOpponent, currentLanguage]);
+
+    const competitionOptions = useMemo(() => {
+        const values = new Set<string>();
+        modeFilteredAppearances.forEach((appearance) => {
+            const match = firstRelation(appearance.matches);
+            if (!match) return;
+            const localizedCompetition = getLocalizedCompetition(match);
+            const localizedOpponent = getLocalizedOpponent(match);
+
+            if (!selectedYear.includes("all")) {
+                const year = new Date(match.match_date).getFullYear().toString();
+                if (!selectedYear.includes(year)) return;
+            }
+            if (!selectedOpponent.includes("all") && localizedOpponent && !selectedOpponent.includes(localizedOpponent)) return;
+
+            if (localizedCompetition) values.add(localizedCompetition);
+        });
+        return [...values].sort();
+    }, [modeFilteredAppearances, selectedYear, selectedOpponent, currentLanguage]);
+
+    const opponentOptions = useMemo(() => {
+        const values = new Set<string>();
+        modeFilteredAppearances.forEach((appearance) => {
+            const match = firstRelation(appearance.matches);
+            if (!match) return;
+            const localizedCompetition = getLocalizedCompetition(match);
+            const localizedOpponent = getLocalizedOpponent(match);
+
+            if (!selectedYear.includes("all")) {
+                const year = new Date(match.match_date).getFullYear().toString();
+                if (!selectedYear.includes(year)) return;
+            }
+            if (!selectedCompetition.includes("all") && localizedCompetition && !selectedCompetition.includes(localizedCompetition)) return;
+
+            if (localizedOpponent) values.add(localizedOpponent);
+        });
+        return [...values].sort();
+    }, [modeFilteredAppearances, selectedYear, selectedCompetition, currentLanguage]);
+
+    const matchOptions = useMemo(() => {
+        const values: Array<{ id: number; label: string }> = [];
+        const seen = new Set<number>();
+        modeFilteredAppearances.forEach((appearance) => {
+            const match = firstRelation(appearance.matches);
+            if (!match) return;
+            const localizedCompetition = getLocalizedCompetition(match);
+            const localizedOpponent = getLocalizedOpponent(match);
+
+            if (!selectedYear.includes("all")) {
+                const year = new Date(match.match_date).getFullYear().toString();
+                if (!selectedYear.includes(year)) return;
+            }
+            if (!selectedCompetition.includes("all") && localizedCompetition && !selectedCompetition.includes(localizedCompetition)) return;
+            if (!selectedOpponent.includes("all") && localizedOpponent && !selectedOpponent.includes(localizedOpponent)) return;
+
+            if (!seen.has(match.match_id)) {
+                seen.add(match.match_id);
+                const dateLabel = new Date(match.match_date).toLocaleDateString("en-GB");
+                const scoreLabel = `${match.estonia_sets}-${match.opponent_sets}`;
+                values.push({ id: match.match_id, label: `${dateLabel} | ${localizedOpponent} | ${scoreLabel}` });
+            }
+        });
+
+        return values.sort((l, r) => l.label.localeCompare(r.label));
+    }, [modeFilteredAppearances, selectedYear, selectedCompetition, selectedOpponent, currentLanguage]);
+
+    useEffect(() => {
+        const allowedIds = new Set(matchOptions.map((m) => String(m.id)));
+        setSelectedMatches((current) => current.filter((id) => allowedIds.has(id)));
+    }, [matchOptions]);
+
+    const filteredAppearances = useMemo(() => {
+        return modeFilteredAppearances.filter((appearance) => {
+            const match = firstRelation(appearance.matches);
+            if (!match) return false;
+            const localizedCompetition = getLocalizedCompetition(match);
+            const localizedOpponent = getLocalizedOpponent(match);
+
+            if (!selectedYear.includes("all") && selectedYear.length > 0) {
+                const year = new Date(match.match_date).getFullYear().toString();
+                if (!selectedYear.includes(year)) return false;
+            }
+
+            if (!selectedCompetition.includes("all") && selectedCompetition.length > 0) {
+                if (!localizedCompetition || !selectedCompetition.includes(localizedCompetition)) return false;
+            }
+
+            if (!selectedOpponent.includes("all") && selectedOpponent.length > 0) {
+                if (!localizedOpponent || !selectedOpponent.includes(localizedOpponent)) return false;
+            }
+
+            if (selectedMatches.length > 0 && !selectedMatches.includes(String(match.match_id))) {
+                return false;
+            }
+
+            return true;
+        });
+    }, [modeFilteredAppearances, selectedYear, selectedCompetition, selectedOpponent, selectedMatches, currentLanguage]);
+
     const rows = useMemo(() => {
-        const copy = data.filter((row) => selectedPosition === "ALL" || row.position === selectedPosition);
+        const rowMap = new Map<number, PlayerStatisticsRow>();
+        const hasActiveDetailFilters =
+            !selectedYear.includes("all") ||
+            !selectedCompetition.includes("all") ||
+            !selectedOpponent.includes("all") ||
+            selectedMatches.length > 0;
+
+        data.players
+            .filter((player) => selectedPosition === "ALL" || player.position === selectedPosition)
+            .forEach((player) => {
+                rowMap.set(player.player_id, {
+                    playerId: player.player_id,
+                    name: `${player.first_name} ${player.last_name}`,
+                    position: player.position,
+                    official: createGroup(),
+                    competitive: createGroup(),
+                    nonCompetitive: createGroup(),
+                    all: createGroup(),
+                });
+            });
+
+        filteredAppearances.forEach((appearance: StatisticsAppearanceRow) => {
+            const row = rowMap.get(appearance.player_id);
+            if (!row) return;
+
+            const stats = firstRelation(appearance.player_match_stats);
+            if (!stats) return;
+
+            addStats(row[mode], stats);
+            row[mode].sets += countSetsFromPositions(stats as Record<string, unknown>);
+        });
+
+        const copy = Array.from(rowMap.values()).filter((row) =>
+            hasActiveDetailFilters ? row[mode].appearances > 0 : true
+        );
 
         copy.sort((a, b) => {
             if (sortField === "name") {
@@ -66,13 +260,30 @@ function StatisticsPage() {
                 return sortDirection === "asc" ? aValue - bValue : bValue - aValue;
             }
 
+            if (sortField === "sets") {
+                const aValue = a[mode].sets;
+                const bValue = b[mode].sets;
+                return sortDirection === "asc" ? aValue - bValue : bValue - aValue;
+            }
+
             const aValue = getDisplayValue(a[mode], sortField);
             const bValue = getDisplayValue(b[mode], sortField);
             return sortDirection === "asc" ? aValue - bValue : bValue - aValue;
         });
 
         return copy;
-    }, [data, mode, sortDirection, sortField, selectedPosition]);
+    }, [
+        data.players,
+        filteredAppearances,
+        mode,
+        sortDirection,
+        sortField,
+        selectedCompetition,
+        selectedMatches,
+        selectedOpponent,
+        selectedPosition,
+        selectedYear,
+    ]);
 
     function handleSort(field: SortField | "appearances") {
         if (sortField === field) {
@@ -85,7 +296,7 @@ function StatisticsPage() {
     }
 
     return (
-        <main className="mx-auto max-w-7xl px-6 py-10">
+        <main className="mx-auto max-w-[1480px] px-4 py-8 sm:px-6 sm:py-10 lg:px-14">
             <div className="mb-6 rounded-2xl bg-estonia-dark p-6 text-white shadow-sm md:p-8">
                 <div className="grid gap-5 lg:grid-cols-2">
                     <div className="text-center">
@@ -130,6 +341,53 @@ function StatisticsPage() {
                         </div>
                     </div>
                 </div>
+
+                <div className="mt-5 grid gap-2 sm:grid-cols-3">
+                    <div>
+                        <span className="sr-only">{t("players.statsFilter.year")}</span>
+                        <MultiSelect
+                            options={yearOptions.map((y) => ({ value: y, label: y }))}
+                            value={selectedYear}
+                            onChange={(v) => setSelectedYear(v.length === 0 ? ["all"] : v.includes("all") ? ["all"] : v)}
+                            placeholder={t("players.statsFilter.allYears")}
+                            className="w-full"
+                        />
+                    </div>
+
+                    <div>
+                        <span className="sr-only">{t("players.statsFilter.competition")}</span>
+                        <MultiSelect
+                            options={competitionOptions.map((c) => ({ value: c, label: c }))}
+                            value={selectedCompetition}
+                            onChange={(v) => setSelectedCompetition(v.length === 0 ? ["all"] : v.includes("all") ? ["all"] : v)}
+                            placeholder={t("players.statsFilter.allCompetitions")}
+                            className="w-full"
+                        />
+                    </div>
+
+                    <div>
+                        <span className="sr-only">{t("players.statsFilter.opponent")}</span>
+                        <MultiSelect
+                            options={opponentOptions.map((o) => ({ value: o, label: o }))}
+                            value={selectedOpponent}
+                            onChange={(v) => setSelectedOpponent(v.length === 0 ? ["all"] : v.includes("all") ? ["all"] : v)}
+                            placeholder={t("players.statsFilter.allOpponents")}
+                            className="w-full"
+                        />
+                    </div>
+                </div>
+
+                <div className="mt-2">
+                    <label className="sr-only">{t("players.statsFilter.matches")}</label>
+                    <MultiSelect
+                        options={matchOptions.map((m) => ({ value: String(m.id), label: m.label }))}
+                        value={selectedMatches}
+                        onChange={(v) => setSelectedMatches(v)}
+                        placeholder={t("players.statsFilter.matches")}
+                        className="w-full"
+                        maxDisplay={2}
+                    />
+                </div>
             </div>
 
             <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -158,9 +416,18 @@ function StatisticsPage() {
                                 </button>
                             </th>
 
-                            <th colSpan={3} className="border-r-2 border-slate-300 px-2 py-3 text-center text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">
-                                {t("statistics.table.points")}
+                            <th rowSpan={2} className="border-r-2 border-slate-300 px-2 py-3 text-center text-[10px] font-bold uppercase tracking-[0.2em] text-slate-600">
+                                <button
+                                    type="button"
+                                    onClick={() => handleSort("sets")}
+                                    className="inline-flex items-center gap-1"
+                                >
+                                    {t("statistics.table.sets")}
+                                    <span>{sortField === "sets" ? (sortDirection === "asc" ? "↑" : "↓") : "⇅"}</span>
+                                </button>
                             </th>
+
+                            <th colSpan={3} className="border-r-2 border-slate-300 px-2 py-3 text-center text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500"></th>
 
                             <th colSpan={3} className="border-r-2 border-slate-300 px-2 py-3 text-center text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">
                                 {t("statistics.table.serve")}
@@ -184,16 +451,15 @@ function StatisticsPage() {
                             {columns.map((column) => (
                                 <th
                                     key={`${column.field}-${column.label}`}
-                                    className={`px-2 py-3 text-center text-[10px] font-bold uppercase tracking-[0.2em] text-slate-600 ${
-                                        column.field === "plus_minus" || column.field === "serve_errors" || column.field === "reception_excellent_pct" || column.field === "attack_efficiency"
-                                            ? "border-r-2 border-slate-300"
-                                            : "border-r border-slate-200"
-                                    }`}
+                                    className={`whitespace-nowrap px-2 py-3 text-center text-[10px] font-bold uppercase tracking-[0.2em] text-slate-600 ${column.field === "plus_minus" || column.field === "serve_errors" || column.field === "reception_excellent_pct" || column.field === "attack_efficiency"
+                                        ? "border-r-2 border-slate-300"
+                                        : "border-r border-slate-200"
+                                        }`}
                                 >
                                     <button
                                         type="button"
                                         onClick={() => handleSort(column.field)}
-                                        className="inline-flex items-center gap-1"
+                                        className="inline-flex items-center gap-1 whitespace-nowrap"
                                     >
                                         {column.label}
                                         <span>{sortField === column.field ? (sortDirection === "asc" ? "↑" : "↓") : "⇅"}</span>
@@ -241,14 +507,17 @@ function PlayerStatisticsTableRow({
                 {group.appearances}
             </td>
 
+            <td className="border-r-2 border-slate-300 px-2 py-3 text-center text-sm text-slate-700">
+                {group.sets}
+            </td>
+
             {columns.map((column) => (
                 <td
                     key={`${column.field}-${column.label}`}
-                    className={`px-2 py-3 text-center text-sm text-slate-700 ${
-                        column.field === "plus_minus" || column.field === "serve_errors" || column.field === "reception_excellent_pct" || column.field === "attack_efficiency"
-                            ? "border-r-2 border-slate-300"
-                            : "border-r border-slate-200"
-                    }`}
+                    className={`whitespace-nowrap px-2 py-3 text-center text-sm text-slate-700 ${column.field === "plus_minus" || column.field === "serve_errors" || column.field === "reception_excellent_pct" || column.field === "attack_efficiency"
+                        ? "border-r-2 border-slate-300"
+                        : "border-r border-slate-200"
+                        }`}
                 >
                     {formatDisplayValue(group, column.field)}
                 </td>

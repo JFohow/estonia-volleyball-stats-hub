@@ -123,11 +123,11 @@ function MatchesPage() {
           <div className="mx-auto max-w-7xl">
             <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
               <div>
-                <h1 className="mt-2 font-display text-4xl uppercase italic md:text-5xl">
+                <h1 className="mt-2 font-display text-4xl uppercase italic leading-tight sm:text-5xl md:text-6xl">
                   {t("matches.title")}
                 </h1>
 
-                <p className="mt-2 max-w-2xl text-sm text-white/60">
+                <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/70 sm:text-base">
                   {t("matches.subtitle")}
                 </p>
               </div>

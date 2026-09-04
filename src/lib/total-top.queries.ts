@@ -29,6 +29,7 @@ export type TotalTopRow = {
   playerId: number;
   name: string;
   position: string | null;
+  photoUrl: string | null;
   official: PlayerTotals;
   competitive: PlayerTotals;
   nonOfficial: PlayerTotals;
@@ -118,6 +119,7 @@ type PlayerRow = {
   first_name: string;
   last_name: string;
   position: string | null;
+  photo_url: string | null;
 };
 
 function normalizeRelation<T>(value: T | T[] | null): T | null {
@@ -188,7 +190,7 @@ function updateTotals(totals: PlayerTotals, appearance: AppearanceRow, stats: Pl
 async function fetchTotalTop(): Promise<TotalTopRow[]> {
   const playersResponse = await supabase
     .from("players")
-    .select("player_id, first_name, last_name, position");
+    .select("player_id, first_name, last_name, position, photo_url");
 
   if (playersResponse.error) throw playersResponse.error;
 
@@ -253,6 +255,7 @@ async function fetchTotalTop(): Promise<TotalTopRow[]> {
       playerId: player.player_id,
       name: `${player.first_name} ${player.last_name}`,
       position: player.position,
+      photoUrl: player.photo_url,
       official: totals.official,
       competitive: totals.competitive,
       nonOfficial: totals.nonOfficial,

@@ -7,7 +7,9 @@ export type RecentMatch = {
   opponent: string;
   opponent_en: string | null;
   competition: string | null;
+  competition_en: string | null;
   city: string | null;
+  city_en: string | null;
   estonia_sets: number;
   opponent_sets: number;
   vm: boolean | null;
@@ -61,7 +63,7 @@ async function fetchHomeSummary(): Promise<HomeSummary> {
     supabase
       .from("matches")
       .select(
-        "match_id, match_date, opponent, opponent_en, competition, city, estonia_sets, opponent_sets, vm, am, mam, has_additional_sets, additional_sets_count, match_sets(set_number, estonia_points, opponent_points)",
+        "match_id, match_date, opponent, opponent_en, competition, competition_en, city, city_en, estonia_sets, opponent_sets, vm, am, mam, has_additional_sets, additional_sets_count, match_sets(set_number, estonia_points, opponent_points)",
       )
       .order("match_date", { ascending: false })
       .limit(6),

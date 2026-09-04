@@ -311,23 +311,7 @@ export async function fetchPlayer(playerId: number) {
         mam
       ),
       player_match_stats(
-        attack_blocked,
-        attack_efficiency,
-        attack_errors,
-        attack_kill_pct,
-        attack_kills,
-        attack_total,
-        block_points,
-        break_points,
-        plus_minus,
-        points,
-        reception_errors,
-        reception_excellent_pct,
-        reception_positive_pct,
-        reception_total,
-        serve_aces,
-        serve_errors,
-        serve_total
+                *
       )
     `)
         .eq("player_id", playerId);

@@ -94,6 +94,25 @@ function MatchStatsPage() {
 
     const setColumns = [1, 2, 3, 4, 5];
 
+    const getSetPosition = (
+        stats: {
+            set1_position?: string | null;
+            set2_position?: string | null;
+            set3_position?: string | null;
+            set4_position?: string | null;
+            set5_position?: string | null;
+        } | null | undefined,
+        setNumber: number
+    ) => {
+        if (!stats) return "";
+        if (setNumber === 1) return stats.set1_position ?? "";
+        if (setNumber === 2) return stats.set2_position ?? "";
+        if (setNumber === 3) return stats.set3_position ?? "";
+        if (setNumber === 4) return stats.set4_position ?? "";
+        if (setNumber === 5) return stats.set5_position ?? "";
+        return "";
+    };
+
     const statColumns = [
         { field: "points", label: "PTS" },
         { field: "block_points", label: "BP" },
@@ -427,7 +446,11 @@ function MatchStatsPage() {
                         <tbody className="divide-y divide-slate-100">
                             {/* Player Rows */}
                             {players.map((player, idx) => {
-                                const stats = player.player_match_stats?.[0];
+                                const statsRows = player.player_match_stats ?? [];
+                                const stats =
+                                    statsMode === "official"
+                                        ? statsRows.find((r) => r?.stats_version === "AM") ?? statsRows[0]
+                                        : statsRows.find((r) => r?.stats_version === "ALL") ?? statsRows[0];
 
                                 return (
                                     <tr key={player.appearance_id} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50"}>
@@ -444,19 +467,7 @@ function MatchStatsPage() {
                                                 key={`set-${set}`}
                                                 className={`px-2 py-3 text-center text-sm text-slate-700 ${idx === setColumns.length - 1 ? "border-r-2 border-slate-300" : "border-r border-slate-200"}`}
                                             >
-                                                {(() => {
-                                                    // Try multiple places where per-set position might be stored
-                                                    const statPos = (stats as Record<string, string | null | undefined> | undefined)?.[`set${set}_position`];
-                                                    const playerPosField = (player as any)?.[`set${set}_position`];
-                                                    const appearancePos = (player as any)?.player_position_in_match;
-
-                                                    if (statPos !== undefined && statPos !== null) return statPos;
-                                                    if (playerPosField !== undefined && playerPosField !== null) return playerPosField;
-                                                    if (appearancePos !== undefined && appearancePos !== null) return appearancePos;
-
-                                                    // If no per-set position information, show blank
-                                                    return "";
-                                                })()}
+                                                {getSetPosition(stats, set)}
                                             </td>
                                         ))}
 

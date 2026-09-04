@@ -135,14 +135,14 @@ function PlayersPage() {
 
     return (
         <div className="text-slate-900">
-            <header className="bg-estonia-dark px-6 py-12 text-white">
+            <header className="bg-estonia-dark px-4 py-10 text-white sm:px-6 sm:py-12">
                 <div className="mx-auto max-w-7xl">
 
-                    <h1 className="mt-2 font-display text-4xl uppercase italic md:text-5xl">
+                    <h1 className="mt-2 font-display text-4xl uppercase italic leading-tight sm:text-5xl md:text-6xl">
                         {t("players.title")}
                     </h1>
 
-                    <p className="mt-2 max-w-2xl text-sm text-white/60">
+                    <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/70 sm:text-base">
                         {t("players.subtitle")}
                     </p>
 
@@ -174,7 +174,7 @@ function PlayersPage() {
                 </div>
             </header>
 
-            <main className="mx-auto max-w-7xl px-6 py-10">
+            <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10">
                 <div className="mb-6 flex flex-wrap items-center gap-3">
                     <input
                         value={search}
@@ -200,139 +200,141 @@ function PlayersPage() {
                         ))}
                 </div>
 
-                <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+                    <div className="min-w-[980px]">
 
-                    <div className="sticky top-0 z-20 border-b border-slate-200 bg-slate-50">
+                        <div className="sticky top-0 z-20 border-b border-slate-200 bg-slate-50">
 
-                        <div className="grid grid-cols-13 px-6 pt-4 text-[10px] font-bold uppercase tracking-widest">
-                            <div className="col-span-4" />
+                            <div className="grid grid-cols-13 px-6 pt-4 text-[10px] font-bold uppercase tracking-widest">
+                                <div className="col-span-4" />
 
-                            <div className="col-span-3 text-center text-estonia-dark">
-                                {t("common.official")}
+                                <div className="col-span-3 text-center text-estonia-dark">
+                                    {t("common.official")}
+                                </div>
+
+                                <div className="col-span-3 text-center text-estonia-dark">
+                                    {t("common.competitive")}
+                                </div>
+
+                                <div className="col-span-3 text-center text-estonia-dark">
+                                    {t("common.allMatches")}
+                                </div>
                             </div>
 
-                            <div className="col-span-3 text-center text-estonia-dark">
-                                {t("common.competitive")}
-                            </div>
+                            <div className="grid grid-cols-13 gap-3 px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">
 
-                            <div className="col-span-3 text-center text-estonia-dark">
-                                {t("common.allMatches")}
+                                <div className="col-span-4" />
+
+                                <button
+                                    onClick={() => handleSort("amAppearances")}
+                                    className={`text-center transition-colors hover:text-estonia-blue ${sortField === "amAppearances"
+                                        ? "text-estonia-blue"
+                                        : ""
+                                        }`}
+                                >
+                                    {t("players.apps").toUpperCase()}{SortIcon("amAppearances")}
+                                </button>
+
+                                <button
+                                    onClick={() => handleSort("amGamesPlayed")}
+                                    className={`text-center transition-colors hover:text-estonia-blue ${sortField === "amGamesPlayed"
+                                        ? "text-estonia-blue"
+                                        : ""
+                                        }`}
+                                >
+                                    {t("players.gp").toUpperCase()}{SortIcon("amGamesPlayed")}
+                                </button>
+
+                                <button
+                                    onClick={() => handleSort("amBench")}
+                                    className={`text-center transition-colors hover:text-estonia-blue ${sortField === "amBench"
+                                        ? "text-estonia-blue"
+                                        : ""
+                                        }`}
+                                >
+                                    {t("players.bench").toUpperCase()}{SortIcon("amBench")}
+
+                                </button>
+
+                                <button
+                                    onClick={() => handleSort("vmAppearances")}
+                                    className={`text-center transition-colors hover:text-estonia-blue ${sortField === "vmAppearances"
+                                        ? "text-estonia-blue"
+                                        : ""
+                                        }`}
+                                >
+                                    {t("players.apps").toUpperCase()}{SortIcon("vmAppearances")}
+                                </button>
+
+                                <button
+                                    onClick={() => handleSort("vmGamesPlayed")}
+                                    className={`text-center transition-colors hover:text-estonia-blue ${sortField === "vmGamesPlayed"
+                                        ? "text-estonia-blue"
+                                        : ""
+                                        }`}
+                                >
+                                    {t("players.gp").toUpperCase()}{SortIcon("vmGamesPlayed")}
+                                </button>
+
+                                <button
+                                    onClick={() => handleSort("vmBench")}
+                                    className={`text-center transition-colors hover:text-estonia-blue ${sortField === "vmBench"
+                                        ? "text-estonia-blue"
+                                        : ""
+                                        }`}
+                                >
+                                    {t("players.bench").toUpperCase()}{SortIcon("vmBench")}
+                                </button>
+
+                                <button
+                                    onClick={() => handleSort("allAppearances")}
+                                    className={`text-center transition-colors hover:text-estonia-blue ${sortField === "allAppearances"
+                                        ? "text-estonia-blue"
+                                        : ""
+                                        }`}
+                                >
+                                    {t("players.apps").toUpperCase()}{SortIcon("allAppearances")}
+                                </button>
+
+                                <button
+                                    onClick={() => handleSort("allGamesPlayed")}
+                                    className={`text-center transition-colors hover:text-estonia-blue ${sortField === "allGamesPlayed"
+                                        ? "text-estonia-blue"
+                                        : ""
+                                        }`}
+                                >
+                                    {t("players.gp").toUpperCase()}{SortIcon("allGamesPlayed")}
+                                </button>
+
+                                <button
+                                    onClick={() => handleSort("allBench")}
+                                    className={`text-center transition-colors hover:text-estonia-blue ${sortField === "allBench"
+                                        ? "text-estonia-blue"
+                                        : ""
+                                        }`}
+                                >
+                                    {t("players.bench").toUpperCase()}{SortIcon("allBench")}
+                                </button>
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-13 gap-3 px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">
 
-                            <div className="col-span-4" />
 
-                            <button
-                                onClick={() => handleSort("amAppearances")}
-                                className={`text-center transition-colors hover:text-estonia-blue ${sortField === "amAppearances"
-                                    ? "text-estonia-blue"
-                                    : ""
-                                    }`}
-                            >
-                                {t("players.apps").toUpperCase()}{SortIcon("amAppearances")}
-                            </button>
-
-                            <button
-                                onClick={() => handleSort("amGamesPlayed")}
-                                className={`text-center transition-colors hover:text-estonia-blue ${sortField === "amGamesPlayed"
-                                    ? "text-estonia-blue"
-                                    : ""
-                                    }`}
-                            >
-                                {t("players.gp").toUpperCase()}{SortIcon("amGamesPlayed")}
-                            </button>
-
-                            <button
-                                onClick={() => handleSort("amBench")}
-                                className={`text-center transition-colors hover:text-estonia-blue ${sortField === "amBench"
-                                    ? "text-estonia-blue"
-                                    : ""
-                                    }`}
-                            >
-                                {t("players.bench").toUpperCase()}{SortIcon("amBench")}
-
-                            </button>
-
-                            <button
-                                onClick={() => handleSort("vmAppearances")}
-                                className={`text-center transition-colors hover:text-estonia-blue ${sortField === "vmAppearances"
-                                    ? "text-estonia-blue"
-                                    : ""
-                                    }`}
-                            >
-                                {t("players.apps").toUpperCase()}{SortIcon("vmAppearances")}
-                            </button>
-
-                            <button
-                                onClick={() => handleSort("vmGamesPlayed")}
-                                className={`text-center transition-colors hover:text-estonia-blue ${sortField === "vmGamesPlayed"
-                                    ? "text-estonia-blue"
-                                    : ""
-                                    }`}
-                            >
-                                {t("players.gp").toUpperCase()}{SortIcon("vmGamesPlayed")}
-                            </button>
-
-                            <button
-                                onClick={() => handleSort("vmBench")}
-                                className={`text-center transition-colors hover:text-estonia-blue ${sortField === "vmBench"
-                                    ? "text-estonia-blue"
-                                    : ""
-                                    }`}
-                            >
-                                {t("players.bench").toUpperCase()}{SortIcon("vmBench")}
-                            </button>
-
-                            <button
-                                onClick={() => handleSort("allAppearances")}
-                                className={`text-center transition-colors hover:text-estonia-blue ${sortField === "allAppearances"
-                                    ? "text-estonia-blue"
-                                    : ""
-                                    }`}
-                            >
-                                {t("players.apps").toUpperCase()}{SortIcon("allAppearances")}
-                            </button>
-
-                            <button
-                                onClick={() => handleSort("allGamesPlayed")}
-                                className={`text-center transition-colors hover:text-estonia-blue ${sortField === "allGamesPlayed"
-                                    ? "text-estonia-blue"
-                                    : ""
-                                    }`}
-                            >
-                                {t("players.gp").toUpperCase()}{SortIcon("allGamesPlayed")}
-                            </button>
-
-                            <button
-                                onClick={() => handleSort("allBench")}
-                                className={`text-center transition-colors hover:text-estonia-blue ${sortField === "allBench"
-                                    ? "text-estonia-blue"
-                                    : ""
-                                    }`}
-                            >
-                                {t("players.bench").toUpperCase()}{SortIcon("allBench")}
-                            </button>
-                        </div>
+                        {filtered.length === 0 ? (
+                            <div className="p-12 text-center">
+                                <p className="font-display text-xl uppercase italic text-slate-400">
+                                    {t("players.noPlayersFound")}
+                                </p>
+                            </div>
+                        ) : (
+                            sortedPlayers.map((player) => (
+                                <PlayerRow
+                                    key={player.player_id}
+                                    player={player}
+                                />
+                            ))
+                        )}
                     </div>
-
-
-
-                    {filtered.length === 0 ? (
-                        <div className="p-12 text-center">
-                            <p className="font-display text-xl uppercase italic text-slate-400">
-                                {t("players.noPlayersFound")}
-                            </p>
-                        </div>
-                    ) : (
-                        sortedPlayers.map((player) => (
-                            <PlayerRow
-                                key={player.player_id}
-                                player={player}
-                            />
-                        ))
-                    )}
                 </div>
             </main >
             <Outlet />

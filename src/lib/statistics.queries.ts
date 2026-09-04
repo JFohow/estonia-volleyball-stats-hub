@@ -36,6 +36,7 @@ type CountsRecord = Record<StatisticsField, number>;
 
 export type StatisticsGroup = {
     appearances: number;
+    sets: number;
     totals: TotalsRecord;
     counts: CountsRecord;
 };
@@ -57,20 +58,40 @@ type PlayerRow = {
     position: string | null;
 };
 
-type AppearanceMatchRow = {
+export type StatisticsMatchRow = {
+    match_id: number;
+    match_date: string;
+    opponent: string;
+    opponent_en: string | null;
+    competition: string | null;
+    competition_en: string | null;
+    estonia_sets: number;
+    opponent_sets: number;
     vm: boolean | null;
     am: boolean | null;
     mam: boolean | null;
 };
 
-type AppearanceStatsRow = {
+export type AppearanceStatsRow = {
     [K in StatisticsField]: number | null;
+} & {
+    set1_position?: string | null;
+    set2_position?: string | null;
+    set3_position?: string | null;
+    set4_position?: string | null;
+    set5_position?: string | null;
 };
 
-type AppearanceRow = {
+export type StatisticsAppearanceRow = {
     player_id: number;
-    matches: AppearanceMatchRow | AppearanceMatchRow[] | null;
+    sets_played: number | null;
+    matches: StatisticsMatchRow | StatisticsMatchRow[] | null;
     player_match_stats: AppearanceStatsRow | AppearanceStatsRow[] | null;
+};
+
+export type StatisticsDataset = {
+    players: PlayerRow[];
+    appearances: StatisticsAppearanceRow[];
 };
 
 function normalizeRelation<T>(value: T | T[] | null): T | null {
@@ -80,7 +101,7 @@ function normalizeRelation<T>(value: T | T[] | null): T | null {
     return value;
 }
 
-function createGroup(): StatisticsGroup {
+export function createGroup(): StatisticsGroup {
     const totals = {} as TotalsRecord;
     const counts = {} as CountsRecord;
 
@@ -89,10 +110,10 @@ function createGroup(): StatisticsGroup {
         counts[field] = 0;
     }
 
-    return { appearances: 0, totals, counts };
+    return { appearances: 0, sets: 0, totals, counts };
 }
 
-function addStats(group: StatisticsGroup, stats: AppearanceStatsRow) {
+export function addStats(group: StatisticsGroup, stats: AppearanceStatsRow) {
     group.appearances += 1;
 
     for (const field of statisticsFields) {
@@ -110,7 +131,7 @@ function isPercentageField(field: StatisticsField) {
     return percentageFields.has(field);
 }
 
-async function fetchPlayerStatistics(): Promise<PlayerStatisticsRow[]> {
+async function fetchStatisticsData(): Promise<StatisticsDataset> {
     const playersResponse = await supabase
         .from("players")
         .select("player_id, first_name, last_name, position");
@@ -120,55 +141,22 @@ async function fetchPlayerStatistics(): Promise<PlayerStatisticsRow[]> {
     const appearancesResponse = await supabase
         .from("appearances")
         .select(
-            `player_id, matches(vm, am, mam), player_match_stats!inner(points, block_points, plus_minus, serve_total, serve_aces, serve_errors, reception_total, reception_errors, reception_positive_pct, reception_excellent_pct, attack_total, attack_errors, attack_blocked, attack_kills, attack_kill_pct, attack_efficiency, break_points)`
+            `player_id, sets_played, matches(match_id, match_date, opponent, opponent_en, competition, competition_en, estonia_sets, opponent_sets, vm, am, mam), player_match_stats!inner(points, block_points, plus_minus, serve_total, serve_aces, serve_errors, reception_total, reception_errors, reception_positive_pct, reception_excellent_pct, attack_total, attack_errors, attack_blocked, attack_kills, attack_kill_pct, attack_efficiency, break_points, set1_position, set2_position, set3_position, set4_position, set5_position)`
         );
 
     if (appearancesResponse.error) throw appearancesResponse.error;
 
     const players = (playersResponse.data ?? []) as PlayerRow[];
-    const appearances = (appearancesResponse.data ?? []) as AppearanceRow[];
+    const appearances = (appearancesResponse.data ?? []) as StatisticsAppearanceRow[];
 
-    const rows = new Map<number, PlayerStatisticsRow>();
+    return {
+        players,
+        appearances,
+    };
+}
 
-    for (const player of players) {
-        rows.set(player.player_id, {
-            playerId: player.player_id,
-            name: `${player.first_name} ${player.last_name}`,
-            position: player.position,
-            official: createGroup(),
-            competitive: createGroup(),
-            nonCompetitive: createGroup(),
-            all: createGroup(),
-        });
-    }
-
-    for (const appearance of appearances) {
-        const row = rows.get(appearance.player_id);
-        if (!row) continue;
-
-        const match = normalizeRelation(appearance.matches);
-        const stats = normalizeRelation(appearance.player_match_stats);
-
-        if (!stats) continue;
-
-        addStats(row.all, stats);
-
-        if (match?.am) {
-            addStats(row.official, stats);
-        }
-        if (match?.vm) {
-            addStats(row.competitive, stats);
-        }
-        if (match?.mam) {
-            addStats(row.nonCompetitive, stats);
-        }
-    }
-
-    return Array.from(rows.values()).sort((a, b) => {
-        const aPoints = getDisplayValue(a.official, "points");
-        const bPoints = getDisplayValue(b.official, "points");
-        return bPoints - aPoints;
-    });
+export function firstRelation<T>(value: T | T[] | null): T | null {
+    return normalizeRelation(value);
 }
 
 export function getDisplayValue(group: StatisticsGroup, field: StatisticsField): number {
@@ -184,7 +172,7 @@ export function getDisplayValue(group: StatisticsGroup, field: StatisticsField):
 export function formatDisplayValue(group: StatisticsGroup, field: StatisticsField): string {
     const value = getDisplayValue(group, field);
     if (isPercentageField(field)) {
-        return value.toFixed(1);
+        return `${Math.round(value)}%`;
     }
     return Number.isInteger(value) ? String(value) : value.toFixed(1);
 }
@@ -192,5 +180,5 @@ export function formatDisplayValue(group: StatisticsGroup, field: StatisticsFiel
 export const statisticsOptions = () =>
     queryOptions({
         queryKey: ["statistics"],
-        queryFn: fetchPlayerStatistics,
+        queryFn: fetchStatisticsData,
     });

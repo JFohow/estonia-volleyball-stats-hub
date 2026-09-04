@@ -116,6 +116,27 @@
             "pointsPerGame": "PTS / GP",
             "efficiencyTop": "Eff Max",
             "efficiencyBottom": "Eff Min"
+        },
+        "metrics": {
+            "mostAppearances": "Most Appearances",
+            "mostSets": "Most Sets",
+            "mostPoints": "Most Points",
+            "mostBreakPoints": "Most Break Points",
+            "bestPlusMinus": "Best +/-",
+            "mostServes": "Most Serves",
+            "mostServeAces": "Most Serve Aces",
+            "mostServeErrors": "Most Serve Errors",
+            "mostReceptions": "Most Receptions",
+            "mostReceptionErrors": "Most Reception Errors",
+            "bestReceptionPct": "Best Reception %",
+            "bestIdealReceptionPct": "Best Ideal Reception %",
+            "mostAttacks": "Most Attacks",
+            "mostAttackErrors": "Most Attack Errors",
+            "mostAttackBlocks": "Most Attack Blocks",
+            "mostSuccessfulAttack": "Most Successful Attack",
+            "bestAttackPct": "Best Attack %",
+            "bestAttackEffPct": "Best Attack Eff %",
+            "mostBlockPoints": "Most Block Points"
         }
     },
     "categories": {
@@ -169,10 +190,16 @@
         "setsPlayed": "Sets Played",
         "recentMatches": "Recent Matches",
         "recordAppearance": "Record Appearance",
+        "topStatLeader": "Top Statistic Leader",
+        "rotatesEvery10Seconds": "Rotates every 10 seconds",
+        "currentMetric": "Current Metric",
+        "currentValue": "Current Value",
+        "noTopStatData": "Top statistic leaders will appear here once data is loaded.",
         "coverageStatus": "Data Coverage Status",
-        "matchResults": "Match Results",
-        "matchesWithPlayers": "Matches With Player Lists",
-        "fullStatistics": "Full Match Statistics",
+        "matchResults": "Matches with Results",
+        "matchesWithPlayers": "Matches with Players Lists",
+        "fullStatistics": "Matches with Full Statistics",
+        "coverageSummary": "{{matchesWithStats}} matches with detailed box-score statistics across {{totalMatches}} recorded matches.",
         "tipText": "ALL vs AM: Matches with additional training sets are stored in two versions. Filter by AM to see only official international results."
     },
     "matches": {
@@ -235,7 +262,9 @@
             "competition": "Competition",
             "allCompetitions": "All competitions",
             "opponent": "Opponent",
-            "allOpponents": "All opponents"
+            "allOpponents": "All opponents",
+            "matches": "Select specific matches",
+            "matchs": "Select specific matches"
         },
         "statsField": {
             "stat": "Stat",
@@ -290,6 +319,7 @@
         "table": {
             "player": "Player",
             "appearances": "Apps",
+            "sets": "Sets",
             "points": "Points",
             "serve": "Serve",
             "reception": "Reception",

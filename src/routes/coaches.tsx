@@ -85,15 +85,15 @@ function CoachesPage() {
     return (
         <>
             <div className="text-slate-900">
-                <header className="bg-estonia-dark px-6 py-12 text-white">
+                <header className="bg-estonia-dark px-4 py-10 text-white sm:px-6 sm:py-12">
                     <div className="mx-auto max-w-7xl">
                         <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
                             <div>
-                                <h1 className="font-display text-4xl uppercase italic md:text-5xl">
+                                <h1 className="font-display text-4xl uppercase italic leading-tight sm:text-5xl md:text-6xl">
                                     {t("coaches.title")}
                                 </h1>
 
-                                <p className="mt-2 max-w-2xl text-sm text-white/60">
+                                <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/70 sm:text-base">
                                     {t("coaches.subtitle")}
                                 </p>
                             </div>
@@ -109,156 +109,158 @@ function CoachesPage() {
                     </div>
                 </header>
 
-                <main className="mx-auto max-w-7xl px-6 py-10">
-                    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10">
+                    <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+                        <div className="min-w-[1120px]">
 
-                        {/* Group Header */}
-                        <div className="border-b border-slate-200 bg-slate-50">
+                            {/* Group Header */}
+                            <div className="border-b border-slate-200 bg-slate-50">
 
-                            <div className="grid grid-cols-16 px-6 pt-4 text-[10px] font-bold uppercase tracking-widest">
-                                <div className="col-span-4" />
+                                <div className="grid grid-cols-16 px-6 pt-4 text-[10px] font-bold uppercase tracking-widest">
+                                    <div className="col-span-4" />
 
-                                <div className="col-span-4 text-center text-estonia-dark">
-                                    {t("common.official")}
+                                    <div className="col-span-4 text-center text-estonia-dark">
+                                        {t("common.official")}
+                                    </div>
+
+                                    <div className="col-span-4 text-center text-slate-500">
+                                        {t("common.competitive")}
+                                    </div>
+
+                                    <div className="col-span-4 text-center text-slate-500">
+                                        {t("common.allMatches")}
+                                    </div>
                                 </div>
 
-                                <div className="col-span-4 text-center text-slate-500">
-                                    {t("common.competitive")}
-                                </div>
+                                <div className="grid grid-cols-16 gap-3 px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                                    <div className="col-span-4">
 
-                                <div className="col-span-4 text-center text-slate-500">
-                                    {t("common.allMatches")}
-                                </div>
-                            </div>
+                                    </div>
 
-                            <div className="grid grid-cols-16 gap-3 px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                                <div className="col-span-4">
-
-                                </div>
-
-                                <button
-                                    onClick={() => handleSort("amMatches")}
-                                    className={`col-span-2 text-center uppercase tracking-widest transition-colors hover:text-estonia-blue ${sortField === "amMatches"
-                                        ? "text-estonia-blue"
-                                        : ""
-                                        }`}
-                                >
-                                    {t("common.matches")}
-                                    {SortIcon("amMatches")}
-                                </button>
-
-                                <button
-                                    onClick={() => handleSort("amWinPct")}
-                                    className={`col-span-2 text-center uppercase tracking-widest transition-colors hover:text-estonia-blue ${sortField === "amWinPct"
-                                        ? "text-estonia-blue"
-                                        : ""
-                                        }`}
-                                >
-                                    {t("common.winPct")}
-                                    {SortIcon("amWinPct")}
-                                </button>
-
-                                <button
-                                    onClick={() => handleSort("vmMatches")}
-                                    className={`col-span-2 text-center uppercase tracking-widest transition-colors hover:text-estonia-blue ${sortField === "vmMatches"
-                                        ? "text-estonia-blue"
-                                        : ""
-                                        }`}
-                                >
-                                    {t("common.matches")}
-                                    {SortIcon("vmMatches")}
-                                </button>
-
-                                <button
-                                    onClick={() => handleSort("vmWinPct")}
-                                    className={`col-span-2 text-center uppercase tracking-widest transition-colors hover:text-estonia-blue ${sortField === "vmWinPct"
-                                        ? "text-estonia-blue"
-                                        : ""
-                                        }`}
-                                >
-                                    {t("common.winPct")}
-                                    {SortIcon("vmWinPct")}
-                                </button>
-
-                                <button
-                                    onClick={() => handleSort("allMatches")}
-                                    className={`col-span-2 text-center uppercase tracking-widest transition-colors hover:text-estonia-blue ${sortField === "allMatches"
-                                        ? "text-estonia-blue"
-                                        : ""
-                                        }`}
-                                >
-                                    {t("common.matches")}
-                                    {SortIcon("allMatches")}
-                                </button>
-
-                                <button
-                                    onClick={() => handleSort("allWinPct")}
-                                    className={`col-span-2 text-center uppercase tracking-widest transition-colors hover:text-estonia-blue ${sortField === "allWinPct"
-                                        ? "text-estonia-blue"
-                                        : ""
-                                        }`}
-                                >
-                                    {t("common.winPct")}
-                                    {SortIcon("allWinPct")}
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Coach Rows */}
-                        {sortedCoaches.map((coach) => (
-                            <div
-                                key={coach.coach_id}
-                                className="grid grid-cols-16 gap-3 border-t border-slate-100 px-6 py-4 hover:bg-slate-50"
-                            >
-                                <div className="col-span-4 flex items-center gap-3">
-                                    <CoachAvatar
-                                        firstName={coach.first_name}
-                                        lastName={coach.last_name}
-                                        photoUrl={coach.photo_url}
-                                    />
-
-                                    <Link
-                                        to="/coaches/$coachId"
-                                        params={{
-                                            coachId: String(coach.coach_id),
-                                        }}
-                                        className="font-semibold uppercase transition-colors hover:text-estonia-blue"
+                                    <button
+                                        onClick={() => handleSort("amMatches")}
+                                        className={`col-span-2 text-center uppercase tracking-widest transition-colors hover:text-estonia-blue ${sortField === "amMatches"
+                                            ? "text-estonia-blue"
+                                            : ""
+                                            }`}
                                     >
-                                        {coach.first_name} {coach.last_name}
-                                    </Link>
-                                </div>
+                                        {t("common.matches")}
+                                        {SortIcon("amMatches")}
+                                    </button>
 
-                                <div className="col-span-2 text-center">
-                                    <span className="font-semibold text-estonia-dark">
-                                        {coach.amMatches}
-                                    </span>
-                                </div>
+                                    <button
+                                        onClick={() => handleSort("amWinPct")}
+                                        className={`col-span-2 text-center uppercase tracking-widest transition-colors hover:text-estonia-blue ${sortField === "amWinPct"
+                                            ? "text-estonia-blue"
+                                            : ""
+                                            }`}
+                                    >
+                                        {t("common.winPct")}
+                                        {SortIcon("amWinPct")}
+                                    </button>
 
-                                <div className="col-span-2 text-center text-slate-500">
-                                    {coach.amWinPct}%
-                                </div>
+                                    <button
+                                        onClick={() => handleSort("vmMatches")}
+                                        className={`col-span-2 text-center uppercase tracking-widest transition-colors hover:text-estonia-blue ${sortField === "vmMatches"
+                                            ? "text-estonia-blue"
+                                            : ""
+                                            }`}
+                                    >
+                                        {t("common.matches")}
+                                        {SortIcon("vmMatches")}
+                                    </button>
 
-                                <div className="col-span-2 text-center">
-                                    <span className="font-semibold text-estonia-dark">
-                                        {coach.vmMatches}
-                                    </span>
-                                </div>
+                                    <button
+                                        onClick={() => handleSort("vmWinPct")}
+                                        className={`col-span-2 text-center uppercase tracking-widest transition-colors hover:text-estonia-blue ${sortField === "vmWinPct"
+                                            ? "text-estonia-blue"
+                                            : ""
+                                            }`}
+                                    >
+                                        {t("common.winPct")}
+                                        {SortIcon("vmWinPct")}
+                                    </button>
 
-                                <div className="col-span-2 text-center text-slate-500">
-                                    {coach.vmWinPct}%
-                                </div>
+                                    <button
+                                        onClick={() => handleSort("allMatches")}
+                                        className={`col-span-2 text-center uppercase tracking-widest transition-colors hover:text-estonia-blue ${sortField === "allMatches"
+                                            ? "text-estonia-blue"
+                                            : ""
+                                            }`}
+                                    >
+                                        {t("common.matches")}
+                                        {SortIcon("allMatches")}
+                                    </button>
 
-                                <div className="col-span-2 text-center">
-                                    <span className="font-semibold text-estonia-dark">
-                                        {coach.allMatches}
-                                    </span>
-                                </div>
-
-                                <div className="col-span-2 text-center text-slate-500">
-                                    {coach.allWinPct}%
+                                    <button
+                                        onClick={() => handleSort("allWinPct")}
+                                        className={`col-span-2 text-center uppercase tracking-widest transition-colors hover:text-estonia-blue ${sortField === "allWinPct"
+                                            ? "text-estonia-blue"
+                                            : ""
+                                            }`}
+                                    >
+                                        {t("common.winPct")}
+                                        {SortIcon("allWinPct")}
+                                    </button>
                                 </div>
                             </div>
-                        ))}
+
+                            {/* Coach Rows */}
+                            {sortedCoaches.map((coach) => (
+                                <div
+                                    key={coach.coach_id}
+                                    className="grid grid-cols-16 gap-3 border-t border-slate-100 px-6 py-4 hover:bg-slate-50"
+                                >
+                                    <div className="col-span-4 flex items-center gap-3">
+                                        <CoachAvatar
+                                            firstName={coach.first_name}
+                                            lastName={coach.last_name}
+                                            photoUrl={coach.photo_url}
+                                        />
+
+                                        <Link
+                                            to="/coaches/$coachId"
+                                            params={{
+                                                coachId: String(coach.coach_id),
+                                            }}
+                                            className="font-semibold uppercase transition-colors hover:text-estonia-blue"
+                                        >
+                                            {coach.first_name} {coach.last_name}
+                                        </Link>
+                                    </div>
+
+                                    <div className="col-span-2 text-center">
+                                        <span className="font-semibold text-estonia-dark">
+                                            {coach.amMatches}
+                                        </span>
+                                    </div>
+
+                                    <div className="col-span-2 text-center text-slate-500">
+                                        {coach.amWinPct}%
+                                    </div>
+
+                                    <div className="col-span-2 text-center">
+                                        <span className="font-semibold text-estonia-dark">
+                                            {coach.vmMatches}
+                                        </span>
+                                    </div>
+
+                                    <div className="col-span-2 text-center text-slate-500">
+                                        {coach.vmWinPct}%
+                                    </div>
+
+                                    <div className="col-span-2 text-center">
+                                        <span className="font-semibold text-estonia-dark">
+                                            {coach.allMatches}
+                                        </span>
+                                    </div>
+
+                                    <div className="col-span-2 text-center text-slate-500">
+                                        {coach.allWinPct}%
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </main>
             </div>

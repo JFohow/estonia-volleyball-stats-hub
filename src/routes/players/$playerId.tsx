@@ -1,6 +1,6 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import MultiSelect from "@/components/ui/multi-select";
 import { fetchPlayer } from "@/lib/players.queries";
 import { useTranslation } from "react-i18next";
@@ -50,6 +50,7 @@ type PlayerAppearance = {
         serve_aces: number | null;
         serve_errors: number | null;
         serve_total: number | null;
+        stats_version: string | null;
     }>
     | null;
 };
@@ -85,6 +86,7 @@ function PlayerPage() {
     const { playerId } = Route.useParams();
 
     const { t, i18n } = useTranslation();
+    const currentLanguage = i18n.language?.startsWith("et") ? "et" : "en";
 
     const { data } = useSuspenseQuery<PlayerPageData>({
         queryKey: ["player", Number(playerId)],
@@ -123,6 +125,16 @@ function PlayerPage() {
         };
     };
 
+    const getLocalizedOpponent = (match: MatchRecord) =>
+        currentLanguage === "et"
+            ? match.opponent
+            : match.opponent_en ?? match.opponent;
+
+    const getLocalizedCompetition = (match: MatchRecord) =>
+        currentLanguage === "et"
+            ? match.competition
+            : match.competition_en ?? match.competition;
+
     const [statsMode, setStatsMode] = useState<"official" | "competitive" | "all">("official");
     const [selectedYear, setSelectedYear] = useState<string[]>(["all"]);
     const [selectedCompetition, setSelectedCompetition] = useState<string[]>(["all"]);
@@ -143,9 +155,17 @@ function PlayerPage() {
         { field: "attack_total", label: "Tot" },
         { field: "attack_errors", label: "Err" },
         { field: "attack_blocked", label: "Blk" },
+        { field: "attack_kills", label: "Exc." },
+        { field: "attack_kill_pct", label: "Exc.%" },
         { field: "attack_efficiency", label: "Eff%" },
-        { field: "block_points", label: "BPS" },
+        { field: "break_points", label: "PTS" },
     ] as const;
+
+    const isPercentField = (field: string) =>
+        field === "reception_positive_pct" ||
+        field === "reception_excellent_pct" ||
+        field === "attack_kill_pct" ||
+        field === "attack_efficiency";
 
     const safeInt = (v: any) => (typeof v === "number" && Number.isInteger(v) ? v : 0);
 
@@ -195,57 +215,63 @@ function PlayerPage() {
         appearanceMatchesWithStats.forEach((a) => {
             const match = getMatch(a);
             if (!match) return;
+            const localizedCompetition = getLocalizedCompetition(match);
+            const localizedOpponent = getLocalizedOpponent(match);
 
             // adaptive: respect selected competition/opponent when building year list
-            if (!selectedCompetition.includes("all") && match.competition && !selectedCompetition.includes(match.competition)) return;
-            if (!selectedOpponent.includes("all") && match.opponent && !selectedOpponent.includes(match.opponent)) return;
+            if (!selectedCompetition.includes("all") && localizedCompetition && !selectedCompetition.includes(localizedCompetition)) return;
+            if (!selectedOpponent.includes("all") && localizedOpponent && !selectedOpponent.includes(localizedOpponent)) return;
 
             if (match.match_date) {
                 values.add(new Date(match.match_date).getFullYear().toString());
             }
         });
         return [...values].sort();
-    }, [appearanceMatchesWithStats, selectedCompetition, selectedOpponent]);
+    }, [appearanceMatchesWithStats, selectedCompetition, selectedOpponent, currentLanguage]);
 
     const competitionOptions = useMemo(() => {
         const values = new Set<string>();
         appearanceMatchesWithStats.forEach((a) => {
             const match = getMatch(a);
             if (!match) return;
+            const localizedCompetition = getLocalizedCompetition(match);
+            const localizedOpponent = getLocalizedOpponent(match);
 
             // adaptive: respect selected year/opponent when building competition list
             if (!selectedYear.includes("all")) {
                 const year = new Date(match.match_date).getFullYear().toString();
                 if (!selectedYear.includes(year)) return;
             }
-            if (!selectedOpponent.includes("all") && match.opponent && !selectedOpponent.includes(match.opponent)) return;
+            if (!selectedOpponent.includes("all") && localizedOpponent && !selectedOpponent.includes(localizedOpponent)) return;
 
-            if (match.competition) {
-                values.add(match.competition);
+            if (localizedCompetition) {
+                values.add(localizedCompetition);
             }
         });
         return [...values].sort();
-    }, [appearanceMatchesWithStats, selectedYear, selectedOpponent]);
+    }, [appearanceMatchesWithStats, selectedYear, selectedOpponent, currentLanguage]);
 
     const opponentOptions = useMemo(() => {
         const values = new Set<string>();
         appearanceMatchesWithStats.forEach((a) => {
             const match = getMatch(a);
             if (!match) return;
+            const localizedCompetition = getLocalizedCompetition(match);
+            const localizedOpponent = getLocalizedOpponent(match);
 
             // adaptive: respect selected year/competition when building opponent list
             if (!selectedYear.includes("all")) {
                 const year = new Date(match.match_date).getFullYear().toString();
                 if (!selectedYear.includes(year)) return;
             }
-            if (!selectedCompetition.includes("all") && match.competition && !selectedCompetition.includes(match.competition)) return;
+            if (!selectedCompetition.includes("all") && localizedCompetition && !selectedCompetition.includes(localizedCompetition)) return;
 
-            if (match.opponent) {
-                values.add(match.opponent);
+            if (localizedOpponent) {
+                values.add(localizedOpponent);
             }
         });
         return [...values].sort();
-    }, [appearanceMatchesWithStats, selectedYear, selectedCompetition]);
+    }, [appearanceMatchesWithStats, selectedYear, selectedCompetition, currentLanguage]);
 
     const matchOptions = useMemo(() => {
         const values: Array<{ id: number; label: string }> = [];
@@ -253,27 +279,38 @@ function PlayerPage() {
         appearanceMatchesWithStats.forEach((a) => {
             const match = getMatch(a);
             if (!match) return;
+            const localizedCompetition = getLocalizedCompetition(match);
+            const localizedOpponent = getLocalizedOpponent(match);
 
             // adaptive: respect selected year/competition/opponent when building match list
             if (!selectedYear.includes("all")) {
                 const year = new Date(match.match_date).getFullYear().toString();
                 if (!selectedYear.includes(year)) return;
             }
-            if (!selectedCompetition.includes("all") && match.competition && !selectedCompetition.includes(match.competition)) return;
-            if (!selectedOpponent.includes("all") && match.opponent && !selectedOpponent.includes(match.opponent)) return;
+            if (!selectedCompetition.includes("all") && localizedCompetition && !selectedCompetition.includes(localizedCompetition)) return;
+            if (!selectedOpponent.includes("all") && localizedOpponent && !selectedOpponent.includes(localizedOpponent)) return;
 
             if (!seen.has(a.match_id)) {
                 seen.add(a.match_id);
-                values.push({ id: a.match_id, label: `${new Date(match.match_date).getFullYear()} - ${match.competition ?? ""} - ${match.opponent}` });
+                const dateLabel = new Date(match.match_date).toLocaleDateString("en-GB");
+                const scoreLabel = `${match.estonia_sets}-${match.opponent_sets}`;
+                values.push({ id: a.match_id, label: `${dateLabel} | ${localizedOpponent} | ${scoreLabel}` });
             }
         });
         return values.sort((l, r) => l.label.localeCompare(r.label));
-    }, [appearanceMatchesWithStats, selectedYear, selectedCompetition, selectedOpponent]);
+    }, [appearanceMatchesWithStats, selectedYear, selectedCompetition, selectedOpponent, currentLanguage]);
+
+    useEffect(() => {
+        const allowedIds = new Set(matchOptions.map((m) => String(m.id)));
+        setSelectedMatches((current) => current.filter((id) => allowedIds.has(id)));
+    }, [matchOptions]);
 
     const filteredAppearances = useMemo(() => {
         return appearanceMatchesWithStats.filter((a) => {
             const match = getMatch(a);
             if (!match) return false;
+            const localizedCompetition = getLocalizedCompetition(match);
+            const localizedOpponent = getLocalizedOpponent(match);
 
             // year filter (multi)
             if (!selectedYear.includes("all") && selectedYear.length > 0) {
@@ -283,14 +320,14 @@ function PlayerPage() {
 
             // competition filter (multi)
             if (!selectedCompetition.includes("all") && selectedCompetition.length > 0) {
-                if (!match.competition || !selectedCompetition.includes(match.competition)) {
+                if (!localizedCompetition || !selectedCompetition.includes(localizedCompetition)) {
                     return false;
                 }
             }
 
             // opponent filter (multi)
             if (!selectedOpponent.includes("all") && selectedOpponent.length > 0) {
-                if (!match.opponent || !selectedOpponent.includes(match.opponent)) {
+                if (!localizedOpponent || !selectedOpponent.includes(localizedOpponent)) {
                     return false;
                 }
             }
@@ -347,7 +384,34 @@ function PlayerPage() {
 
     const formatStatValue = (field: string, value: number | null) => {
         if (value == null) return "";
+        if (isPercentField(field)) {
+            return `${Math.round(value)}%`;
+        }
         return Number(value.toFixed(1)).toString();
+    };
+
+    const getSetCountFromPositions = (appearance: PlayerAppearance) => {
+        const statsRows = appearance.player_match_stats ?? [];
+        const stats =
+            statsRows.find((row) => row?.stats_version === "ALL") ??
+            statsRows.find((row) => row?.stats_version === "AM") ??
+            statsRows[0];
+
+        if (!stats) {
+            return appearance.sets_played ?? 0;
+        }
+
+        const row = stats as Record<string, string | null | undefined>;
+        const positions = [
+            row["set1_position"],
+            row["set2_position"],
+            row["set3_position"],
+            row["set4_position"],
+            row["set5_position"],
+        ];
+
+        const count = positions.filter((position) => typeof position === "string" && position.trim() !== "").length;
+        return count;
     };
 
     const allSortedAppearances = [...appearances].sort((a, b) => {
@@ -409,7 +473,6 @@ function PlayerPage() {
         LIB: "Libero",
     };
 
-    const currentLanguage = i18n.language?.startsWith("et") ? "et" : "en";
     const debutOpponent = currentLanguage === "et"
         ? debutMatchRecord?.opponent
         : debutMatchRecord?.opponent_en ?? debutMatchRecord?.opponent;
@@ -444,8 +507,8 @@ function PlayerPage() {
 
     return (
         <div>
-            <header className="bg-estonia-dark px-6 py-12 text-white">
-                <div className="mx-auto max-w-7xl">
+            <header className="bg-estonia-dark px-4 py-10 text-white sm:px-6 sm:py-12 lg:px-14">
+                <div className="mx-auto max-w-[1480px]">
                     <div className="grid gap-8 lg:grid-cols-[220px_260px_260px_340px]">
                         <img
                             src={
@@ -567,8 +630,8 @@ function PlayerPage() {
                 </div>
             </header >
 
-            <main className="mx-auto max-w-7xl px-6 py-10">
-                <section className="mb-10 rounded-3xl border border-slate-200 bg-slate-50 p-6 shadow-sm">
+            <main className="mx-auto max-w-[1480px] px-4 py-8 sm:px-6 sm:py-10 lg:px-14">
+                <section className="mb-10 rounded-3xl border border-slate-200 bg-slate-50 p-4 shadow-sm sm:p-6">
                     <div className="mb-6 grid gap-2">
                         <div className="grid grid-cols-3 gap-2">
                             {(["official", "competitive", "all"] as const).map((mode) => (
@@ -636,25 +699,25 @@ function PlayerPage() {
                     </div>
 
                     <div className="overflow-x-auto rounded-3xl border border-slate-200 bg-white shadow-sm">
-                        <table className="w-full min-w-[1200px] border-collapse">
+                        <table className="w-full table-fixed border-collapse">
                             <thead className="bg-slate-50">
                                 <tr className="border-b-2 border-slate-300">
-                                    <th rowSpan={2} className="sticky left-0 z-10 border-r-2 border-slate-300 bg-slate-50 px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-slate-600"></th>
+                                    <th rowSpan={2} className="sticky left-0 z-10 border-r-2 border-slate-300 bg-slate-50 px-3 py-2 text-left text-[9px] font-bold uppercase tracking-[0.16em] text-slate-600"></th>
 
-                                    <th rowSpan={2} className="border-r-2 border-slate-300 px-2 py-3 text-center text-[10px] font-bold uppercase tracking-[0.2em] text-slate-600" colSpan={1}></th>
+                                    <th colSpan={3} className="border-r-2 border-slate-300 px-1.5 py-2 text-center text-[9px] font-bold uppercase tracking-[0.16em] text-slate-500"></th>
 
-                                    <th colSpan={2} className="border-r-2 border-slate-300 px-2 py-3 text-center text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">{t("players.statsGroup.serve")}</th>
+                                    <th colSpan={3} className="border-r-2 border-slate-300 px-1.5 py-2 text-center text-[9px] font-bold uppercase tracking-[0.16em] text-slate-500">{t("players.statsGroup.serve")}</th>
 
-                                    <th colSpan={4} className="border-r-2 border-slate-300 px-2 py-3 text-center text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">{t("players.statsGroup.reception")}</th>
+                                    <th colSpan={4} className="border-r-2 border-slate-300 px-1.5 py-2 text-center text-[9px] font-bold uppercase tracking-[0.16em] text-slate-500">{t("players.statsGroup.reception")}</th>
 
-                                    <th colSpan={4} className="border-r-2 border-slate-300 px-2 py-3 text-center text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">{t("players.statsGroup.attack")}</th>
+                                    <th colSpan={6} className="border-r-2 border-slate-300 px-1.5 py-2 text-center text-[9px] font-bold uppercase tracking-[0.16em] text-slate-500">{t("players.statsGroup.attack")}</th>
 
-                                    <th colSpan={1} className="px-2 py-3 text-center text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">{t("players.statsGroup.blocks")}</th>
+                                    <th colSpan={1} className="px-1.5 py-2 text-center text-[9px] font-bold uppercase tracking-[0.16em] text-slate-500">{t("players.statsGroup.blocks")}</th>
                                 </tr>
 
                                 <tr className="border-b-2 border-slate-300">
                                     {statColumns.map((column) => (
-                                        <th key={column.field} className={`px-2 py-3 text-center text-[10px] font-bold uppercase tracking-[0.2em] text-slate-600 ${column.field === "plus_minus" || column.field === "serve_errors" || column.field === "reception_excellent_pct" || column.field === "attack_efficiency" ? "border-r-2 border-slate-300" : "border-r border-slate-200"}`}>
+                                        <th key={column.field} className={`whitespace-nowrap px-1.5 py-2 text-center text-[9px] font-bold uppercase tracking-[0.16em] text-slate-600 ${column.field === "plus_minus" || column.field === "serve_errors" || column.field === "reception_excellent_pct" || column.field === "attack_efficiency" ? "border-r-2 border-slate-300" : "border-r border-slate-200"}`}>
                                             {column.label}
                                         </th>
                                     ))}
@@ -663,19 +726,24 @@ function PlayerPage() {
 
                             <tbody className="divide-y divide-slate-100">
                                 <tr className="bg-slate-50 font-semibold uppercase tracking-[0.16em] text-slate-600">
-                                    <td className="sticky left-0 z-10 border-r-2 border-slate-300 bg-inherit px-4 py-3">AVG</td>
+                                    <td className="sticky left-0 z-10 border-r-2 border-slate-300 bg-inherit px-3 py-2 text-xs">AVG</td>
                                     {statColumns.map((column) => (
-                                        <td key={`${column.field}-avg`} className={`px-2 py-3 text-center text-sm text-slate-700 ${column.field === "plus_minus" || column.field === "serve_errors" || column.field === "reception_excellent_pct" || column.field === "attack_efficiency" ? "border-r-2 border-slate-300" : "border-r border-slate-200"}`}>
+                                        <td key={`${column.field}-avg`} className={`whitespace-nowrap px-1.5 py-2 text-center text-xs text-slate-700 ${column.field === "plus_minus" || column.field === "serve_errors" || column.field === "reception_excellent_pct" || column.field === "attack_efficiency" ? "border-r-2 border-slate-300" : "border-r border-slate-200"}`}>
                                             {formatStatValue(column.field, filteredSummary.averages[column.field])}
                                         </td>
                                     ))}
                                 </tr>
 
                                 <tr className="bg-white font-semibold text-slate-900">
-                                    <td className="sticky left-0 z-10 border-r-2 border-slate-300 bg-inherit px-4 py-3">TOT</td>
+                                    <td className="sticky left-0 z-10 border-r-2 border-slate-300 bg-inherit px-3 py-2 text-xs">TOT</td>
                                     {statColumns.map((column) => (
-                                        <td key={`${column.field}-tot`} className={`px-2 py-3 text-center text-sm text-slate-700 ${column.field === "plus_minus" || column.field === "serve_errors" || column.field === "reception_excellent_pct" || column.field === "attack_efficiency" ? "border-r-2 border-slate-300" : "border-r border-slate-200"}`}>
-                                            {formatStatValue(column.field, filteredSummary.totals[column.field])}
+                                        <td key={`${column.field}-tot`} className={`whitespace-nowrap px-1.5 py-2 text-center text-xs text-slate-700 ${column.field === "plus_minus" || column.field === "serve_errors" || column.field === "reception_excellent_pct" || column.field === "attack_efficiency" ? "border-r-2 border-slate-300" : "border-r border-slate-200"}`}>
+                                            {formatStatValue(
+                                                column.field,
+                                                isPercentField(column.field)
+                                                    ? filteredSummary.averages[column.field]
+                                                    : filteredSummary.totals[column.field]
+                                            )}
                                         </td>
                                     ))}
                                 </tr>
@@ -688,73 +756,75 @@ function PlayerPage() {
                     {matchHistoryTitle}
                 </h2>
 
-                <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-                    <div className="grid grid-cols-13 gap-3 border-b border-slate-100 bg-slate-50 px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                        <div className="col-span-1 text-center">#</div>
-                        <div className="col-span-2">{matchHistoryDateLabel}</div>
-                        <div className="col-span-3">{matchHistoryOpponentLabel}</div>
-                        <div className="col-span-2 text-center">{matchHistoryScoreLabel}</div>
-                        <div className="col-span-4">{matchHistoryCompetitionLabel}</div>
-                        <div className="col-span-1 text-center">{matchHistorySetsLabel}</div>
+                <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+                    <div className="min-w-[920px]">
+                        <div className="grid grid-cols-13 gap-3 border-b border-slate-100 bg-slate-50 px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                            <div className="col-span-1 text-center">#</div>
+                            <div className="col-span-2">{matchHistoryDateLabel}</div>
+                            <div className="col-span-3">{matchHistoryOpponentLabel}</div>
+                            <div className="col-span-2 text-center">{matchHistoryScoreLabel}</div>
+                            <div className="col-span-4">{matchHistoryCompetitionLabel}</div>
+                            <div className="col-span-1 text-center">{matchHistorySetsLabel}</div>
+                        </div>
+
+                        {sortedAppearances.map((a, index) => {
+                            const match = getMatch(a);
+                            if (!match) return null;
+
+                            const scoreTarget =
+                                match.match_type === "MAM"
+                                    ? "/match/$matchId/all"
+                                    : "/match/$matchId";
+                            const resultStyle =
+                                match.estonia_sets > match.opponent_sets
+                                    ? "text-estonia-blue"
+                                    : match.estonia_sets === match.opponent_sets
+                                        ? "text-green-700"
+                                        : "text-red-700";
+
+                            return (
+                                <div
+                                    key={a.appearance_id}
+                                    className="grid grid-cols-13 gap-3 border-t border-slate-100 px-6 py-4"
+                                >
+                                    <div className="col-span-1 text-center text-slate-500">
+                                        {index + 1}
+                                    </div>
+
+                                    <div className="col-span-2">
+                                        {new Date(
+                                            match.match_date
+                                        ).toLocaleDateString("en-GB")}
+                                    </div>
+
+                                    <div className="col-span-3">
+                                        {getLocalizedOpponent(match)}
+                                    </div>
+
+                                    <div className="col-span-2 text-center">
+                                        <Link
+                                            to={scoreTarget}
+                                            params={{
+                                                matchId: String(a.match_id),
+                                            }}
+                                            className={`font-semibold hover:underline ${resultStyle}`}
+                                        >
+                                            {match.estonia_sets}–
+                                            {match.opponent_sets}
+                                        </Link>
+                                    </div>
+
+                                    <div className="col-span-4">
+                                        {getLocalizedCompetition(match)}
+                                    </div>
+
+                                    <div className="col-span-1 text-center">
+                                        {getSetCountFromPositions(a)}
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </div>
-
-                    {sortedAppearances.map((a, index) => {
-                        const match = getMatch(a);
-                        if (!match) return null;
-
-                        const scoreTarget =
-                            match.match_type === "MAM"
-                                ? "/match/$matchId/all"
-                                : "/match/$matchId";
-                        const resultStyle =
-                            match.estonia_sets > match.opponent_sets
-                                ? "text-estonia-blue"
-                                : match.estonia_sets === match.opponent_sets
-                                    ? "text-green-700"
-                                    : "text-red-700";
-
-                        return (
-                            <div
-                                key={a.appearance_id}
-                                className="grid grid-cols-13 gap-3 border-t border-slate-100 px-6 py-4"
-                            >
-                                <div className="col-span-1 text-center text-slate-500">
-                                    {index + 1}
-                                </div>
-
-                                <div className="col-span-2">
-                                    {new Date(
-                                        match.match_date
-                                    ).toLocaleDateString("en-GB")}
-                                </div>
-
-                                <div className="col-span-3">
-                                    {match.opponent}
-                                </div>
-
-                                <div className="col-span-2 text-center">
-                                    <Link
-                                        to={scoreTarget}
-                                        params={{
-                                            matchId: String(a.match_id),
-                                        }}
-                                        className={`font-semibold hover:underline ${resultStyle}`}
-                                    >
-                                        {match.estonia_sets}–
-                                        {match.opponent_sets}
-                                    </Link>
-                                </div>
-
-                                <div className="col-span-4">
-                                    {match.competition}
-                                </div>
-
-                                <div className="col-span-1 text-center">
-                                    {a.sets_played}
-                                </div>
-                            </div>
-                        );
-                    })}
                 </div>
             </main>
         </div >

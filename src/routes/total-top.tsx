@@ -41,6 +41,8 @@ function TotalTopError({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 type TotalTopStatKey =
+  | "appearances"
+  | "sets"
   | "points"
   | "blockPoints"
   | "plusMinus"
@@ -74,23 +76,25 @@ function TotalTopPage() {
   const positions = useMemo(() => ["ALL", ...positionOrder], []);
   const statOptions: Array<{ value: TotalTopStatKey; label: string }> = useMemo(
     () => [
-      { value: "points", label: t("players.statsField.points") },
-      { value: "blockPoints", label: t("players.statsField.blockPoints") },
-      { value: "plusMinus", label: t("players.statsField.plusMinus") },
-      { value: "serveTotal", label: t("players.statsField.serveTotal") },
-      { value: "serveAces", label: t("players.statsField.serveAces") },
-      { value: "serveErrors", label: t("players.statsField.serveErrors") },
-      { value: "receptionTotal", label: t("players.statsField.receptionTotal") },
-      { value: "receptionErrors", label: t("players.statsField.receptionErrors") },
-      { value: "receptionPositivePct", label: t("players.statsField.receptionPositivePct") },
-      { value: "receptionExcellentPct", label: t("players.statsField.receptionExcellentPct") },
-      { value: "attackTotal", label: t("players.statsField.attackTotal") },
-      { value: "attackErrors", label: t("players.statsField.attackErrors") },
-      { value: "attackBlocked", label: t("players.statsField.attackBlocked") },
-      { value: "attackKills", label: t("players.statsField.attackKills") },
-      { value: "attackKillPct", label: t("players.statsField.attackKillPct") },
-      { value: "attackEfficiency", label: t("players.statsField.attackEfficiency") },
-      { value: "breakPoints", label: t("players.statsField.breakPoints") },
+      { value: "appearances", label: t("totalTop.metrics.mostAppearances") },
+      { value: "sets", label: t("totalTop.metrics.mostSets") },
+      { value: "points", label: t("totalTop.metrics.mostPoints") },
+      { value: "breakPoints", label: t("totalTop.metrics.mostBreakPoints") },
+      { value: "plusMinus", label: t("totalTop.metrics.bestPlusMinus") },
+      { value: "serveTotal", label: t("totalTop.metrics.mostServes") },
+      { value: "serveAces", label: t("totalTop.metrics.mostServeAces") },
+      { value: "serveErrors", label: t("totalTop.metrics.mostServeErrors") },
+      { value: "receptionTotal", label: t("totalTop.metrics.mostReceptions") },
+      { value: "receptionErrors", label: t("totalTop.metrics.mostReceptionErrors") },
+      { value: "receptionPositivePct", label: t("totalTop.metrics.bestReceptionPct") },
+      { value: "receptionExcellentPct", label: t("totalTop.metrics.bestIdealReceptionPct") },
+      { value: "attackTotal", label: t("totalTop.metrics.mostAttacks") },
+      { value: "attackErrors", label: t("totalTop.metrics.mostAttackErrors") },
+      { value: "attackBlocked", label: t("totalTop.metrics.mostAttackBlocks") },
+      { value: "attackKills", label: t("totalTop.metrics.mostSuccessfulAttack") },
+      { value: "attackKillPct", label: t("totalTop.metrics.bestAttackPct") },
+      { value: "attackEfficiency", label: t("totalTop.metrics.bestAttackEffPct") },
+      { value: "blockPoints", label: t("totalTop.metrics.mostBlockPoints") },
     ],
     [t]
   );
@@ -234,9 +238,8 @@ function TotalTopPage() {
               </TableRow>
               <TableRow className="bg-slate-50">
                 {columnDefs.map((column) => (
-                  <TableHead key={column.key} className={`w-[120px] p-3 text-center ${
-                    sortColumn === column.key ? "bg-estonia-blue/10 text-estonia-dark" : "text-slate-700"
-                  } ${column.key === "total:all" || column.key === "perGame:nonOfficial" ? "border-r-2 border-slate-300" : ""} ${column.key === "perGame:official" ? "border-l-2 border-slate-300" : ""}`}>
+                  <TableHead key={column.key} className={`w-[120px] p-3 text-center ${sortColumn === column.key ? "bg-estonia-blue/10 text-estonia-dark" : "text-slate-700"
+                    } ${column.key === "total:all" || column.key === "perGame:nonOfficial" ? "border-r-2 border-slate-300" : ""} ${column.key === "perGame:official" ? "border-l-2 border-slate-300" : ""}`}>
                     <button
                       type="button"
                       onClick={() => handleSort(column.key)}

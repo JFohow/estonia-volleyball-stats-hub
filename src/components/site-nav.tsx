@@ -6,77 +6,77 @@ export function SiteNav() {
   const { t } = useTranslation();
   return (
     <nav className="sticky top-0 z-50 bg-estonia-dark text-white shadow-lg">
-      <div className="flex items-center gap-8 px-6 py-4">
+      <div className="flex flex-wrap items-center gap-4 px-4 py-3 sm:px-6 sm:py-4">
         <Link to="/" className="flex items-center gap-2">
           <div className="flex h-5 w-8 flex-col overflow-hidden rounded-sm">
             <div className="flex-1 bg-estonia-blue" />
             <div className="flex-1 bg-black" />
             <div className="flex-1 bg-white" />
           </div>
-          <span className="font-display text-2xl uppercase tracking-tight">
+          <span className="font-display text-xl uppercase tracking-tight sm:text-2xl">
             Eesti Võrkpall <span className="font-light opacity-70">DB</span>
           </span>
         </Link>
-        <div className="flex gap-6 text-sm font-medium uppercase tracking-wide opacity-80">
-          <Link
-            to="/"
-            className="transition-colors hover:text-estonia-blue"
-            activeProps={{ className: "text-estonia-blue" }}
-            activeOptions={{ exact: true }}
-          >
-            {t("nav.home")}
-          </Link>
+        <div className="order-3 w-full overflow-x-auto pb-1 sm:order-none sm:w-auto sm:overflow-visible sm:pb-0">
+          <div className="flex min-w-max gap-4 text-xs font-medium uppercase tracking-wide opacity-80 sm:gap-6 sm:text-sm">
+            <Link
+              to="/"
+              className="transition-colors hover:text-estonia-blue"
+              activeProps={{ className: "text-estonia-blue" }}
+              activeOptions={{ exact: true }}
+            >
+              {t("nav.home")}
+            </Link>
 
-          <Link
-            to="/matches"
-            className="transition-colors hover:text-estonia-blue"
-            activeProps={{ className: "text-estonia-blue" }}
-          >
-            {t("nav.matches")}
-          </Link>
+            <Link
+              to="/matches"
+              className="transition-colors hover:text-estonia-blue"
+              activeProps={{ className: "text-estonia-blue" }}
+            >
+              {t("nav.matches")}
+            </Link>
 
-          <Link
-            to="/players"
-            className="transition-colors hover:text-estonia-blue"
-            activeProps={{ className: "text-estonia-blue" }}
-          >
-            {t("nav.players")}
-          </Link>
+            <Link
+              to="/players"
+              className="transition-colors hover:text-estonia-blue"
+              activeProps={{ className: "text-estonia-blue" }}
+            >
+              {t("nav.players")}
+            </Link>
 
-          <Link
-            to="/coaches"
-            className="transition-colors hover:text-estonia-blue"
-            activeProps={{ className: "text-estonia-blue" }}
-          >
-            {t("nav.coaches")}
-          </Link>
+            <Link
+              to="/coaches"
+              className="transition-colors hover:text-estonia-blue"
+              activeProps={{ className: "text-estonia-blue" }}
+            >
+              {t("nav.coaches")}
+            </Link>
 
-          <Link
-            to="/game-highs"
-            className="transition-colors hover:text-estonia-blue"
-            activeProps={{ className: "text-estonia-blue" }}
-          >
-            {t("nav.gameHighs")}
-          </Link>
+            <Link
+              to="/game-highs"
+              className="transition-colors hover:text-estonia-blue"
+              activeProps={{ className: "text-estonia-blue" }}
+            >
+              {t("nav.gameHighs")}
+            </Link>
 
-          <Link
-            to="/total-top"
-            className="transition-colors hover:text-estonia-blue"
-            activeProps={{ className: "text-estonia-blue" }}
-          >
-            {t("nav.totalTop")}
-          </Link>
+            <Link
+              to="/total-top"
+              className="transition-colors hover:text-estonia-blue"
+              activeProps={{ className: "text-estonia-blue" }}
+            >
+              {t("nav.totalTop")}
+            </Link>
 
-          <Link
-            to="/statistics"
-            className="transition-colors hover:text-estonia-blue"
-            activeProps={{ className: "text-estonia-blue" }}
-          >
-            {t("nav.statistics")}
-          </Link>
+            <Link
+              to="/statistics"
+              className="transition-colors hover:text-estonia-blue"
+              activeProps={{ className: "text-estonia-blue" }}
+            >
+              {t("nav.statistics")}
+            </Link>
+          </div>
         </div>
-
-
 
         <div className="ml-auto flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-2 py-1">
           <button

@@ -1,6 +1,8 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useSuspenseQuery, useQueryErrorResetBoundary } from "@tanstack/react-query";
 import { homeSummaryOptions, type RecentMatch } from "@/lib/home.queries";
+import { totalTopOptions, type TotalTopRow } from "@/lib/total-top.queries";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 export const Route = createFileRoute("/")({
@@ -14,9 +16,64 @@ export const Route = createFileRoute("/")({
       },
     ],
   }),
+  loader: ({ context }) =>
+    Promise.all([
+      context.queryClient.ensureQueryData(homeSummaryOptions()),
+      context.queryClient.ensureQueryData(totalTopOptions()),
+    ]),
   component: HomePage,
   errorComponent: HomeError,
 });
+
+type TotalTopStatKey =
+  | "appearances"
+  | "sets"
+  | "points"
+  | "blockPoints"
+  | "plusMinus"
+  | "serveTotal"
+  | "serveAces"
+  | "serveErrors"
+  | "receptionTotal"
+  | "receptionErrors"
+  | "receptionPositivePct"
+  | "receptionExcellentPct"
+  | "attackTotal"
+  | "attackErrors"
+  | "attackBlocked"
+  | "attackKills"
+  | "attackKillPct"
+  | "attackEfficiency"
+  | "breakPoints";
+
+type TopLeaderCard = {
+  stat: TotalTopStatKey;
+  statLabel: string;
+  row: TotalTopRow;
+  value: number;
+};
+
+const topStatFields: Array<{ key: TotalTopStatKey; labelKey: string }> = [
+  { key: "appearances", labelKey: "totalTop.metrics.mostAppearances" },
+  { key: "sets", labelKey: "totalTop.metrics.mostSets" },
+  { key: "points", labelKey: "totalTop.metrics.mostPoints" },
+  { key: "breakPoints", labelKey: "totalTop.metrics.mostBreakPoints" },
+  { key: "plusMinus", labelKey: "totalTop.metrics.bestPlusMinus" },
+  { key: "serveTotal", labelKey: "totalTop.metrics.mostServes" },
+  { key: "serveAces", labelKey: "totalTop.metrics.mostServeAces" },
+  { key: "serveErrors", labelKey: "totalTop.metrics.mostServeErrors" },
+  { key: "receptionTotal", labelKey: "totalTop.metrics.mostReceptions" },
+  { key: "receptionErrors", labelKey: "totalTop.metrics.mostReceptionErrors" },
+  { key: "receptionPositivePct", labelKey: "totalTop.metrics.bestReceptionPct" },
+  { key: "receptionExcellentPct", labelKey: "totalTop.metrics.bestIdealReceptionPct" },
+  { key: "attackTotal", labelKey: "totalTop.metrics.mostAttacks" },
+  { key: "attackErrors", labelKey: "totalTop.metrics.mostAttackErrors" },
+  { key: "attackBlocked", labelKey: "totalTop.metrics.mostAttackBlocks" },
+  { key: "attackKills", labelKey: "totalTop.metrics.mostSuccessfulAttack" },
+  { key: "attackKillPct", labelKey: "totalTop.metrics.bestAttackPct" },
+  { key: "attackEfficiency", labelKey: "totalTop.metrics.bestAttackEffPct" },
+  { key: "blockPoints", labelKey: "totalTop.metrics.mostBlockPoints" },
+];
 
 function HomeError({ error, reset }: { error: Error; reset: () => void }) {
   const router = useRouter();
@@ -48,6 +105,8 @@ function fmt(n: number) {
 function HomePage() {
   const { t } = useTranslation();
   const { data } = useSuspenseQuery(homeSummaryOptions());
+  const { data: totalTopRows } = useSuspenseQuery(totalTopOptions());
+  const [activeLeaderIndex, setActiveLeaderIndex] = useState(0);
   const coveragePct =
     data.statsCoverage.totalMatches > 0
       ? Math.round((data.statsCoverage.matchesWithStats / data.statsCoverage.totalMatches) * 100)
@@ -61,46 +120,117 @@ function HomePage() {
       )
       : 0;
 
-  const kpis = [
-    { label: t("home.totalMatches"), value: data.totalMatches },
-    { label: t("home.totalPlayers"), value: data.totalPlayers },
-    { label: t("home.appearances"), value: data.totalAppearances },
-    { label: t("home.setsPlayed"), value: data.totalSets },
-  ];
+  const topLeaders = useMemo<TopLeaderCard[]>(() => {
+    return topStatFields
+      .map((field) => {
+        const leader = totalTopRows.reduce<TotalTopRow | null>((best, row) => {
+          const rowValue = row.all[field.key];
+          if (!best) {
+            return row;
+          }
+          return rowValue > best.all[field.key] ? row : best;
+        }, null);
+
+        if (!leader) {
+          return null;
+        }
+
+        return {
+          stat: field.key,
+          statLabel: t(field.labelKey),
+          row: leader,
+          value: leader.all[field.key],
+        };
+      })
+      .filter((leader): leader is TopLeaderCard => leader !== null);
+  }, [t, totalTopRows]);
+
+  useEffect(() => {
+    if (topLeaders.length === 0) {
+      setActiveLeaderIndex(0);
+      return;
+    }
+    setActiveLeaderIndex((current) => current % topLeaders.length);
+  }, [topLeaders.length]);
+
+  useEffect(() => {
+    if (topLeaders.length <= 1) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setActiveLeaderIndex((current) => {
+        let next = current;
+        while (next === current) {
+          next = Math.floor(Math.random() * topLeaders.length);
+        }
+        return next;
+      });
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [topLeaders.length]);
+
+  const activeLeader = topLeaders.length > 0 ? topLeaders[activeLeaderIndex % topLeaders.length] : null;
+  const leaderIsPercent = activeLeader
+    ? activeLeader.stat === "receptionPositivePct" ||
+    activeLeader.stat === "receptionExcellentPct" ||
+    activeLeader.stat === "attackKillPct" ||
+    activeLeader.stat === "attackEfficiency"
+    : false;
+  const canManuallyCycleLeaders = topLeaders.length > 1;
+
+  function showPreviousLeader() {
+    if (!canManuallyCycleLeaders) return;
+    setActiveLeaderIndex((current) => (current - 1 + topLeaders.length) % topLeaders.length);
+  }
+
+  function showNextLeader() {
+    if (!canManuallyCycleLeaders) return;
+    setActiveLeaderIndex((current) => (current + 1) % topLeaders.length);
+  }
 
   return (
     <div className="text-slate-900">
       {/* Hero Metrics */}
-      <header className="bg-estonia-dark px-6 pt-12 pb-24 text-white">
+      <header className="bg-estonia-dark px-4 pt-10 pb-16 text-white sm:px-6 sm:pt-12 sm:pb-24">
         <div className="mx-auto max-w-7xl">
-          <h1 className="mb-3 font-display text-5xl uppercase italic md:text-6xl">
-            {t("home.title")}{" "}
-            <span className="text-estonia-blue">
-              {t("home.titleAccent")}
-            </span>
-          </h1>
-          <p className="mb-12 max-w-2xl text-sm text-white/60">
-            {t("home.subtitle")}
-          </p>
+          <div className="grid gap-6 md:grid-cols-[1fr_auto] md:items-start md:gap-10">
+            <div>
+              <h1 className="mb-3 font-display text-4xl uppercase italic leading-tight sm:text-5xl md:text-6xl">
+                {t("home.title")}{" "}
+                <span className="text-estonia-blue">
+                  {t("home.titleAccent")}
+                </span>
+              </h1>
+              <p className="max-w-2xl text-sm leading-relaxed text-white/70 sm:text-base">
+                {t("home.subtitle")}
+              </p>
+            </div>
 
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-8">
-            {kpis.map((k) => (
-              <div key={k.label} className="border-l-2 border-estonia-blue pl-4">
-                <div className="font-display text-4xl md:text-5xl">{fmt(k.value)}</div>
-                <div className="mt-1 text-xs uppercase tracking-widest opacity-60">{k.label}</div>
+            <div className="w-full max-w-[1020px] rounded-xl border border-white/20 bg-white/10 p-5 backdrop-blur-sm md:justify-self-center lg:justify-self-start">
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center justify-between gap-3 border-b border-white/15 pb-2">
+                  <span className="font-semibold text-white/80">{t("common.matches")}</span>
+                  <span className="font-display text-3xl text-white">{fmt(data.totalMatches)}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3 pt-1">
+                  <span className="font-semibold text-white/80">{t("nav.players")}</span>
+                  <span className="font-display text-3xl text-white">{fmt(data.totalPlayers)}</span>
+                </div>
               </div>
-            ))}
+            </div>
           </div>
         </div>
       </header>
 
       {/* Main */}
-      <main className="mx-auto -mt-12 max-w-7xl px-6">
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+      <main className="mx-auto -mt-8 max-w-7xl px-4 sm:-mt-12 sm:px-6">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:gap-8">
           {/* Recent Matches */}
           <div className="space-y-6 lg:col-span-2">
             <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-              <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+              <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 sm:px-6 sm:py-4">
                 <h2 className="font-display text-xl uppercase italic">
                   {t("home.recentMatches")}
                 </h2>
@@ -117,36 +247,66 @@ function HomePage() {
 
           {/* Sidebar */}
           <aside className="space-y-8">
-            <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h2 className="mb-6 font-display text-lg uppercase italic">{t("home.recordAppearance")}</h2>
-              {data.topAppearance ? (
-                <div className="flex gap-4">
-                  <div className="grid h-20 w-20 shrink-0 place-items-center rounded-lg bg-estonia-dark font-display text-2xl text-white">
-                    {data.topAppearance.first_name[0]}
-                    {data.topAppearance.last_name[0]}
+            <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+              {activeLeader ? (
+                <div className="overflow-hidden rounded-xl border border-slate-200 bg-gradient-to-b from-slate-50 to-white">
+                  <div className="flex items-center justify-between border-b border-slate-200 px-3 py-2">
+                    <button
+                      type="button"
+                      onClick={showPreviousLeader}
+                      disabled={!canManuallyCycleLeaders}
+                      aria-label="Previous metric"
+                      className="h-8 w-8 rounded-full border border-slate-300 bg-white text-sm font-bold text-slate-600 transition hover:border-estonia-blue hover:text-estonia-blue disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      &lt;
+                    </button>
+                    <div className="px-2 text-center text-sm font-bold uppercase text-estonia-dark sm:text-base">{activeLeader.statLabel}</div>
+                    <button
+                      type="button"
+                      onClick={showNextLeader}
+                      disabled={!canManuallyCycleLeaders}
+                      aria-label="Next metric"
+                      className="h-8 w-8 rounded-full border border-slate-300 bg-white text-sm font-bold text-slate-600 transition hover:border-estonia-blue hover:text-estonia-blue disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      &gt;
+                    </button>
                   </div>
-                  <div>
-                    <h3 className="text-lg font-bold uppercase leading-tight">
-                      {data.topAppearance.first_name} {data.topAppearance.last_name}
-                    </h3>
-                    <p className="mt-1 text-sm font-semibold text-estonia-blue">
-                      {data.topAppearance.position ?? "—"}
-                    </p>
-                    <div className="mt-4 grid grid-cols-2 gap-4">
-                      <div>
-                        <div className="font-display text-2xl">{fmt(data.topAppearance.matches)}</div>
-                        <div className="text-[10px] font-bold uppercase text-slate-400">{t("common.matches")}</div>
+                  <div className="flex items-center justify-center gap-4 px-4 py-4 text-center">
+                    {activeLeader.row.photoUrl ? (
+                      <img
+                        src={activeLeader.row.photoUrl}
+                        alt={activeLeader.row.name}
+                        className="h-14 w-14 shrink-0 rounded-full border-2 border-estonia-blue/20 object-cover sm:h-16 sm:w-16"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-estonia-dark font-display text-lg text-white sm:h-16 sm:w-16 sm:text-xl">
+                        {activeLeader.row.name.split(" ")[0]?.[0] ?? "?"}
+                        {activeLeader.row.name.split(" ").slice(-1)[0]?.[0] ?? "?"}
                       </div>
-                      <div>
-                        <div className="font-display text-2xl">{fmt(data.topAppearance.sets)}</div>
-                        <div className="text-[10px] font-bold uppercase text-slate-400">{t("common.sets")}</div>
-                      </div>
+                    )}
+                    <div className="min-w-0 text-center">
+                      <h3 className="truncate text-base font-bold uppercase leading-tight text-slate-900 sm:text-lg">
+                        {activeLeader.row.name}
+                      </h3>
+                      <p className="mt-1 text-sm font-semibold text-estonia-blue">
+                        {activeLeader.row.position ?? "—"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="border-t border-slate-200 bg-slate-50 px-4 py-4 text-center">
+                    <div className="font-display text-3xl text-estonia-dark sm:text-4xl">
+                      {leaderIsPercent
+                        ? `${Math.round(activeLeader.value)}%`
+                        : Number.isInteger(activeLeader.value)
+                          ? fmt(activeLeader.value)
+                          : activeLeader.value.toFixed(1)}
                     </div>
                   </div>
                 </div>
               ) : (
                 <p className="text-sm text-slate-400">
-                  Player appearance rankings will appear here once appearance data is loaded.
+                  {t("home.noTopStatData")}
                 </p>
               )}
             </section>
@@ -155,7 +315,7 @@ function HomePage() {
               <div className="bg-slate-900 px-6 py-3 font-display text-sm uppercase tracking-widest text-white">
                 {t("home.coverageStatus")}
               </div>
-              <div className="space-y-4 p-6">
+              <div className="space-y-4 p-4 sm:p-6">
                 <CoverageBar
                   label={t("home.matchResults")}
                   pct={data.totalMatches > 0 ? 100 : 0}
@@ -172,9 +332,10 @@ function HomePage() {
                   color={coveragePct >= 80 ? "green" : "amber"}
                 />
                 <p className="pt-2 text-[11px] leading-relaxed text-slate-400">
-                  {data.statsCoverage.matchesWithStats.toLocaleString()} appearances with detailed
-                  box-score data across {data.statsCoverage.totalMatches.toLocaleString()} archived
-                  matches.
+                  {t("home.coverageSummary", {
+                    matchesWithStats: data.statsCoverage.matchesWithStats.toLocaleString(),
+                    totalMatches: data.statsCoverage.totalMatches.toLocaleString(),
+                  })}
                 </p>
               </div>
             </section>
@@ -190,6 +351,8 @@ function MatchRow({ match }: { match: RecentMatch }) {
   const won = match.estonia_sets > match.opponent_sets;
   const currentLanguage = i18n.language?.startsWith("et") ? "et" : "en";
   const opponent = currentLanguage === "et" ? match.opponent : match.opponent_en ?? match.opponent;
+  const competition = currentLanguage === "et" ? match.competition : match.competition_en ?? match.competition;
+  const city = currentLanguage === "et" ? match.city : match.city_en ?? match.city;
   const typeStyles: Record<string, string> = {
     VM: "bg-green-100 text-green-700",
     AM: "bg-slate-100 text-slate-600",
@@ -197,58 +360,67 @@ function MatchRow({ match }: { match: RecentMatch }) {
     "—": "bg-slate-100 text-slate-500",
   };
   const typeLabels: Record<string, string> = {
-    VM: "Competitive Game",
-    AM: "Official Game",
-    MAM: "Non-official Game",
+    VM: t("common.competitive"),
+    AM: t("matches.official_match"),
+    MAM: t("common.nonCompetitive"),
     "—": "Unknown",
   };
   const officialSets = match.match_sets
     .filter((s) => s.set_number <= match.estonia_sets + match.opponent_sets)
     .sort((a, b) => a.set_number - b.set_number);
+  const officialSetScores = officialSets
+    .map((s) => `${s.estonia_points}:${s.opponent_points}`)
+    .join(" · ");
+  const additionalSets = match.match_sets
+    .filter((s) => s.set_number > match.estonia_sets + match.opponent_sets)
+    .sort((a, b) => a.set_number - b.set_number);
+  const additionalSetScores = additionalSets
+    .map((s) => `${s.estonia_points}:${s.opponent_points}`)
+    .join(" · ");
+  const additionalSetCount = additionalSets.length;
+  const additionalSetsLabel = currentLanguage === "et"
+    ? t("matches.additional_set", { count: additionalSetCount })
+    : `${additionalSetCount} Additional Set${additionalSetCount === 1 ? "" : "s"}`;
   const matchType =
     match.vm ? "VM" :
       match.am ? "AM" :
         match.mam ? "MAM" :
           "—";
   return (
-    <div className="p-6 transition-colors hover:bg-slate-50">
-      <div className="mb-4 flex items-start justify-between gap-4">
-        <div>
+    <div className="p-4 transition-colors hover:bg-slate-50 sm:p-6">
+      <div className="mb-3 flex flex-col gap-3 sm:mb-4 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+        <div className="min-w-0">
           <div className="text-xs font-bold uppercase text-slate-400">
-            {match.competition ?? "—"} • {new Date(match.match_date).toLocaleDateString("en-GB", {
+            {competition ?? "—"} • {new Date(match.match_date).toLocaleDateString("en-GB", {
               day: "numeric",
               month: "short",
               year: "numeric",
             })}
-            {match.city ? ` • ${match.city}` : ""}
+            {city ? ` • ${city}` : ""}
           </div>
-          <div className="flex items-center gap-3 text-lg font-bold">
+          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-base font-bold sm:text-lg">
             {t("common.estonia")}
             <span className={won ? "text-estonia-blue" : "text-red-700"}>
               {match.estonia_sets} – {match.opponent_sets}
             </span>
-            <span className="uppercase">{opponent}</span>
+            <span className="uppercase break-words">{opponent}</span>
           </div>
         </div>
         <span
-          className={`shrink-0 rounded px-2 py-1 text-xs font-bold ${typeStyles[matchType]}`}
+          className={`inline-flex w-fit shrink-0 rounded px-2.5 py-1 text-[11px] font-bold ${typeStyles[matchType]}`}
         >
           {typeLabels[matchType]}
         </span>
       </div>
-      <div className="flex flex-wrap gap-4 text-sm text-slate-500">
-        {officialSets.map((s) => (
-          <div key={s.set_number} className="flex flex-col">
-            <span className="font-medium text-slate-800">
-              {s.estonia_points}-{s.opponent_points}
-            </span>
-          </div>
-        ))}
-        {match.has_additional_sets && match.additional_sets_count > 0 && (
-          <div className="flex flex-col border-l border-slate-200 pl-4">
-            <span className="text-[10px] font-bold uppercase text-estonia-blue">Additional</span>
-            <span className="font-medium text-slate-400">
-              +{match.additional_sets_count} Training Sets
+      <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-slate-500">
+        {officialSetScores && (
+          <span className="text-base font-semibold text-slate-800">{officialSetScores}</span>
+        )}
+        {match.has_additional_sets && additionalSetCount > 0 && (
+          <div className="flex flex-col border-l border-slate-200 pl-3">
+            <span className="text-base font-semibold text-slate-700">
+              <span className="mr-2 text-[11px] font-bold uppercase tracking-[0.08em] text-estonia-blue">{additionalSetsLabel}:</span>
+              {additionalSetScores}
             </span>
           </div>
         )}

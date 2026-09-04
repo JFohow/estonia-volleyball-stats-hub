@@ -130,7 +130,7 @@ function CoachPage() {
 
     return (
         <div className="text-slate-900">
-            <header className="bg-estonia-dark px-6 py-12 text-white">
+            <header className="bg-estonia-dark px-4 py-10 text-white sm:px-6 sm:py-12">
                 <div className="mx-auto max-w-7xl">
                     <div className="grid gap-8 lg:grid-cols-[220px_260px_260px_340px]">
                         {coach.photo_url ? (
@@ -183,7 +183,7 @@ function CoachPage() {
                 </div>
             </header>
 
-            <main className="mx-auto max-w-7xl px-6 py-10">
+            <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10">
                 <section className="mb-10 rounded-3xl border border-slate-200 bg-slate-50 p-6 shadow-sm">
                     <div className="grid gap-4 md:grid-cols-3">
                         <ResultCard
@@ -216,7 +216,7 @@ function CoachPage() {
                     {matchHistoryTitle}
                 </h2>
 
-                <div className="mb-6 grid grid-cols-3 gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
+                <div className="mb-6 grid grid-cols-1 gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm sm:grid-cols-3">
                     {(["official", "competitive", "all"] as const).map((mode) => (
                         <button
                             key={mode}
@@ -235,56 +235,57 @@ function CoachPage() {
                     ))}
                 </div>
 
-                <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-                    <div className="grid grid-cols-12 gap-3 border-b border-slate-100 bg-slate-50 px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                        <div className="col-span-1 text-center">#</div>
-                        <div className="col-span-2">{dateLabel}</div>
-                        <div className="col-span-3">{opponentLabel}</div>
-                        <div className="col-span-2 text-center">{scoreLabel}</div>
-                        <div className="col-span-4">{competitionLabel}</div>
-                    </div>
-
-                    {sortedFilteredMatches.length > 0 ? (
-                        sortedFilteredMatches.map((match, index) => (
-
-                            <div
-                                key={match.match_id}
-                                className="grid grid-cols-12 gap-3 border-t border-slate-100 px-6 py-4"
-                            >
-                                <div className="col-span-1 text-center text-slate-500">
-                                    {index + 1}
-                                </div>
-
-                                <div className="col-span-2">
-                                    {new Date(match.match_date).toLocaleDateString("en-GB")}
-                                </div>
-
-                                <div className="col-span-3">
-                                    {currentLanguage === "et" ? match.opponent : match.opponent_en ?? match.opponent}
-                                </div>
-
-                                <div className="col-span-2 text-center">
-                                    <Link
-                                        to={getMatchRoute(match)}
-                                        params={{
-                                            matchId: String(match.match_id),
-                                        }}
-                                        className={`font-semibold hover:underline ${getResultStyle(match)}`}
-                                    >
-                                        {match.estonia_sets}–{match.opponent_sets}
-                                    </Link>
-                                </div>
-
-                                <div className="col-span-4">
-                                    {match.competition || "-"}
-                                </div>
-                            </div>
-                        ))
-                    ) : (
-                        <div className="px-8 py-12 text-center text-slate-600">
-                            {noMatchesLabel}
+                <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+                    <div className="min-w-[860px]">
+                        <div className="grid grid-cols-12 gap-3 border-b border-slate-100 bg-slate-50 px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                            <div className="col-span-1 text-center">#</div>
+                            <div className="col-span-2">{dateLabel}</div>
+                            <div className="col-span-3">{opponentLabel}</div>
+                            <div className="col-span-2 text-center">{scoreLabel}</div>
+                            <div className="col-span-4">{competitionLabel}</div>
                         </div>
-                    )}
+
+                        {sortedFilteredMatches.length > 0 ? (
+                            sortedFilteredMatches.map((match, index) => (
+                                <div
+                                    key={match.match_id}
+                                    className="grid grid-cols-12 gap-3 border-t border-slate-100 px-6 py-4"
+                                >
+                                    <div className="col-span-1 text-center text-slate-500">
+                                        {index + 1}
+                                    </div>
+
+                                    <div className="col-span-2">
+                                        {new Date(match.match_date).toLocaleDateString("en-GB")}
+                                    </div>
+
+                                    <div className="col-span-3">
+                                        {currentLanguage === "et" ? match.opponent : match.opponent_en ?? match.opponent}
+                                    </div>
+
+                                    <div className="col-span-2 text-center">
+                                        <Link
+                                            to={getMatchRoute(match)}
+                                            params={{
+                                                matchId: String(match.match_id),
+                                            }}
+                                            className={`font-semibold hover:underline ${getResultStyle(match)}`}
+                                        >
+                                            {match.estonia_sets}–{match.opponent_sets}
+                                        </Link>
+                                    </div>
+
+                                    <div className="col-span-4">
+                                        {match.competition || "-"}
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="px-8 py-12 text-center text-slate-600">
+                                {noMatchesLabel}
+                            </div>
+                        )}
+                    </div>
                 </div>
             </main>
         </div>

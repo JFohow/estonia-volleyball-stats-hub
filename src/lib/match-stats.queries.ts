@@ -13,6 +13,7 @@ export type PlayerMatchStats = {
     shirt_number: number | null;
     sets_played: number | null;
     on_the_bench: boolean;
+    player_position_in_match: string | null;
     players: {
         player_id: number;
         first_name: string;
@@ -39,6 +40,11 @@ export type PlayerMatchStats = {
         attack_kill_pct: number | null;
         break_points: number | null;
         stats_version: string | null;
+        set1_position: string | null;
+        set2_position: string | null;
+        set3_position: string | null;
+        set4_position: string | null;
+        set5_position: string | null;
     }>;
 };
 
@@ -75,6 +81,7 @@ export function matchOptions(matchId: number) {
           shirt_number,
           sets_played,
           on_the_bench,
+                    player_position_in_match,
           players (
             player_id,
             first_name,
@@ -100,7 +107,12 @@ export function matchOptions(matchId: number) {
                         attack_kills,
                         attack_kill_pct,
                         break_points,
-                        stats_version
+                        stats_version,
+                        set1_position,
+                        set2_position,
+                        set3_position,
+                        set4_position,
+                        set5_position
                     )
         `)
                 .eq("match_id", matchId)
