@@ -5,6 +5,7 @@ import i18n from "@/i18n";
 import { supabase } from "@/integrations/supabase/client";
 
 const ADMIN_EMAILS = new Set(["karl_juhkami@hotmail.com", "mjuhkami@gmail.com"]);
+const IMPORT_OPEN_IN_DEV = import.meta.env.DEV;
 
 function isAdminUser(user: { app_metadata?: Record<string, unknown> | null; user_metadata?: Record<string, unknown> | null } | null) {
   if (!user) return false;
@@ -110,13 +111,14 @@ export function SiteNav() {
               {t("nav.statistics")}
             </Link>
 
-            {isAdmin && (
-              <a
-                href="/#admin-import"
+            {(isAdmin || IMPORT_OPEN_IN_DEV) && (
+              <Link
+                to="/import"
                 className="transition-colors hover:text-estonia-blue"
+                activeProps={{ className: "text-estonia-blue" }}
               >
                 Import
-              </a>
+              </Link>
             )}
           </div>
         </div>
@@ -200,26 +202,6 @@ export function SiteFooter() {
     setIsSubmitting(false);
   }
 
-  async function handleGithubLogin() {
-    setStatus("");
-    setIsSubmitting(true);
-
-    const redirectTo = typeof window !== "undefined" ? window.location.origin : undefined;
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "github",
-      options: redirectTo ? { redirectTo } : undefined,
-    });
-
-    if (error) {
-      setStatus(error.message);
-      setIsSubmitting(false);
-      return;
-    }
-
-    setStatus("Redirecting to GitHub...");
-    setIsSubmitting(false);
-  }
-
   async function handleLogout() {
     setStatus("");
     setIsSubmitting(true);
@@ -258,44 +240,31 @@ export function SiteFooter() {
           <p className="mt-2 text-xs text-slate-400">{footerStatus}</p>
 
           {!userEmail ? (
-            <div className="mt-3 grid gap-2">
+            <form onSubmit={handleLogin} className="mt-3 grid gap-2">
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="Admin email"
+                className="h-10 rounded-md border border-white/20 bg-slate-900 px-3 text-sm text-white outline-none placeholder:text-slate-500 focus:border-estonia-blue"
+              />
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder="Password"
+                className="h-10 rounded-md border border-white/20 bg-slate-900 px-3 text-sm text-white outline-none placeholder:text-slate-500 focus:border-estonia-blue"
+              />
               <button
-                type="button"
-                onClick={handleGithubLogin}
+                type="submit"
                 disabled={isSubmitting}
-                className="h-10 rounded-md border border-white/20 bg-slate-800 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="h-10 rounded-md bg-estonia-blue text-sm font-semibold text-white transition hover:bg-estonia-blue/90 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {isSubmitting ? "Connecting..." : "Continue with GitHub"}
+                {isSubmitting ? "Signing in..." : "Admin login"}
               </button>
-
-              <div className="my-1 text-center text-[11px] uppercase tracking-[0.12em] text-slate-500">or</div>
-
-              <form onSubmit={handleLogin} className="grid gap-2">
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  placeholder="Admin email"
-                  className="h-10 rounded-md border border-white/20 bg-slate-900 px-3 text-sm text-white outline-none placeholder:text-slate-500 focus:border-estonia-blue"
-                />
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  placeholder="Password"
-                  className="h-10 rounded-md border border-white/20 bg-slate-900 px-3 text-sm text-white outline-none placeholder:text-slate-500 focus:border-estonia-blue"
-                />
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="h-10 rounded-md bg-estonia-blue text-sm font-semibold text-white transition hover:bg-estonia-blue/90 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {isSubmitting ? "Signing in..." : "Admin login"}
-                </button>
-              </form>
-            </div>
+            </form>
           ) : (
             <button
               type="button"
