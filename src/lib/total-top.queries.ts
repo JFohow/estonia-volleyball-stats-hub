@@ -182,9 +182,21 @@ function updateTotals(totals: PlayerTotals, appearance: AppearanceRow, stats: Pl
   totals.attackErrors += stats.attack_errors ?? 0;
   totals.attackBlocked += stats.attack_blocked ?? 0;
   totals.attackKills += stats.attack_kills ?? 0;
-  totals.attackKillPct += stats.attack_kill_pct ?? 0;
-  totals.attackEfficiency += stats.attack_efficiency ?? 0;
   totals.breakPoints += stats.break_points ?? 0;
+}
+
+function computeAttackKillPct(totals: PlayerTotals): number {
+  if (!totals.attackTotal) {
+    return 0;
+  }
+  return (totals.attackKills / totals.attackTotal) * 100;
+}
+
+function computeAttackEfficiency(totals: PlayerTotals): number {
+  if (!totals.attackTotal) {
+    return 0;
+  }
+  return ((totals.attackKills - totals.attackBlocked - totals.attackErrors) / totals.attackTotal) * 100;
 }
 
 async function fetchTotalTop(): Promise<TotalTopRow[]> {
@@ -250,6 +262,16 @@ async function fetchTotalTop(): Promise<TotalTopRow[]> {
       nonOfficial: createTotals(),
       all: createTotals(),
     };
+
+    totals.official.attackKillPct = computeAttackKillPct(totals.official);
+    totals.competitive.attackKillPct = computeAttackKillPct(totals.competitive);
+    totals.nonOfficial.attackKillPct = computeAttackKillPct(totals.nonOfficial);
+    totals.all.attackKillPct = computeAttackKillPct(totals.all);
+
+    totals.official.attackEfficiency = computeAttackEfficiency(totals.official);
+    totals.competitive.attackEfficiency = computeAttackEfficiency(totals.competitive);
+    totals.nonOfficial.attackEfficiency = computeAttackEfficiency(totals.nonOfficial);
+    totals.all.attackEfficiency = computeAttackEfficiency(totals.all);
 
     return {
       playerId: player.player_id,

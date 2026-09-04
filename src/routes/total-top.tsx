@@ -104,6 +104,11 @@ function TotalTopPage() {
   }
 
   function getPerGameValue(group: PlayerTotals, stat: TotalTopStatKey) {
+    if (stat === "attackKillPct" || stat === "attackEfficiency") {
+      const total = getStatValue(group, stat);
+      return total == null ? null : Number(total.toFixed(2));
+    }
+
     if (group.games <= 0) {
       return null;
     }

@@ -120,6 +120,10 @@ export function addStats(group: StatisticsGroup, stats: AppearanceStatsRow) {
         const value = stats[field];
         if (typeof value !== "number") continue;
 
+        if (field === "attack_kill_pct" || field === "attack_efficiency") {
+            continue;
+        }
+
         group.totals[field] += value;
         if (percentageFields.has(field)) {
             group.counts[field] += 1;
@@ -129,6 +133,18 @@ export function addStats(group: StatisticsGroup, stats: AppearanceStatsRow) {
 
 function isPercentageField(field: StatisticsField) {
     return percentageFields.has(field);
+}
+
+function deriveAttackKillPct(group: StatisticsGroup): number {
+    const attackTotal = group.totals.attack_total;
+    if (!attackTotal) return 0;
+    return (group.totals.attack_kills / attackTotal) * 100;
+}
+
+function deriveAttackEfficiency(group: StatisticsGroup): number {
+    const attackTotal = group.totals.attack_total;
+    if (!attackTotal) return 0;
+    return ((group.totals.attack_kills - group.totals.attack_blocked - group.totals.attack_errors) / attackTotal) * 100;
 }
 
 async function fetchStatisticsData(): Promise<StatisticsDataset> {
@@ -160,6 +176,14 @@ export function firstRelation<T>(value: T | T[] | null): T | null {
 }
 
 export function getDisplayValue(group: StatisticsGroup, field: StatisticsField): number {
+    if (field === "attack_kill_pct") {
+        return deriveAttackKillPct(group);
+    }
+
+    if (field === "attack_efficiency") {
+        return deriveAttackEfficiency(group);
+    }
+
     if (!isPercentageField(field)) {
         return group.totals[field];
     }

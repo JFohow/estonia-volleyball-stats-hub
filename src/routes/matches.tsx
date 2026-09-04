@@ -352,6 +352,9 @@ function MatchRow({ match, matchType }: { match: MatchListItem; matchType: "ALL"
   const hasAdditionalSets =
     match.has_additional_sets &&
     additionalSetScores !== "";
+  const scoreTarget = matchType === "ALL" && hasAdditionalSets
+    ? `/match/${match.match_id}/all`
+    : `/match/${match.match_id}`;
   const detailLine = match.notes;
 
 
@@ -379,9 +382,12 @@ function MatchRow({ match, matchType }: { match: MatchListItem; matchType: "ALL"
         <div
           className={`min-w-[110px] rounded-lg px-3 py-1 text-center ${resultStyle}`}
         >
-          <div className="font-display text-2xl leading-none">
+          <a
+            href={scoreTarget}
+            className="font-display text-2xl leading-none underline-offset-2 hover:underline"
+          >
             {match.estonia_sets}–{match.opponent_sets}
-          </div>
+          </a>
 
           {officialSetScores ? (
             <div className="mt-1 text-xs font-medium text-slate-700">

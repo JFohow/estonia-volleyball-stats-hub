@@ -4,6 +4,9 @@ import { homeSummaryOptions, type RecentMatch } from "@/lib/home.queries";
 import { totalTopOptions, type TotalTopRow } from "@/lib/total-top.queries";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { supabase } from "@/integrations/supabase/client";
+
+const ADMIN_EMAILS = new Set(["karl_juhkami@hotmail.com", "mjuhkami@gmail.com"]);
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -102,11 +105,56 @@ function fmt(n: number) {
   return n.toLocaleString("en-US");
 }
 
+function toNullableNumber(value: unknown): number | null {
+  if (value === null || value === undefined || value === "") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function toNumberOrDefault(value: unknown, fallback = 0): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
 function HomePage() {
   const { t } = useTranslation();
   const { data } = useSuspenseQuery(homeSummaryOptions());
   const { data: totalTopRows } = useSuspenseQuery(totalTopOptions());
   const [activeLeaderIndex, setActiveLeaderIndex] = useState(0);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isSavingImport, setIsSavingImport] = useState(false);
+  const [importStatus, setImportStatus] = useState<string>("");
+  const [createdMatchId, setCreatedMatchId] = useState<number | null>(null);
+  const [targetMatchId, setTargetMatchId] = useState("");
+  const [setsPayloadText, setSetsPayloadText] = useState(
+    '[\n  { "set_number": 1, "estonia_points": 25, "opponent_points": 19 }\n]'
+  );
+  const [appearancesPayloadText, setAppearancesPayloadText] = useState(
+    '[\n  { "player_id": 1, "sets_played": 3, "sets_started": 3, "on_the_bench": false, "captain": false, "player_position_in_match": "OH", "shirt_number": 7 }\n]'
+  );
+  const [statsPayloadText, setStatsPayloadText] = useState(
+    '[\n  { "player_id": 1, "stats_version": "AM", "points": 12, "plus_minus": 8, "break_points": 4, "serve_total": 20, "serve_aces": 2, "serve_errors": 1, "reception_total": 15, "reception_errors": 1, "reception_positive_pct": 60, "reception_excellent_pct": 33, "attack_total": 18, "attack_kills": 9, "attack_errors": 2, "attack_blocked": 1, "attack_kill_pct": 50, "attack_efficiency": 33, "block_points": 1 }\n]'
+  );
+  const [setsStatus, setSetsStatus] = useState("");
+  const [appearancesStatus, setAppearancesStatus] = useState("");
+  const [statsStatus, setStatsStatus] = useState("");
+  const [isSavingSets, setIsSavingSets] = useState(false);
+  const [isSavingAppearances, setIsSavingAppearances] = useState(false);
+  const [isSavingStats, setIsSavingStats] = useState(false);
+  const [importDraft, setImportDraft] = useState({
+    matchDate: "",
+    opponent: "",
+    opponentEn: "",
+    competition: "",
+    competitionEn: "",
+    city: "",
+    cityEn: "",
+    estoniaSets: "",
+    opponentSets: "",
+    am: true,
+    vm: false,
+    mam: false,
+  });
   const coveragePct =
     data.statsCoverage.totalMatches > 0
       ? Math.round((data.statsCoverage.matchesWithStats / data.statsCoverage.totalMatches) * 100)
@@ -180,6 +228,366 @@ function HomePage() {
     : false;
   const canManuallyCycleLeaders = topLeaders.length > 1;
 
+  useEffect(() => {
+    let isMounted = true;
+
+    void supabase.auth.getSession().then(({ data }) => {
+      if (!isMounted) return;
+      const user = data.session?.user;
+      const appRole = user?.app_metadata?.role;
+      const appAdmin = user?.app_metadata?.admin;
+      const email = user?.email?.toLowerCase() ?? "";
+      setIsAdmin(appRole === "admin" || appAdmin === true || ADMIN_EMAILS.has(email));
+    });
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      const user = session?.user;
+      const appRole = user?.app_metadata?.role;
+      const appAdmin = user?.app_metadata?.admin;
+      const email = user?.email?.toLowerCase() ?? "";
+      setIsAdmin(appRole === "admin" || appAdmin === true || ADMIN_EMAILS.has(email));
+    });
+
+    return () => {
+      isMounted = false;
+      listener.subscription.unsubscribe();
+    };
+  }, []);
+
+  async function handleSaveMatch() {
+    if (!isAdmin) {
+      setImportStatus("Only admin users can save matches.");
+      return;
+    }
+
+    if (!importDraft.matchDate || !importDraft.opponent.trim()) {
+      setImportStatus("Match date and opponent are required.");
+      return;
+    }
+
+    const estoniaSets = Number(importDraft.estoniaSets);
+    const opponentSets = Number(importDraft.opponentSets);
+
+    if (!Number.isFinite(estoniaSets) || estoniaSets < 0 || !Number.isFinite(opponentSets) || opponentSets < 0) {
+      setImportStatus("Set scores must be non-negative numbers.");
+      return;
+    }
+
+    const matchType = importDraft.vm ? "VM" : importDraft.am ? "AM" : "MAM";
+
+    setIsSavingImport(true);
+    setImportStatus("");
+    setCreatedMatchId(null);
+
+    const payload = {
+      match_date: importDraft.matchDate,
+      opponent: importDraft.opponent.trim(),
+      opponent_en: importDraft.opponentEn.trim() || null,
+      competition: importDraft.competition.trim() || null,
+      competition_en: importDraft.competitionEn.trim() || null,
+      city: importDraft.city.trim() || null,
+      city_en: importDraft.cityEn.trim() || null,
+      estonia_sets: estoniaSets,
+      opponent_sets: opponentSets,
+      am: importDraft.am,
+      vm: importDraft.vm,
+      mam: importDraft.mam,
+      match_type: matchType as "VM" | "AM" | "MAM",
+      has_additional_sets: false,
+      additional_sets_count: 0,
+    };
+
+    const { data: inserted, error } = await supabase
+      .from("matches")
+      .insert(payload)
+      .select("match_id")
+      .single();
+
+    if (error) {
+      setImportStatus(error.message);
+      setIsSavingImport(false);
+      return;
+    }
+
+    setCreatedMatchId(inserted.match_id);
+    setTargetMatchId(String(inserted.match_id));
+    setImportStatus(`Match created successfully (ID ${inserted.match_id}).`);
+    setIsSavingImport(false);
+  }
+
+  function getSelectedMatchId(): number | null {
+    const parsed = Number(targetMatchId);
+    if (!Number.isInteger(parsed) || parsed <= 0) return null;
+    return parsed;
+  }
+
+  async function handleSaveSets() {
+    if (!isAdmin) {
+      setSetsStatus("Only admin users can save sets.");
+      return;
+    }
+
+    const matchId = getSelectedMatchId();
+    if (!matchId) {
+      setSetsStatus("Select a valid Match ID first.");
+      return;
+    }
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(setsPayloadText);
+    } catch {
+      setSetsStatus("Invalid JSON for sets payload.");
+      return;
+    }
+
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      setSetsStatus("Sets payload must be a non-empty JSON array.");
+      return;
+    }
+
+    let rows: Array<{ match_id: number; set_number: number; estonia_points: number; opponent_points: number }>;
+    try {
+      rows = parsed.map((item, index) => {
+        const row = item as Record<string, unknown>;
+        const setNumber = Number(row.set_number);
+        const estoniaPoints = Number(row.estonia_points);
+        const opponentPoints = Number(row.opponent_points);
+
+        if (!Number.isInteger(setNumber) || setNumber <= 0) {
+          throw new Error(`Row ${index + 1}: set_number must be a positive integer.`);
+        }
+        if (!Number.isFinite(estoniaPoints) || estoniaPoints < 0 || !Number.isFinite(opponentPoints) || opponentPoints < 0) {
+          throw new Error(`Row ${index + 1}: estonia_points and opponent_points must be non-negative numbers.`);
+        }
+
+        return {
+          match_id: matchId,
+          set_number: setNumber,
+          estonia_points: estoniaPoints,
+          opponent_points: opponentPoints,
+        };
+      });
+    } catch (error) {
+      setSetsStatus(error instanceof Error ? error.message : "Invalid set rows.");
+      return;
+    }
+
+    setIsSavingSets(true);
+    setSetsStatus("");
+
+    const { error: insertError } = await supabase.from("match_sets").insert(rows);
+    if (insertError) {
+      setSetsStatus(insertError.message);
+      setIsSavingSets(false);
+      return;
+    }
+
+    const { data: matchRow, error: matchError } = await supabase
+      .from("matches")
+      .select("estonia_sets, opponent_sets")
+      .eq("match_id", matchId)
+      .single();
+
+    if (!matchError && matchRow) {
+      const officialSetCount = (matchRow.estonia_sets ?? 0) + (matchRow.opponent_sets ?? 0);
+      const { data: allSets } = await supabase
+        .from("match_sets")
+        .select("set_number")
+        .eq("match_id", matchId);
+
+      const additionalCount = (allSets ?? []).filter((setRow) => setRow.set_number > officialSetCount).length;
+      await supabase
+        .from("matches")
+        .update({
+          has_additional_sets: additionalCount > 0,
+          additional_sets_count: additionalCount,
+        })
+        .eq("match_id", matchId);
+    }
+
+    setSetsStatus(`Saved ${rows.length} set row(s) for match ${matchId}.`);
+    setIsSavingSets(false);
+  }
+
+  async function handleSaveAppearances() {
+    if (!isAdmin) {
+      setAppearancesStatus("Only admin users can save appearances.");
+      return;
+    }
+
+    const matchId = getSelectedMatchId();
+    if (!matchId) {
+      setAppearancesStatus("Select a valid Match ID first.");
+      return;
+    }
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(appearancesPayloadText);
+    } catch {
+      setAppearancesStatus("Invalid JSON for appearances payload.");
+      return;
+    }
+
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      setAppearancesStatus("Appearances payload must be a non-empty JSON array.");
+      return;
+    }
+
+    let rows: Array<{
+      match_id: number;
+      player_id: number;
+      sets_played: number;
+      sets_started: number;
+      on_the_bench: boolean;
+      captain: boolean;
+      player_position_in_match: string | null;
+      shirt_number: number | null;
+    }>;
+    try {
+      rows = parsed.map((item, index) => {
+        const row = item as Record<string, unknown>;
+        const playerId = Number(row.player_id);
+        if (!Number.isInteger(playerId) || playerId <= 0) {
+          throw new Error(`Row ${index + 1}: player_id must be a positive integer.`);
+        }
+
+        return {
+          match_id: matchId,
+          player_id: playerId,
+          sets_played: toNumberOrDefault(row.sets_played, 0),
+          sets_started: toNumberOrDefault(row.sets_started, 0),
+          on_the_bench: row.on_the_bench === true,
+          captain: row.captain === true,
+          player_position_in_match: typeof row.player_position_in_match === "string" && row.player_position_in_match.trim()
+            ? row.player_position_in_match.trim()
+            : null,
+          shirt_number: toNullableNumber(row.shirt_number),
+        };
+      });
+    } catch (error) {
+      setAppearancesStatus(error instanceof Error ? error.message : "Invalid appearance rows.");
+      return;
+    }
+
+    setIsSavingAppearances(true);
+    setAppearancesStatus("");
+
+    const { error } = await supabase.from("appearances").insert(rows);
+    if (error) {
+      setAppearancesStatus(error.message);
+      setIsSavingAppearances(false);
+      return;
+    }
+
+    setAppearancesStatus(`Saved ${rows.length} appearance row(s) for match ${matchId}.`);
+    setIsSavingAppearances(false);
+  }
+
+  async function handleSaveStats() {
+    if (!isAdmin) {
+      setStatsStatus("Only admin users can save player stats.");
+      return;
+    }
+
+    const matchId = getSelectedMatchId();
+    if (!matchId) {
+      setStatsStatus("Select a valid Match ID first.");
+      return;
+    }
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(statsPayloadText);
+    } catch {
+      setStatsStatus("Invalid JSON for stats payload.");
+      return;
+    }
+
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      setStatsStatus("Stats payload must be a non-empty JSON array.");
+      return;
+    }
+
+    setIsSavingStats(true);
+    setStatsStatus("");
+
+    const { data: appearances, error: appearancesError } = await supabase
+      .from("appearances")
+      .select("appearance_id, player_id")
+      .eq("match_id", matchId);
+
+    if (appearancesError) {
+      setStatsStatus(appearancesError.message);
+      setIsSavingStats(false);
+      return;
+    }
+
+    const appearanceByPlayer = new Map<number, number>();
+    for (const appearance of appearances ?? []) {
+      appearanceByPlayer.set(appearance.player_id, appearance.appearance_id);
+    }
+
+    let rows: Array<Record<string, number | string | null>>;
+    try {
+      rows = parsed.map((item, index) => {
+        const row = item as Record<string, unknown>;
+        const explicitAppearanceId = toNullableNumber(row.appearance_id);
+        const playerId = toNullableNumber(row.player_id);
+
+        let appearanceId = explicitAppearanceId;
+        if (appearanceId == null && playerId != null) {
+          appearanceId = appearanceByPlayer.get(playerId) ?? null;
+        }
+
+        if (appearanceId == null) {
+          throw new Error(
+            `Row ${index + 1}: appearance_id missing and player_id could not be mapped to an appearance for match ${matchId}.`
+          );
+        }
+
+        const statsVersion = row.stats_version === "ALL" ? "ALL" : "AM";
+
+        return {
+          appearance_id: appearanceId,
+          stats_version: statsVersion as "ALL" | "AM",
+          points: toNullableNumber(row.points),
+          plus_minus: toNullableNumber(row.plus_minus),
+          break_points: toNullableNumber(row.break_points),
+          serve_total: toNullableNumber(row.serve_total),
+          serve_aces: toNullableNumber(row.serve_aces),
+          serve_errors: toNullableNumber(row.serve_errors),
+          reception_total: toNullableNumber(row.reception_total),
+          reception_errors: toNullableNumber(row.reception_errors),
+          reception_positive_pct: toNullableNumber(row.reception_positive_pct),
+          reception_excellent_pct: toNullableNumber(row.reception_excellent_pct),
+          attack_total: toNullableNumber(row.attack_total),
+          attack_kills: toNullableNumber(row.attack_kills),
+          attack_errors: toNullableNumber(row.attack_errors),
+          attack_blocked: toNullableNumber(row.attack_blocked),
+          attack_kill_pct: toNullableNumber(row.attack_kill_pct),
+          attack_efficiency: toNullableNumber(row.attack_efficiency),
+          block_points: toNullableNumber(row.block_points),
+        };
+      });
+    } catch (error) {
+      setStatsStatus(error instanceof Error ? error.message : "Invalid stats rows.");
+      setIsSavingStats(false);
+      return;
+    }
+
+    const { error } = await supabase.from("player_match_stats").insert(rows);
+    if (error) {
+      setStatsStatus(error.message);
+      setIsSavingStats(false);
+      return;
+    }
+
+    setStatsStatus(`Saved ${rows.length} player stat row(s) for match ${matchId}.`);
+    setIsSavingStats(false);
+  }
+
   function showPreviousLeader() {
     if (!canManuallyCycleLeaders) return;
     setActiveLeaderIndex((current) => (current - 1 + topLeaders.length) % topLeaders.length);
@@ -226,6 +634,207 @@ function HomePage() {
 
       {/* Main */}
       <main className="mx-auto -mt-8 max-w-7xl px-4 sm:-mt-12 sm:px-6">
+        {isAdmin && (
+          <section id="admin-import" className="mb-6 rounded-2xl border border-estonia-blue/30 bg-white p-4 shadow-sm sm:p-6">
+            <div className="mb-1 text-[11px] font-bold uppercase tracking-[0.2em] text-estonia-blue">Admin Import</div>
+            <h2 className="font-display text-2xl uppercase italic text-slate-900">Add New Match</h2>
+            <p className="mt-1 text-sm text-slate-500">Create a match first, then use the selected Match ID to import sets, appearances, and player stats.</p>
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <input
+                type="date"
+                value={importDraft.matchDate}
+                onChange={(event) => setImportDraft((current) => ({ ...current, matchDate: event.target.value }))}
+                className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-estonia-blue"
+              />
+              <input
+                type="text"
+                placeholder="Opponent (ET)"
+                value={importDraft.opponent}
+                onChange={(event) => setImportDraft((current) => ({ ...current, opponent: event.target.value }))}
+                className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-estonia-blue"
+              />
+              <input
+                type="text"
+                placeholder="Opponent (EN)"
+                value={importDraft.opponentEn}
+                onChange={(event) => setImportDraft((current) => ({ ...current, opponentEn: event.target.value }))}
+                className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-estonia-blue"
+              />
+              <input
+                type="text"
+                placeholder="Competition (ET)"
+                value={importDraft.competition}
+                onChange={(event) => setImportDraft((current) => ({ ...current, competition: event.target.value }))}
+                className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-estonia-blue"
+              />
+              <input
+                type="text"
+                placeholder="Competition (EN)"
+                value={importDraft.competitionEn}
+                onChange={(event) => setImportDraft((current) => ({ ...current, competitionEn: event.target.value }))}
+                className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-estonia-blue"
+              />
+              <input
+                type="text"
+                placeholder="City (ET)"
+                value={importDraft.city}
+                onChange={(event) => setImportDraft((current) => ({ ...current, city: event.target.value }))}
+                className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-estonia-blue"
+              />
+              <input
+                type="text"
+                placeholder="City (EN)"
+                value={importDraft.cityEn}
+                onChange={(event) => setImportDraft((current) => ({ ...current, cityEn: event.target.value }))}
+                className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-estonia-blue"
+              />
+              <input
+                type="number"
+                min={0}
+                placeholder="Estonia sets"
+                value={importDraft.estoniaSets}
+                onChange={(event) => setImportDraft((current) => ({ ...current, estoniaSets: event.target.value }))}
+                className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-estonia-blue"
+              />
+              <input
+                type="number"
+                min={0}
+                placeholder="Opponent sets"
+                value={importDraft.opponentSets}
+                onChange={(event) => setImportDraft((current) => ({ ...current, opponentSets: event.target.value }))}
+                className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-estonia-blue"
+              />
+            </div>
+
+            <div className="mt-4 flex flex-wrap gap-3">
+              <label className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={importDraft.am}
+                  onChange={() => setImportDraft((current) => ({ ...current, am: true, vm: false, mam: false }))}
+                />
+                AM
+              </label>
+              <label className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={importDraft.vm}
+                  onChange={() => setImportDraft((current) => ({ ...current, am: false, vm: true, mam: false }))}
+                />
+                VM
+              </label>
+              <label className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={importDraft.mam}
+                  onChange={() => setImportDraft((current) => ({ ...current, am: false, vm: false, mam: true }))}
+                />
+                MAM
+              </label>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleSaveMatch}
+              disabled={isSavingImport}
+              className="mt-5 h-10 rounded-md bg-estonia-blue px-4 text-sm font-semibold text-white transition hover:bg-estonia-blue/90"
+            >
+              {isSavingImport ? "Saving..." : "Save match"}
+            </button>
+
+            {importStatus && (
+              <p className="mt-3 text-sm text-slate-600">{importStatus}</p>
+            )}
+
+            {createdMatchId != null && (
+              <a
+                href={`/match/${createdMatchId}`}
+                className="mt-2 inline-block text-sm font-semibold text-estonia-blue underline-offset-2 hover:underline"
+              >
+                Open match statistics
+              </a>
+            )}
+
+            <div className="mt-6 border-t border-slate-200 pt-5">
+              <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500">Next steps</div>
+              <div className="mt-3 grid gap-3 sm:max-w-xs">
+                <label className="text-xs font-semibold uppercase tracking-wide text-slate-600">Target Match ID</label>
+                <input
+                  type="number"
+                  min={1}
+                  value={targetMatchId}
+                  onChange={(event) => setTargetMatchId(event.target.value)}
+                  placeholder="e.g. 123"
+                  className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-estonia-blue"
+                />
+              </div>
+
+              <div className="mt-5 grid gap-5 lg:grid-cols-3">
+                <section className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <h3 className="text-sm font-bold uppercase tracking-wide text-slate-800">Step 2: Match sets</h3>
+                  <p className="mt-1 text-xs text-slate-500">JSON array with set_number, estonia_points, opponent_points.</p>
+                  <textarea
+                    value={setsPayloadText}
+                    onChange={(event) => setSetsPayloadText(event.target.value)}
+                    rows={9}
+                    className="mt-2 w-full rounded-md border border-slate-200 bg-white p-2 text-xs text-slate-900 outline-none focus:border-estonia-blue"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSaveSets}
+                    disabled={isSavingSets}
+                    className="mt-3 h-9 rounded-md bg-estonia-dark px-3 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-estonia-blue disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isSavingSets ? "Saving..." : "Save sets"}
+                  </button>
+                  {setsStatus && <p className="mt-2 text-xs text-slate-600">{setsStatus}</p>}
+                </section>
+
+                <section className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <h3 className="text-sm font-bold uppercase tracking-wide text-slate-800">Step 3: Appearances</h3>
+                  <p className="mt-1 text-xs text-slate-500">JSON array with player_id and appearance fields.</p>
+                  <textarea
+                    value={appearancesPayloadText}
+                    onChange={(event) => setAppearancesPayloadText(event.target.value)}
+                    rows={9}
+                    className="mt-2 w-full rounded-md border border-slate-200 bg-white p-2 text-xs text-slate-900 outline-none focus:border-estonia-blue"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSaveAppearances}
+                    disabled={isSavingAppearances}
+                    className="mt-3 h-9 rounded-md bg-estonia-dark px-3 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-estonia-blue disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isSavingAppearances ? "Saving..." : "Save appearances"}
+                  </button>
+                  {appearancesStatus && <p className="mt-2 text-xs text-slate-600">{appearancesStatus}</p>}
+                </section>
+
+                <section className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <h3 className="text-sm font-bold uppercase tracking-wide text-slate-800">Step 4: Player stats</h3>
+                  <p className="mt-1 text-xs text-slate-500">JSON array with stats fields and either appearance_id or player_id.</p>
+                  <textarea
+                    value={statsPayloadText}
+                    onChange={(event) => setStatsPayloadText(event.target.value)}
+                    rows={9}
+                    className="mt-2 w-full rounded-md border border-slate-200 bg-white p-2 text-xs text-slate-900 outline-none focus:border-estonia-blue"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSaveStats}
+                    disabled={isSavingStats}
+                    className="mt-3 h-9 rounded-md bg-estonia-dark px-3 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-estonia-blue disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isSavingStats ? "Saving..." : "Save stats"}
+                  </button>
+                  {statsStatus && <p className="mt-2 text-xs text-slate-600">{statsStatus}</p>}
+                </section>
+              </div>
+            </div>
+          </section>
+        )}
+
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:gap-8">
           {/* Recent Matches */}
           <div className="space-y-6 lg:col-span-2">
@@ -386,6 +995,7 @@ function MatchRow({ match }: { match: RecentMatch }) {
       match.am ? "AM" :
         match.mam ? "MAM" :
           "—";
+  const scoreTarget = matchType === "MAM" ? `/match/${match.match_id}/all` : `/match/${match.match_id}`;
   return (
     <div className="p-4 transition-colors hover:bg-slate-50 sm:p-6">
       <div className="mb-3 flex flex-col gap-3 sm:mb-4 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
@@ -400,9 +1010,12 @@ function MatchRow({ match }: { match: RecentMatch }) {
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-base font-bold sm:text-lg">
             {t("common.estonia")}
-            <span className={won ? "text-estonia-blue" : "text-red-700"}>
+            <a
+              href={scoreTarget}
+              className={`${won ? "text-estonia-blue" : "text-red-700"} underline-offset-2 hover:underline`}
+            >
               {match.estonia_sets} – {match.opponent_sets}
-            </span>
+            </a>
             <span className="uppercase break-words">{opponent}</span>
           </div>
         </div>

@@ -184,6 +184,22 @@ function PlayerPage() {
         return eff;
     };
 
+    const computeAttackKillPctFromTotals = (totals: Record<string, number>) => {
+        const attackTot = totals["attack_total"] ?? 0;
+        if (!attackTot) return null;
+        const attackExc = totals["attack_kills"] ?? 0;
+        return (attackExc / attackTot) * 100;
+    };
+
+    const computeAttackEffFromTotals = (totals: Record<string, number>) => {
+        const attackTot = totals["attack_total"] ?? 0;
+        if (!attackTot) return null;
+        const attackExc = totals["attack_kills"] ?? 0;
+        const attackBlk = totals["attack_blocked"] ?? 0;
+        const attackErr = totals["attack_errors"] ?? 0;
+        return ((attackExc - attackBlk - attackErr) / attackTot) * 100;
+    };
+
     const appearanceMatchesWithStats = useMemo(() => {
         return appearances.filter((a) => {
             const stats = Array.isArray(a.player_match_stats)
@@ -375,6 +391,10 @@ function PlayerPage() {
         statColumns.forEach((column) => {
             averages[column.field] = counts[column.field] > 0 ? totals[column.field] / counts[column.field] : null;
         });
+
+        // Always derive attack percentages from attack totals, never from stored pct sums/averages.
+        averages["attack_kill_pct"] = computeAttackKillPctFromTotals(totals);
+        averages["attack_efficiency"] = computeAttackEffFromTotals(totals);
 
         return {
             totals,

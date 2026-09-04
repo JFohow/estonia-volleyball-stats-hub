@@ -1,9 +1,43 @@
 import { Link } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import i18n from "@/i18n";
+import { supabase } from "@/integrations/supabase/client";
+
+const ADMIN_EMAILS = new Set(["karl_juhkami@hotmail.com", "mjuhkami@gmail.com"]);
+
+function isAdminUser(user: { app_metadata?: Record<string, unknown> | null; user_metadata?: Record<string, unknown> | null } | null) {
+  if (!user) return false;
+
+  const appRole = user.app_metadata?.role;
+  const appAdmin = user.app_metadata?.admin;
+  const email = (user as { email?: string | null }).email?.toLowerCase() ?? "";
+
+  return appRole === "admin" || appAdmin === true || ADMIN_EMAILS.has(email);
+}
 
 export function SiteNav() {
   const { t } = useTranslation();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    void supabase.auth.getSession().then(({ data }) => {
+      if (!isMounted) return;
+      setIsAdmin(isAdminUser(data.session?.user ?? null));
+    });
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAdmin(isAdminUser(session?.user ?? null));
+    });
+
+    return () => {
+      isMounted = false;
+      listener.subscription.unsubscribe();
+    };
+  }, []);
+
   return (
     <nav className="sticky top-0 z-50 bg-estonia-dark text-white shadow-lg">
       <div className="flex flex-wrap items-center gap-4 px-4 py-3 sm:px-6 sm:py-4">
@@ -75,6 +109,15 @@ export function SiteNav() {
             >
               {t("nav.statistics")}
             </Link>
+
+            {isAdmin && (
+              <a
+                href="/#admin-import"
+                className="transition-colors hover:text-estonia-blue"
+              >
+                Import
+              </a>
+            )}
           </div>
         </div>
 
@@ -105,22 +148,167 @@ export function SiteNav() {
 }
 
 export function SiteFooter() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [status, setStatus] = useState<string>("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  const footerStatus = useMemo(() => {
+    if (!userEmail) return "Admin area is logged out.";
+    if (isAdmin) return `Logged in as admin: ${userEmail}`;
+    return `Logged in as ${userEmail} (no admin role)`;
+  }, [userEmail, isAdmin]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    void supabase.auth.getSession().then(({ data }) => {
+      if (!isMounted) return;
+      const user = data.session?.user ?? null;
+      setUserEmail(user?.email ?? null);
+      setIsAdmin(isAdminUser(user));
+    });
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      const user = session?.user ?? null;
+      setUserEmail(user?.email ?? null);
+      setIsAdmin(isAdminUser(user));
+    });
+
+    return () => {
+      isMounted = false;
+      listener.subscription.unsubscribe();
+    };
+  }, []);
+
+  async function handleLogin(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setStatus("");
+    setIsSubmitting(true);
+
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      setStatus(error.message);
+      setIsSubmitting(false);
+      return;
+    }
+
+    setPassword("");
+    setStatus("Signed in.");
+    setIsSubmitting(false);
+  }
+
+  async function handleGithubLogin() {
+    setStatus("");
+    setIsSubmitting(true);
+
+    const redirectTo = typeof window !== "undefined" ? window.location.origin : undefined;
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "github",
+      options: redirectTo ? { redirectTo } : undefined,
+    });
+
+    if (error) {
+      setStatus(error.message);
+      setIsSubmitting(false);
+      return;
+    }
+
+    setStatus("Redirecting to GitHub...");
+    setIsSubmitting(false);
+  }
+
+  async function handleLogout() {
+    setStatus("");
+    setIsSubmitting(true);
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      setStatus(error.message);
+      setIsSubmitting(false);
+      return;
+    }
+
+    setStatus("Signed out.");
+    setIsSubmitting(false);
+  }
+
   return (
     <footer className="mt-20 border-t border-white/5 bg-slate-900 px-6 py-12 text-slate-500">
-      <div className="mx-auto max-w-7xl">
-        <div className="flex items-center gap-2">
-          <div className="flex h-4 w-6 flex-col overflow-hidden rounded-sm">
-            <div className="flex-1 bg-estonia-blue" />
-            <div className="flex-1 bg-black" />
-            <div className="flex-1 bg-white" />
+      <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[1fr_360px]">
+        <div>
+          <div className="flex items-center gap-2">
+            <div className="flex h-4 w-6 flex-col overflow-hidden rounded-sm">
+              <div className="flex-1 bg-estonia-blue" />
+              <div className="flex-1 bg-black" />
+              <div className="flex-1 bg-white" />
+            </div>
+            <span className="font-display text-lg uppercase tracking-tight text-white">
+              Eesti Võrkpall DB
+            </span>
           </div>
-          <span className="font-display text-lg uppercase tracking-tight text-white">
-            Eesti Võrkpall DB
-          </span>
+          <p className="mt-4 max-w-xs text-xs">
+            The historical statistical repository for the Estonia Men's National Volleyball Team.
+          </p>
         </div>
-        <p className="mt-4 max-w-xs text-xs">
-          The historical statistical repository for the Estonia Men's National Volleyball Team.
-        </p>
+
+        <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+          <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-white/70">Admin Access</div>
+          <p className="mt-2 text-xs text-slate-400">{footerStatus}</p>
+
+          {!userEmail ? (
+            <div className="mt-3 grid gap-2">
+              <button
+                type="button"
+                onClick={handleGithubLogin}
+                disabled={isSubmitting}
+                className="h-10 rounded-md border border-white/20 bg-slate-800 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isSubmitting ? "Connecting..." : "Continue with GitHub"}
+              </button>
+
+              <div className="my-1 text-center text-[11px] uppercase tracking-[0.12em] text-slate-500">or</div>
+
+              <form onSubmit={handleLogin} className="grid gap-2">
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder="Admin email"
+                  className="h-10 rounded-md border border-white/20 bg-slate-900 px-3 text-sm text-white outline-none placeholder:text-slate-500 focus:border-estonia-blue"
+                />
+                <input
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  placeholder="Password"
+                  className="h-10 rounded-md border border-white/20 bg-slate-900 px-3 text-sm text-white outline-none placeholder:text-slate-500 focus:border-estonia-blue"
+                />
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="h-10 rounded-md bg-estonia-blue text-sm font-semibold text-white transition hover:bg-estonia-blue/90 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isSubmitting ? "Signing in..." : "Admin login"}
+                </button>
+              </form>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={handleLogout}
+              disabled={isSubmitting}
+              className="mt-3 h-10 w-full rounded-md border border-white/20 bg-transparent text-sm font-semibold text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isSubmitting ? "Signing out..." : "Logout"}
+            </button>
+          )}
+
+          {status && <p className="mt-2 text-xs text-slate-400">{status}</p>}
+        </div>
       </div>
     </footer>
   );
