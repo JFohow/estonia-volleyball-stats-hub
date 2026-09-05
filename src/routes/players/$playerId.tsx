@@ -360,6 +360,8 @@ function PlayerPage() {
     const filteredSummary = useMemo(() => {
         const totals: Record<string, number> = {};
         const counts: Record<string, number> = {};
+        let receptionPositiveCount = 0;
+        let receptionExcellentCount = 0;
 
         statColumns.forEach((column) => {
             totals[column.field] = 0;
@@ -385,6 +387,17 @@ function PlayerPage() {
                     counts[column.field] += 1;
                 }
             });
+
+            const receptionTotal = stats.reception_total;
+            if (typeof receptionTotal === "number" && receptionTotal > 0) {
+                if (typeof stats.reception_positive_pct === "number") {
+                    receptionPositiveCount += receptionTotal * (stats.reception_positive_pct / 100);
+                }
+
+                if (typeof stats.reception_excellent_pct === "number") {
+                    receptionExcellentCount += receptionTotal * (stats.reception_excellent_pct / 100);
+                }
+            }
         });
 
         const averages: Record<string, number | null> = {};
@@ -395,6 +408,16 @@ function PlayerPage() {
         // Always derive attack percentages from attack totals, never from stored pct sums/averages.
         averages["attack_kill_pct"] = computeAttackKillPctFromTotals(totals);
         averages["attack_efficiency"] = computeAttackEffFromTotals(totals);
+
+        const weightedReceptionPositivePct =
+            totals["reception_total"] > 0 ? (receptionPositiveCount / totals["reception_total"]) * 100 : null;
+        const weightedReceptionExcellentPct =
+            totals["reception_total"] > 0 ? (receptionExcellentCount / totals["reception_total"]) * 100 : null;
+
+        averages["reception_positive_pct"] = weightedReceptionPositivePct;
+        averages["reception_excellent_pct"] = weightedReceptionExcellentPct;
+        totals["reception_positive_pct"] = weightedReceptionPositivePct ?? 0;
+        totals["reception_excellent_pct"] = weightedReceptionExcellentPct ?? 0;
 
         return {
             totals,

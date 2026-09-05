@@ -87,8 +87,7 @@ function StatisticsPage() {
     const modeFilteredAppearances = useMemo(() => {
         return data.appearances.filter((appearance) => {
             const match = firstRelation(appearance.matches);
-            const stats = firstRelation(appearance.player_match_stats);
-            if (!match || !stats) return false;
+            if (!match) return false;
 
             if (mode === "official") return Boolean(match.am);
             if (mode === "competitive") return Boolean(match.vm);
@@ -236,6 +235,8 @@ function StatisticsPage() {
         filteredAppearances.forEach((appearance: StatisticsAppearanceRow) => {
             const row = rowMap.get(appearance.player_id);
             if (!row) return;
+
+            row[mode].appearances += 1;
 
             const stats = firstRelation(appearance.player_match_stats);
             if (!stats) return;

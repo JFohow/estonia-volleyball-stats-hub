@@ -62,15 +62,19 @@ function MatchStatsPage() {
         return "-";
     };
 
+    const formatPercent = (value: number | null): string => {
+        if (value == null) return "";
+        return `${Math.round(Number(value))}%`;
+    };
+
     const formatField = (fieldName: string, value: number | null): string => {
         if (value == null) return "";
 
         if (fieldName === "attack_efficiency") {
-            // round to integer and append percent sign
-            return `${Math.round(Number(value))}%`;
+            return formatPercent(value);
         }
         if (fieldName.includes("pct") || fieldName === "attack_kill_pct") {
-            return `${formatStat(Number(value))}%`;
+            return formatPercent(value);
         }
         return formatStat(Number(value));
     };
@@ -90,6 +94,17 @@ function MatchStatsPage() {
         const attackErr = safeInt(stats.attack_errors);
 
         return ((attackExc - attackBlk - attackErr) / attackTot) * 100;
+    };
+
+    const computeAttackKillPct = (stats: any) => {
+        if (!stats) return null;
+        const attackTotRaw = stats.attack_total;
+        const attackTot = safeInt(attackTotRaw);
+
+        if (attackTotRaw == null || attackTot === 0) return null;
+
+        const attackExc = safeInt(stats.attack_kills);
+        return (attackExc / attackTot) * 100;
     };
 
     const setColumns = [1, 2, 3, 4, 5];
@@ -149,6 +164,8 @@ function MatchStatsPage() {
     const calculateTotals = () => {
         const totals: Record<string, number> = {};
         const counts: Record<string, number> = {};
+        let receptionPositiveCount = 0;
+        let receptionExcellentCount = 0;
         const allFields = [...statColumns, ...serveColumns, ...receptionColumns, ...attackColumns, ...blockColumns];
 
         allFields.forEach((col) => {
@@ -166,39 +183,50 @@ function MatchStatsPage() {
                 return amRow ?? rows[0] ?? null;
             }
 
-            // For 'all' mode, combine rows (average % fields, sum others)
+            // For 'all' mode, combine rows: sum counting stats and derive percentage stats.
             const combined: any = {};
-            const pctCounts: Record<string, number> = {};
+            let playerReceptionPositiveCount = 0;
+            let playerReceptionExcellentCount = 0;
 
             allFields.forEach((col) => {
                 combined[col.field] = 0;
-                pctCounts[col.field] = 0;
             });
 
             rows.forEach((r: any) => {
                 allFields.forEach((col) => {
                     const v = r[col.field as keyof typeof r];
                     if (typeof v === "number") {
-                        if (col.label.includes("%")) {
-                            combined[col.field] += v;
-                            pctCounts[col.field] += 1;
-                        } else {
+                        if (
+                            col.field !== "reception_positive_pct" &&
+                            col.field !== "reception_excellent_pct" &&
+                            col.field !== "attack_kill_pct" &&
+                            col.field !== "attack_efficiency"
+                        ) {
                             combined[col.field] += v;
                         }
                     }
                 });
-            });
 
-            // finalize percentage fields by averaging
-            allFields.forEach((col) => {
-                if (col.label.includes("%")) {
-                    const cnt = pctCounts[col.field] || 1;
-                    combined[col.field] = combined[col.field] / Math.max(cnt, 1);
+                const rowReceptionTotal = r.reception_total;
+                if (typeof rowReceptionTotal === "number" && rowReceptionTotal > 0) {
+                    if (typeof r.reception_positive_pct === "number") {
+                        playerReceptionPositiveCount += rowReceptionTotal * (r.reception_positive_pct / 100);
+                    }
+
+                    if (typeof r.reception_excellent_pct === "number") {
+                        playerReceptionExcellentCount += rowReceptionTotal * (r.reception_excellent_pct / 100);
+                    }
                 }
             });
 
-            // compute attack_efficiency from raw totals
+            combined.reception_positive_pct =
+                combined.reception_total > 0 ? (playerReceptionPositiveCount / combined.reception_total) * 100 : null;
+            combined.reception_excellent_pct =
+                combined.reception_total > 0 ? (playerReceptionExcellentCount / combined.reception_total) * 100 : null;
+
+            // Derive attack percentages from raw totals.
             combined.attack_efficiency = computeAttackEff(combined);
+            combined.attack_kill_pct = computeAttackKillPct(combined);
 
             return combined;
         };
@@ -210,32 +238,56 @@ function MatchStatsPage() {
             allFields.forEach((col) => {
                 const value = stats[col.field as keyof typeof stats];
                 if (typeof value === "number" && value !== null) {
-                    // Check if it's a percentage field
-                    if (col.label.includes("%")) {
-                        totals[col.field] += value;
-                        counts[col.field] += 1;
-                    } else {
+                    if (
+                        col.field !== "reception_positive_pct" &&
+                        col.field !== "reception_excellent_pct" &&
+                        col.field !== "attack_kill_pct" &&
+                        col.field !== "attack_efficiency"
+                    ) {
                         totals[col.field] += value;
                     }
                 }
             });
+
+            const playerReceptionTotal = stats.reception_total;
+            if (typeof playerReceptionTotal === "number" && playerReceptionTotal > 0) {
+                if (typeof stats.reception_positive_pct === "number") {
+                    receptionPositiveCount += playerReceptionTotal * (stats.reception_positive_pct / 100);
+                }
+
+                if (typeof stats.reception_excellent_pct === "number") {
+                    receptionExcellentCount += playerReceptionTotal * (stats.reception_excellent_pct / 100);
+                }
+            }
         });
 
-        return { totals, counts };
+        return { totals, counts, receptionPositiveCount, receptionExcellentCount };
     };
 
-    const { totals, counts } = calculateTotals();
+    const { totals, receptionPositiveCount, receptionExcellentCount } = calculateTotals();
 
     const getStatValue = (fieldName: string): string => {
         const value = totals[fieldName];
         if (value === undefined) return "-";
-        // Don't calculate totals for percent fields (Pos%, Exc%, Exc.%, Eff%)
-        if (
-            fieldName === "attack_efficiency" ||
-            fieldName === "attack_kill_pct" ||
-            fieldName.includes("pct")
-        ) {
-            return "-";
+
+        if (fieldName === "reception_positive_pct") {
+            if (!totals.reception_total) return "";
+            return formatPercent((receptionPositiveCount / totals.reception_total) * 100);
+        }
+
+        if (fieldName === "reception_excellent_pct") {
+            if (!totals.reception_total) return "";
+            return formatPercent((receptionExcellentCount / totals.reception_total) * 100);
+        }
+
+        if (fieldName === "attack_kill_pct") {
+            if (!totals.attack_total) return "";
+            return formatPercent((totals.attack_kills / totals.attack_total) * 100);
+        }
+
+        if (fieldName === "attack_efficiency") {
+            if (!totals.attack_total) return "";
+            return formatPercent(((totals.attack_kills - totals.attack_blocked - totals.attack_errors) / totals.attack_total) * 100);
         }
 
         return formatStat(value);
@@ -511,7 +563,9 @@ function MatchStatsPage() {
                                                 {stats
                                                     ? col.field === "attack_efficiency"
                                                         ? formatField("attack_efficiency", computeAttackEff(stats))
-                                                        : formatField(col.field, stats[col.field as keyof typeof stats] as number | null)
+                                                        : col.field === "attack_kill_pct"
+                                                            ? formatField("attack_kill_pct", computeAttackKillPct(stats))
+                                                            : formatField(col.field, stats[col.field as keyof typeof stats] as number | null)
                                                     : "-"}
                                             </td>
                                         ))}

@@ -114,6 +114,36 @@ function normalizeRelation<T>(value: T | T[] | null): T | null {
   return value;
 }
 
+function deriveAttackKillPct(stats: {
+  attack_total: number | null;
+  attack_kills: number | null;
+}): number | null {
+  if (stats.attack_total == null || stats.attack_total === 0 || stats.attack_kills == null) {
+    return null;
+  }
+
+  return (stats.attack_kills / stats.attack_total) * 100;
+}
+
+function deriveAttackEfficiency(stats: {
+  attack_total: number | null;
+  attack_kills: number | null;
+  attack_blocked: number | null;
+  attack_errors: number | null;
+}): number | null {
+  if (
+    stats.attack_total == null ||
+    stats.attack_total === 0 ||
+    stats.attack_kills == null ||
+    stats.attack_blocked == null ||
+    stats.attack_errors == null
+  ) {
+    return null;
+  }
+
+  return ((stats.attack_kills - stats.attack_blocked - stats.attack_errors) / stats.attack_total) * 100;
+}
+
 async function fetchGameHighs(): Promise<GameHighRow[]> {
   const { data, error } = await supabase
     .from("appearances")
@@ -167,8 +197,8 @@ async function fetchGameHighs(): Promise<GameHighRow[]> {
       attackErrors: stats.attack_errors,
       attackBlocked: stats.attack_blocked,
       attackKills: stats.attack_kills,
-      attackKillPct: stats.attack_kill_pct,
-      attackEfficiency: stats.attack_efficiency,
+      attackKillPct: deriveAttackKillPct(stats),
+      attackEfficiency: deriveAttackEfficiency(stats),
       blockPoints: stats.block_points,
       opponent: match.opponent,
       opponentEn: match.opponent_en,

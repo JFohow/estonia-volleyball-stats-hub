@@ -63,14 +63,14 @@ type TotalTopStatKey =
 
 type MatchGroupKey = "official" | "competitive" | "nonOfficial" | "all";
 type SortMode = "perGame" | "total";
-type SortColumnKey = `${SortMode}:${MatchGroupKey}`;
 
 function TotalTopPage() {
   const { t } = useTranslation();
   const { data } = useSuspenseQuery(totalTopOptions());
   const [selectedPosition, setSelectedPosition] = useState<string>("ALL");
   const [selectedStat, setSelectedStat] = useState<TotalTopStatKey>("points");
-  const [sortColumn, setSortColumn] = useState<SortColumnKey>("total:official");
+  const [displayMode, setDisplayMode] = useState<SortMode>("total");
+  const [sortGroup, setSortGroup] = useState<MatchGroupKey>("official");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
 
   const positions = useMemo(() => ["ALL", ...positionOrder], []);
@@ -104,7 +104,12 @@ function TotalTopPage() {
   }
 
   function getPerGameValue(group: PlayerTotals, stat: TotalTopStatKey) {
-    if (stat === "attackKillPct" || stat === "attackEfficiency") {
+    if (
+      stat === "attackKillPct" ||
+      stat === "attackEfficiency" ||
+      stat === "receptionPositivePct" ||
+      stat === "receptionExcellentPct"
+    ) {
       const total = getStatValue(group, stat);
       return total == null ? null : Number(total.toFixed(2));
     }
@@ -128,59 +133,44 @@ function TotalTopPage() {
     return data.filter((row) => selectedPosition === "ALL" || row.position === selectedPosition);
   }, [data, selectedPosition]);
 
-  const groupForSort: Record<SortColumnKey, MatchGroupKey> = {
-    "perGame:official": "official",
-    "perGame:competitive": "competitive",
-    "perGame:nonOfficial": "nonOfficial",
-    "perGame:all": "all",
-    "total:official": "official",
-    "total:competitive": "competitive",
-    "total:nonOfficial": "nonOfficial",
-    "total:all": "all",
-  };
+  function getValueForGroup(row: (typeof data)[number], groupKey: MatchGroupKey) {
+    const group = row[groupKey];
+    return displayMode === "perGame"
+      ? getPerGameValue(group, selectedStat)
+      : getStatValue(group, selectedStat);
+  }
 
   const sortedRows = useMemo(() => {
-    const sortGroup = groupForSort[sortColumn];
-    const sortMode: SortMode = sortColumn.startsWith("perGame:") ? "perGame" : "total";
-
     return [...filteredRows].sort((a, b) => {
-      const aValue = sortMode === "perGame"
-        ? getPerGameValue(a[sortGroup], selectedStat) ?? 0
-        : getStatValue(a[sortGroup], selectedStat) ?? 0;
-      const bValue = sortMode === "perGame"
-        ? getPerGameValue(b[sortGroup], selectedStat) ?? 0
-        : getStatValue(b[sortGroup], selectedStat) ?? 0;
+      const aValue = getValueForGroup(a, sortGroup) ?? 0;
+      const bValue = getValueForGroup(b, sortGroup) ?? 0;
 
       return sortDirection === "asc" ? aValue - bValue : bValue - aValue;
     });
-  }, [filteredRows, selectedStat, sortColumn, sortDirection]);
+  }, [filteredRows, selectedStat, displayMode, sortGroup, sortDirection]);
 
-  function handleSort(column: SortColumnKey) {
-    if (sortColumn === column) {
+  function handleSortByGroup(group: MatchGroupKey) {
+    if (sortGroup === group) {
       setSortDirection((direction) => (direction === "asc" ? "desc" : "asc"));
       return;
     }
 
-    setSortColumn(column);
+    setSortGroup(group);
     setSortDirection("desc");
   }
 
-  const columnDefs: Array<{ key: SortColumnKey; label: string }> = [
-    { key: "total:official", label: t("totalTop.table.short.official") },
-    { key: "total:competitive", label: t("totalTop.table.short.competitive") },
-    { key: "total:nonOfficial", label: t("totalTop.table.short.nonOfficial") },
-    { key: "total:all", label: t("totalTop.table.short.all") },
-    { key: "perGame:official", label: t("totalTop.table.short.official") },
-    { key: "perGame:competitive", label: t("totalTop.table.short.competitive") },
-    { key: "perGame:nonOfficial", label: t("totalTop.table.short.nonOfficial") },
-    { key: "perGame:all", label: t("totalTop.table.short.all") },
+  const tableColumns: Array<{ key: MatchGroupKey; label: string }> = [
+    { key: "official", label: t("statistics.filters.official") },
+    { key: "competitive", label: t("statistics.filters.competitive") },
+    { key: "nonOfficial", label: t("totalTop.table.short.nonOfficial") },
+    { key: "all", label: t("statistics.filters.all") },
   ];
 
   return (
     <div className="text-slate-900">
       <header className="bg-estonia-dark px-6 py-8 text-white">
         <div className="mx-auto max-w-7xl">
-          <div className="grid gap-5 lg:grid-cols-2">
+          <div>
             <div className="text-center">
               <label className="mb-2 block text-xs uppercase tracking-[0.24em] text-slate-300">
                 {t("totalTop.selectStat")}
@@ -188,7 +178,7 @@ function TotalTopPage() {
               <select
                 value={selectedStat}
                 onChange={(event) => setSelectedStat(event.target.value as TotalTopStatKey)}
-                className="mx-auto h-12 w-full max-w-[520px] rounded-xl border-2 border-estonia-blue/70 bg-white px-4 text-base font-semibold text-slate-900 shadow-md outline-none transition focus:border-estonia-blue"
+                className="h-12 w-full rounded-xl border-2 border-estonia-blue/70 bg-white px-4 text-base font-semibold text-slate-900 shadow-md outline-none transition focus:border-estonia-blue"
               >
                 {statOptions.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -198,9 +188,41 @@ function TotalTopPage() {
               </select>
             </div>
 
-            <div className="text-center">
+            <div className="mt-5 text-center">
+              <div className="mb-2 text-xs uppercase tracking-[0.24em] text-slate-300">{t("totalTop.table.totals")} / {t("totalTop.table.perGame")}</div>
+              <div className="grid w-full grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDisplayMode("total");
+                    setSortDirection("desc");
+                  }}
+                  className={`w-full rounded-md border px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] transition ${displayMode === "total"
+                    ? "border-estonia-blue bg-estonia-blue text-white"
+                    : "border-white/30 bg-white/10 text-white/90 hover:bg-white/20"
+                    }`}
+                >
+                  {t("totalTop.table.totals")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDisplayMode("perGame");
+                    setSortDirection("desc");
+                  }}
+                  className={`w-full rounded-md border px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] transition ${displayMode === "perGame"
+                    ? "border-estonia-blue bg-estonia-blue text-white"
+                    : "border-white/30 bg-white/10 text-white/90 hover:bg-white/20"
+                    }`}
+                >
+                  {t("totalTop.table.perGame")}
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-5 text-center">
               <div className="mb-2 text-xs uppercase tracking-[0.24em] text-slate-300">{t("totalTop.positions.all")}</div>
-              <div className="mx-auto grid w-full max-w-[440px] grid-cols-3 gap-2">
+              <div className="grid w-full grid-cols-3 gap-2 md:grid-cols-6">
                 {positions.map((position) => (
                   <button
                     key={position}
@@ -220,38 +242,32 @@ function TotalTopPage() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-[1400px] px-6 py-10">
+      <main className="mx-auto w-full max-w-[1800px] px-6 py-10">
         <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-          <Table className="min-w-full">
+          <Table className="w-full min-w-[1280px]">
             <TableHeader>
               <TableRow className="bg-slate-100">
-                <TableHead rowSpan={2} className="w-12 p-2 text-center align-middle">
+                <TableHead className="w-16 p-3 text-center align-middle">
                   {t("totalTop.table.rank")}
                 </TableHead>
-                <TableHead rowSpan={2} className="w-[340px] whitespace-nowrap p-3 text-left align-middle">
+                <TableHead className="w-[460px] whitespace-nowrap p-4 text-left align-middle">
                   {t("totalTop.table.name")}
                 </TableHead>
-                <TableHead rowSpan={2} className="w-16 border-r-2 border-slate-300 p-2 text-center align-middle">
+                <TableHead className="w-20 border-r-2 border-slate-300 p-3 text-center align-middle">
                   POS
                 </TableHead>
-                <TableHead colSpan={4} className="p-3 text-center text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
-                  {t("totalTop.table.totals")}
-                </TableHead>
-                <TableHead colSpan={4} className="p-3 text-center text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
-                  {t("totalTop.table.perGame")}
-                </TableHead>
-              </TableRow>
-              <TableRow className="bg-slate-50">
-                {columnDefs.map((column) => (
-                  <TableHead key={column.key} className={`w-[120px] p-3 text-center ${sortColumn === column.key ? "bg-estonia-blue/10 text-estonia-dark" : "text-slate-700"
-                    } ${column.key === "total:all" || column.key === "perGame:nonOfficial" ? "border-r-2 border-slate-300" : ""} ${column.key === "perGame:official" ? "border-l-2 border-slate-300" : ""}`}>
+                {tableColumns.map((column, index) => (
+                  <TableHead
+                    key={column.key}
+                    className={`w-[210px] p-4 text-center align-middle text-xs font-semibold uppercase tracking-[0.2em] ${index < tableColumns.length - 1 ? "border-r border-slate-200" : ""} ${sortGroup === column.key ? "bg-estonia-blue/10 text-estonia-dark" : "text-slate-700"}`}
+                  >
                     <button
                       type="button"
-                      onClick={() => handleSort(column.key)}
-                      className="inline-flex w-full items-center justify-center gap-1 text-left text-[10px] font-semibold uppercase tracking-[0.2em]"
+                      onClick={() => handleSortByGroup(column.key)}
+                      className="inline-flex w-full items-center justify-center gap-1"
                     >
                       {column.label}
-                      <span>{sortColumn === column.key ? (sortDirection === "asc" ? "↑" : "↓") : "⇅"}</span>
+                      <span>{sortGroup === column.key ? (sortDirection === "asc" ? "↑" : "↓") : "⇅"}</span>
                     </button>
                   </TableHead>
                 ))}
@@ -260,45 +276,22 @@ function TotalTopPage() {
             <TableBody>
               {sortedRows.map((row, index) => (
                 <TableRow key={row.playerId}>
-                  <TableCell className="w-12 p-2 text-center font-medium text-slate-900">{index + 1}</TableCell>
-                  <TableCell className="w-[340px] whitespace-nowrap p-3 text-left font-medium text-slate-900">
+                  <TableCell className="w-16 p-3 text-center text-base font-medium text-slate-900">{index + 1}</TableCell>
+                  <TableCell className="w-[460px] whitespace-nowrap p-4 text-left text-base font-medium text-slate-900">
                     <a href={`/players/${row.playerId}`} className="text-estonia-dark underline-offset-2 hover:text-estonia-blue hover:underline">
                       {row.name}
                     </a>
                   </TableCell>
-                  <TableCell className="w-16 border-r-2 border-slate-300 p-2 text-center">{row.position ?? t("positions.Unknown")}</TableCell>
+                  <TableCell className="w-20 border-r-2 border-slate-300 p-3 text-center text-sm">{row.position ?? t("positions.Unknown")}</TableCell>
 
-                  <TableCell className={`w-[120px] p-3 text-center font-semibold text-estonia-dark ${sortColumn === "total:official" ? "bg-estonia-blue/10 font-bold" : ""}`}>
-                    {formatStatValue(getStatValue(row.official, selectedStat))}
-                  </TableCell>
-
-                  <TableCell className={`w-[120px] p-3 text-center font-semibold text-estonia-dark ${sortColumn === "total:competitive" ? "bg-estonia-blue/10 font-bold" : ""}`}>
-                    {formatStatValue(getStatValue(row.competitive, selectedStat))}
-                  </TableCell>
-
-                  <TableCell className={`w-[120px] border-r-2 border-slate-300 p-3 text-center font-semibold text-estonia-dark ${sortColumn === "total:nonOfficial" ? "bg-estonia-blue/10 font-bold" : ""}`}>
-                    {formatStatValue(getStatValue(row.nonOfficial, selectedStat))}
-                  </TableCell>
-
-                  <TableCell className={`w-[120px] border-r-2 border-slate-300 p-3 text-center font-semibold text-estonia-dark ${sortColumn === "total:all" ? "bg-estonia-blue/10 font-bold" : ""}`}>
-                    {formatStatValue(getStatValue(row.all, selectedStat))}
-                  </TableCell>
-
-                  <TableCell className={`w-[120px] border-l-2 border-slate-300 p-3 text-center ${sortColumn === "perGame:official" ? "bg-estonia-blue/10 font-bold text-estonia-dark" : ""}`}>
-                    {formatStatValue(getPerGameValue(row.official, selectedStat))}
-                  </TableCell>
-
-                  <TableCell className={`w-[120px] p-3 text-center ${sortColumn === "perGame:competitive" ? "bg-estonia-blue/10 font-bold text-estonia-dark" : ""}`}>
-                    {formatStatValue(getPerGameValue(row.competitive, selectedStat))}
-                  </TableCell>
-
-                  <TableCell className={`w-[120px] border-r-2 border-slate-300 p-3 text-center ${sortColumn === "perGame:nonOfficial" ? "bg-estonia-blue/10 font-bold text-estonia-dark" : ""}`}>
-                    {formatStatValue(getPerGameValue(row.nonOfficial, selectedStat))}
-                  </TableCell>
-
-                  <TableCell className={`w-[120px] p-3 text-center ${sortColumn === "perGame:all" ? "bg-estonia-blue/10 font-bold text-estonia-dark" : ""}`}>
-                    {formatStatValue(getPerGameValue(row.all, selectedStat))}
-                  </TableCell>
+                  {tableColumns.map((column, idx) => (
+                    <TableCell
+                      key={`${row.playerId}-${column.key}`}
+                      className={`w-[210px] p-4 text-center text-base font-semibold text-estonia-dark ${idx < tableColumns.length - 1 ? "border-r border-slate-200" : ""} ${sortGroup === column.key ? "bg-estonia-blue/10" : ""}`}
+                    >
+                      {formatStatValue(getValueForGroup(row, column.key))}
+                    </TableCell>
+                  ))}
                 </TableRow>
               ))}
             </TableBody>

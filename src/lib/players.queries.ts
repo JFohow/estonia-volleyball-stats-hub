@@ -229,6 +229,8 @@ export type PlayerMatchStatsSummary = {
     averages: Record<string, number | null>;
 };
 
+type MatchStatRow = Partial<Record<(typeof playerMatchStatFields)[number], number | null>>;
+
 type PositionRow = {
     position_name: string | null;
     position_name_ee: string | null;
@@ -325,7 +327,7 @@ export async function fetchPlayer(playerId: number) {
                 : a.player_match_stats;
             return stats ?? null;
         })
-        .filter(Boolean);
+        .filter(Boolean) as MatchStatRow[];
 
     const totals: Record<string, number> = {};
     const averages: Record<string, number | null> = {};
@@ -345,6 +347,50 @@ export async function fetchPlayer(playerId: number) {
         totals[key] = sum;
         averages[key] = count > 0 ? sum / count : null;
     }
+
+    // Reconstruct positive/excellent reception counts per match, then compute weighted percentages.
+    let receptionTotal = 0;
+    let receptionPositiveCount = 0;
+    let receptionExcellentCount = 0;
+
+    for (const stats of rawStats) {
+        const total = stats.reception_total;
+        if (typeof total !== "number" || total <= 0) {
+            continue;
+        }
+
+        receptionTotal += total;
+
+        if (typeof stats.reception_positive_pct === "number") {
+            receptionPositiveCount += total * (stats.reception_positive_pct / 100);
+        }
+
+        if (typeof stats.reception_excellent_pct === "number") {
+            receptionExcellentCount += total * (stats.reception_excellent_pct / 100);
+        }
+    }
+
+    const weightedReceptionPositivePct =
+        receptionTotal > 0 ? (receptionPositiveCount / receptionTotal) * 100 : null;
+    const weightedReceptionExcellentPct =
+        receptionTotal > 0 ? (receptionExcellentCount / receptionTotal) * 100 : null;
+    const derivedAttackKillPct =
+        (totals.attack_total ?? 0) > 0 ? ((totals.attack_kills ?? 0) / (totals.attack_total ?? 0)) * 100 : null;
+    const derivedAttackEfficiency =
+        (totals.attack_total ?? 0) > 0
+            ? (((totals.attack_kills ?? 0) - (totals.attack_blocked ?? 0) - (totals.attack_errors ?? 0)) /
+                (totals.attack_total ?? 0)) *
+            100
+            : null;
+
+    averages.reception_positive_pct = weightedReceptionPositivePct;
+    averages.reception_excellent_pct = weightedReceptionExcellentPct;
+    totals.reception_positive_pct = weightedReceptionPositivePct ?? 0;
+    totals.reception_excellent_pct = weightedReceptionExcellentPct ?? 0;
+    averages.attack_kill_pct = derivedAttackKillPct;
+    averages.attack_efficiency = derivedAttackEfficiency;
+    totals.attack_kill_pct = derivedAttackKillPct ?? 0;
+    totals.attack_efficiency = derivedAttackEfficiency ?? 0;
 
     const statsSummary: PlayerMatchStatsSummary = {
         matchCount: rawStats.length,

@@ -71,6 +71,11 @@ type AppearanceRow = {
     attack_kill_pct: number | null;
     attack_efficiency: number | null;
     break_points: number | null;
+    set1_position: string | null;
+    set2_position: string | null;
+    set3_position: string | null;
+    set4_position: string | null;
+    set5_position: string | null;
   }
   | Array<{
     points: number | null;
@@ -90,6 +95,11 @@ type AppearanceRow = {
     attack_kill_pct: number | null;
     attack_efficiency: number | null;
     break_points: number | null;
+    set1_position: string | null;
+    set2_position: string | null;
+    set3_position: string | null;
+    set4_position: string | null;
+    set5_position: string | null;
   }>
   | null;
 };
@@ -112,7 +122,28 @@ type PlayerMatchStatsRow = {
   attack_kill_pct: number | null;
   attack_efficiency: number | null;
   break_points: number | null;
+  set1_position: string | null;
+  set2_position: string | null;
+  set3_position: string | null;
+  set4_position: string | null;
+  set5_position: string | null;
 };
+
+function countSetsFromPositions(stats: PlayerMatchStatsRow | null): number {
+  if (!stats) {
+    return 0;
+  }
+
+  const positions = [
+    stats.set1_position,
+    stats.set2_position,
+    stats.set3_position,
+    stats.set4_position,
+    stats.set5_position,
+  ];
+
+  return positions.filter((value) => typeof value === "string" && value.trim() !== "").length;
+}
 
 type PlayerRow = {
   player_id: number;
@@ -155,9 +186,25 @@ function createTotals(): PlayerTotals {
   };
 }
 
-function updateTotals(totals: PlayerTotals, appearance: AppearanceRow, stats: PlayerMatchStatsRow) {
+type TotalsAccumulator = {
+  totals: PlayerTotals;
+  receptionPositiveCount: number;
+  receptionExcellentCount: number;
+};
+
+function createTotalsAccumulator(): TotalsAccumulator {
+  return {
+    totals: createTotals(),
+    receptionPositiveCount: 0,
+    receptionExcellentCount: 0,
+  };
+}
+
+function updateTotals(accumulator: TotalsAccumulator, appearance: AppearanceRow, stats: PlayerMatchStatsRow | null) {
+  const totals = accumulator.totals;
+
   totals.appearances += 1;
-  const sets = appearance.sets_played ?? 0;
+  const sets = countSetsFromPositions(stats);
   totals.sets += sets;
 
   if (sets > 0) {
@@ -168,6 +215,10 @@ function updateTotals(totals: PlayerTotals, appearance: AppearanceRow, stats: Pl
     totals.bench += 1;
   }
 
+  if (!stats) {
+    return;
+  }
+
   totals.points += stats.points ?? 0;
   totals.blockPoints += stats.block_points ?? 0;
   totals.plusMinus += stats.plus_minus ?? 0;
@@ -176,13 +227,36 @@ function updateTotals(totals: PlayerTotals, appearance: AppearanceRow, stats: Pl
   totals.serveErrors += stats.serve_errors ?? 0;
   totals.receptionTotal += stats.reception_total ?? 0;
   totals.receptionErrors += stats.reception_errors ?? 0;
-  totals.receptionPositivePct += stats.reception_positive_pct ?? 0;
-  totals.receptionExcellentPct += stats.reception_excellent_pct ?? 0;
+
+  const receptionTotal = stats.reception_total;
+  if (typeof receptionTotal === "number" && receptionTotal > 0) {
+    if (typeof stats.reception_positive_pct === "number") {
+      accumulator.receptionPositiveCount += receptionTotal * (stats.reception_positive_pct / 100);
+    }
+
+    if (typeof stats.reception_excellent_pct === "number") {
+      accumulator.receptionExcellentCount += receptionTotal * (stats.reception_excellent_pct / 100);
+    }
+  }
+
   totals.attackTotal += stats.attack_total ?? 0;
   totals.attackErrors += stats.attack_errors ?? 0;
   totals.attackBlocked += stats.attack_blocked ?? 0;
   totals.attackKills += stats.attack_kills ?? 0;
   totals.breakPoints += stats.break_points ?? 0;
+}
+
+function finalizeReceptionPercentages(accumulator: TotalsAccumulator) {
+  if (!accumulator.totals.receptionTotal) {
+    accumulator.totals.receptionPositivePct = 0;
+    accumulator.totals.receptionExcellentPct = 0;
+    return;
+  }
+
+  accumulator.totals.receptionPositivePct =
+    (accumulator.receptionPositiveCount / accumulator.totals.receptionTotal) * 100;
+  accumulator.totals.receptionExcellentPct =
+    (accumulator.receptionExcellentCount / accumulator.totals.receptionTotal) * 100;
 }
 
 function computeAttackKillPct(totals: PlayerTotals): number {
@@ -209,31 +283,36 @@ async function fetchTotalTop(): Promise<TotalTopRow[]> {
   const appearancesResponse = await supabase
     .from("appearances")
     .select(
-      `player_id, sets_played, on_the_bench, matches(vm, am, mam), player_match_stats!inner(points, block_points, plus_minus, serve_total, serve_aces, serve_errors, reception_total, reception_errors, reception_positive_pct, reception_excellent_pct, attack_total, attack_errors, attack_blocked, attack_kills, attack_kill_pct, attack_efficiency, break_points)`
+      `player_id, sets_played, on_the_bench, matches(vm, am, mam), player_match_stats!inner(points, block_points, plus_minus, serve_total, serve_aces, serve_errors, reception_total, reception_errors, reception_positive_pct, reception_excellent_pct, attack_total, attack_errors, attack_blocked, attack_kills, attack_kill_pct, attack_efficiency, break_points, set1_position, set2_position, set3_position, set4_position, set5_position)`
     );
 
   if (appearancesResponse.error) throw appearancesResponse.error;
 
-  const totalsByPlayer = new Map<number, { official: PlayerTotals; competitive: PlayerTotals; nonOfficial: PlayerTotals; all: PlayerTotals }>();
+  const totalsByPlayer = new Map<number, {
+    official: TotalsAccumulator;
+    competitive: TotalsAccumulator;
+    nonOfficial: TotalsAccumulator;
+    all: TotalsAccumulator;
+  }>();
   const appearances = (appearancesResponse.data ?? []) as AppearanceRow[];
 
   for (const appearance of appearances) {
     const match = normalizeRelation(appearance.matches);
     const stats = normalizeRelation(appearance.player_match_stats);
 
-    if (!match || !stats) {
+    if (!match) {
       continue;
     }
 
     const isOfficial = match.am === true;
     const isCompetitive = match.vm === true;
-    const isNonOfficial = match.am !== true;
+    const isNonOfficial = match.mam === true;
 
     const totals = totalsByPlayer.get(appearance.player_id) ?? {
-      official: createTotals(),
-      competitive: createTotals(),
-      nonOfficial: createTotals(),
-      all: createTotals(),
+      official: createTotalsAccumulator(),
+      competitive: createTotalsAccumulator(),
+      nonOfficial: createTotalsAccumulator(),
+      all: createTotalsAccumulator(),
     };
 
     if (isOfficial) {
@@ -257,31 +336,36 @@ async function fetchTotalTop(): Promise<TotalTopRow[]> {
 
   const rows: TotalTopRow[] = players.map((player) => {
     const totals = totalsByPlayer.get(player.player_id) ?? {
-      official: createTotals(),
-      competitive: createTotals(),
-      nonOfficial: createTotals(),
-      all: createTotals(),
+      official: createTotalsAccumulator(),
+      competitive: createTotalsAccumulator(),
+      nonOfficial: createTotalsAccumulator(),
+      all: createTotalsAccumulator(),
     };
 
-    totals.official.attackKillPct = computeAttackKillPct(totals.official);
-    totals.competitive.attackKillPct = computeAttackKillPct(totals.competitive);
-    totals.nonOfficial.attackKillPct = computeAttackKillPct(totals.nonOfficial);
-    totals.all.attackKillPct = computeAttackKillPct(totals.all);
+    finalizeReceptionPercentages(totals.official);
+    finalizeReceptionPercentages(totals.competitive);
+    finalizeReceptionPercentages(totals.nonOfficial);
+    finalizeReceptionPercentages(totals.all);
 
-    totals.official.attackEfficiency = computeAttackEfficiency(totals.official);
-    totals.competitive.attackEfficiency = computeAttackEfficiency(totals.competitive);
-    totals.nonOfficial.attackEfficiency = computeAttackEfficiency(totals.nonOfficial);
-    totals.all.attackEfficiency = computeAttackEfficiency(totals.all);
+    totals.official.totals.attackKillPct = computeAttackKillPct(totals.official.totals);
+    totals.competitive.totals.attackKillPct = computeAttackKillPct(totals.competitive.totals);
+    totals.nonOfficial.totals.attackKillPct = computeAttackKillPct(totals.nonOfficial.totals);
+    totals.all.totals.attackKillPct = computeAttackKillPct(totals.all.totals);
+
+    totals.official.totals.attackEfficiency = computeAttackEfficiency(totals.official.totals);
+    totals.competitive.totals.attackEfficiency = computeAttackEfficiency(totals.competitive.totals);
+    totals.nonOfficial.totals.attackEfficiency = computeAttackEfficiency(totals.nonOfficial.totals);
+    totals.all.totals.attackEfficiency = computeAttackEfficiency(totals.all.totals);
 
     return {
       playerId: player.player_id,
       name: `${player.first_name} ${player.last_name}`,
       position: player.position,
       photoUrl: player.photo_url,
-      official: totals.official,
-      competitive: totals.competitive,
-      nonOfficial: totals.nonOfficial,
-      all: totals.all,
+      official: totals.official.totals,
+      competitive: totals.competitive.totals,
+      nonOfficial: totals.nonOfficial.totals,
+      all: totals.all.totals,
     };
   });
 

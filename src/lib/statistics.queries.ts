@@ -39,6 +39,8 @@ export type StatisticsGroup = {
     sets: number;
     totals: TotalsRecord;
     counts: CountsRecord;
+    receptionPositiveCount: number;
+    receptionExcellentCount: number;
 };
 
 export type PlayerStatisticsRow = {
@@ -110,23 +112,44 @@ export function createGroup(): StatisticsGroup {
         counts[field] = 0;
     }
 
-    return { appearances: 0, sets: 0, totals, counts };
+    return {
+        appearances: 0,
+        sets: 0,
+        totals,
+        counts,
+        receptionPositiveCount: 0,
+        receptionExcellentCount: 0,
+    };
 }
 
 export function addStats(group: StatisticsGroup, stats: AppearanceStatsRow) {
-    group.appearances += 1;
-
     for (const field of statisticsFields) {
         const value = stats[field];
         if (typeof value !== "number") continue;
 
-        if (field === "attack_kill_pct" || field === "attack_efficiency") {
+        if (
+            field === "attack_kill_pct" ||
+            field === "attack_efficiency" ||
+            field === "reception_positive_pct" ||
+            field === "reception_excellent_pct"
+        ) {
             continue;
         }
 
         group.totals[field] += value;
         if (percentageFields.has(field)) {
             group.counts[field] += 1;
+        }
+    }
+
+    const receptionTotal = stats.reception_total;
+    if (typeof receptionTotal === "number" && receptionTotal > 0) {
+        if (typeof stats.reception_positive_pct === "number") {
+            group.receptionPositiveCount += receptionTotal * (stats.reception_positive_pct / 100);
+        }
+
+        if (typeof stats.reception_excellent_pct === "number") {
+            group.receptionExcellentCount += receptionTotal * (stats.reception_excellent_pct / 100);
         }
     }
 }
@@ -182,6 +205,18 @@ export function getDisplayValue(group: StatisticsGroup, field: StatisticsField):
 
     if (field === "attack_efficiency") {
         return deriveAttackEfficiency(group);
+    }
+
+    if (field === "reception_positive_pct") {
+        const receptionTotal = group.totals.reception_total;
+        if (!receptionTotal) return 0;
+        return (group.receptionPositiveCount / receptionTotal) * 100;
+    }
+
+    if (field === "reception_excellent_pct") {
+        const receptionTotal = group.totals.reception_total;
+        if (!receptionTotal) return 0;
+        return (group.receptionExcellentCount / receptionTotal) * 100;
     }
 
     if (!isPercentageField(field)) {

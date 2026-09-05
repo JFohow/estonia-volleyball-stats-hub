@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TriviaRouteImport } from './routes/trivia'
 import { Route as TotalTopRouteImport } from './routes/total-top'
 import { Route as StatisticsRouteImport } from './routes/statistics'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
@@ -25,6 +26,11 @@ import { Route as CoachesCoachIdRouteImport } from './routes/coaches/$coachId'
 import { Route as StatsMatchIdAllRouteImport } from './routes/stats/$matchId/all'
 import { Route as MatchMatchIdAllRouteImport } from './routes/match/$matchId/all'
 
+const TriviaRoute = TriviaRouteImport.update({
+  id: '/trivia',
+  path: '/trivia',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TotalTopRoute = TotalTopRouteImport.update({
   id: '/total-top',
   path: '/total-top',
@@ -110,6 +116,7 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/statistics': typeof StatisticsRoute
   '/total-top': typeof TotalTopRoute
+  '/trivia': typeof TriviaRoute
   '/coaches/$coachId': typeof CoachesCoachIdRoute
   '/match/$matchId': typeof MatchMatchIdRouteWithChildren
   '/players/$playerId': typeof PlayersPlayerIdRoute
@@ -127,6 +134,7 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/statistics': typeof StatisticsRoute
   '/total-top': typeof TotalTopRoute
+  '/trivia': typeof TriviaRoute
   '/coaches/$coachId': typeof CoachesCoachIdRoute
   '/match/$matchId': typeof MatchMatchIdRouteWithChildren
   '/players/$playerId': typeof PlayersPlayerIdRoute
@@ -145,6 +153,7 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/statistics': typeof StatisticsRoute
   '/total-top': typeof TotalTopRoute
+  '/trivia': typeof TriviaRoute
   '/coaches/$coachId': typeof CoachesCoachIdRoute
   '/match/$matchId': typeof MatchMatchIdRouteWithChildren
   '/players/$playerId': typeof PlayersPlayerIdRoute
@@ -164,6 +173,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/statistics'
     | '/total-top'
+    | '/trivia'
     | '/coaches/$coachId'
     | '/match/$matchId'
     | '/players/$playerId'
@@ -181,6 +191,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/statistics'
     | '/total-top'
+    | '/trivia'
     | '/coaches/$coachId'
     | '/match/$matchId'
     | '/players/$playerId'
@@ -198,6 +209,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/statistics'
     | '/total-top'
+    | '/trivia'
     | '/coaches/$coachId'
     | '/match/$matchId'
     | '/players/$playerId'
@@ -216,6 +228,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   StatisticsRoute: typeof StatisticsRoute
   TotalTopRoute: typeof TotalTopRoute
+  TriviaRoute: typeof TriviaRoute
   MatchMatchIdRoute: typeof MatchMatchIdRouteWithChildren
   PlayersPlayerIdRoute: typeof PlayersPlayerIdRoute
   StatsMatchIdRoute: typeof StatsMatchIdRouteWithChildren
@@ -224,6 +237,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/trivia': {
+      id: '/trivia'
+      path: '/trivia'
+      fullPath: '/trivia'
+      preLoaderRoute: typeof TriviaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/total-top': {
       id: '/total-top'
       path: '/total-top'
@@ -376,6 +396,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   StatisticsRoute: StatisticsRoute,
   TotalTopRoute: TotalTopRoute,
+  TriviaRoute: TriviaRoute,
   MatchMatchIdRoute: MatchMatchIdRouteWithChildren,
   PlayersPlayerIdRoute: PlayersPlayerIdRoute,
   StatsMatchIdRoute: StatsMatchIdRouteWithChildren,
