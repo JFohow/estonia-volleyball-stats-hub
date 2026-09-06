@@ -130,7 +130,7 @@ function MatchStatsPage() {
 
     const statColumns = [
         { field: "points", label: "PTS" },
-        { field: "break_points", label: "b-P" },
+        { field: "break_points", label: "BP" },
         { field: "plus_minus", label: "W-P" },
     ];
 
@@ -157,7 +157,7 @@ function MatchStatsPage() {
     ];
 
     const blockColumns = [
-        { field: "block_points", label: "BP" },
+        { field: "block_points", label: "PTS" },
     ];
 
     // Calculate totals

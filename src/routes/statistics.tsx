@@ -22,7 +22,7 @@ type SortField = StatisticsField | "name" | "sets";
 
 const columns: Array<{ field: StatisticsField; label: string }> = [
     { field: "points", label: "PTS" },
-    { field: "break_points", label: "b-P" },
+    { field: "break_points", label: "BP" },
     { field: "plus_minus", label: "W-P" },
     { field: "serve_total", label: "Tot" },
     { field: "serve_aces", label: "Ace" },
@@ -37,7 +37,7 @@ const columns: Array<{ field: StatisticsField; label: string }> = [
     { field: "attack_kills", label: "Exc." },
     { field: "attack_kill_pct", label: "Exc.%" },
     { field: "attack_efficiency", label: "Eff%" },
-    { field: "block_points", label: "BP" },
+    { field: "block_points", label: "PTS" },
 ];
 
 const modes: StatisticsMode[] = ["official", "competitive", "nonCompetitive", "all"];

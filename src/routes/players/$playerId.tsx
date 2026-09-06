@@ -143,7 +143,7 @@ function PlayerPage() {
 
     const statColumns = [
         { field: "points", label: "PTS" },
-        { field: "break_points", label: "b-P" },
+        { field: "break_points", label: "BP" },
         { field: "plus_minus", label: "W-P" },
         { field: "serve_total", label: "Tot" },
         { field: "serve_aces", label: "Ace" },
@@ -158,7 +158,7 @@ function PlayerPage() {
         { field: "attack_kills", label: "Exc." },
         { field: "attack_kill_pct", label: "Exc.%" },
         { field: "attack_efficiency", label: "Eff%" },
-        { field: "block_points", label: "BP" },
+        { field: "block_points", label: "PTS" },
     ] as const;
 
     const isPercentField = (field: string) =>
