@@ -69,7 +69,7 @@
             "position": "Positsioon",
             "official": "Ametlikud mängud",
             "competitive": "Võistlusmängud",
-            "nonCompetitive": "MITTEAMETLIKUD",
+            "nonCompetitive": "Mittevõistlusmängud",
             "all": "Kõik mängud",
             "selectMetric": "Vali mõõdik"
         },

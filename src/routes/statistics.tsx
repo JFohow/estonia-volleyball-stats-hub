@@ -152,7 +152,7 @@ function StatisticsPage() {
     }, [modeFilteredAppearances, selectedYear, selectedCompetition, currentLanguage]);
 
     const matchOptions = useMemo(() => {
-        const values: Array<{ id: number; label: string }> = [];
+        const values: Array<{ id: number; label: string; matchDate: string }> = [];
         const seen = new Set<number>();
         modeFilteredAppearances.forEach((appearance) => {
             const match = firstRelation(appearance.matches);
@@ -171,11 +171,18 @@ function StatisticsPage() {
                 seen.add(match.match_id);
                 const dateLabel = new Date(match.match_date).toLocaleDateString("en-GB");
                 const scoreLabel = `${match.estonia_sets}-${match.opponent_sets}`;
-                values.push({ id: match.match_id, label: `${dateLabel} | ${localizedOpponent} | ${scoreLabel}` });
+                values.push({
+                    id: match.match_id,
+                    label: `${dateLabel} | ${localizedOpponent} | ${scoreLabel}`,
+                    matchDate: match.match_date,
+                });
             }
         });
 
-        return values.sort((l, r) => l.label.localeCompare(r.label));
+        return values.sort(
+            (left, right) =>
+                new Date(left.matchDate).getTime() - new Date(right.matchDate).getTime()
+        );
     }, [modeFilteredAppearances, selectedYear, selectedCompetition, selectedOpponent, currentLanguage]);
 
     useEffect(() => {

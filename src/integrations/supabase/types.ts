@@ -98,6 +98,7 @@ export type Database = {
           match_id: number
           match_set_id: number
           opponent_points: number
+          set_duration: number | null
           set_number: number
         }
         Insert: {
@@ -105,6 +106,7 @@ export type Database = {
           match_id: number
           match_set_id?: number
           opponent_points: number
+          set_duration?: number | null
           set_number: number
         }
         Update: {
@@ -112,6 +114,7 @@ export type Database = {
           match_id?: number
           match_set_id?: number
           opponent_points?: number
+          set_duration?: number | null
           set_number?: number
         }
         Relationships: [
