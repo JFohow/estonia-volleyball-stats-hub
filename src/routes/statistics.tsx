@@ -8,6 +8,7 @@ import {
     firstRelation,
     formatDisplayValue,
     getDisplayValue,
+    pickAppearanceStats,
     statisticsOptions,
     type StatisticsAppearanceRow,
     type StatisticsMatchRow,
@@ -21,7 +22,7 @@ type SortField = StatisticsField | "name" | "sets";
 
 const columns: Array<{ field: StatisticsField; label: string }> = [
     { field: "points", label: "PTS" },
-    { field: "block_points", label: "BP" },
+    { field: "break_points", label: "b-P" },
     { field: "plus_minus", label: "W-P" },
     { field: "serve_total", label: "Tot" },
     { field: "serve_aces", label: "Ace" },
@@ -36,7 +37,7 @@ const columns: Array<{ field: StatisticsField; label: string }> = [
     { field: "attack_kills", label: "Exc." },
     { field: "attack_kill_pct", label: "Exc.%" },
     { field: "attack_efficiency", label: "Eff%" },
-    { field: "break_points", label: "PTS" },
+    { field: "block_points", label: "BP" },
 ];
 
 const modes: StatisticsMode[] = ["official", "competitive", "nonCompetitive", "all"];
@@ -238,7 +239,7 @@ function StatisticsPage() {
 
             row[mode].appearances += 1;
 
-            const stats = firstRelation(appearance.player_match_stats);
+            const stats = pickAppearanceStats(appearance.player_match_stats, mode);
             if (!stats) return;
 
             addStats(row[mode], stats);

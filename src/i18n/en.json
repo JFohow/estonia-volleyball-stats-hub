@@ -325,7 +325,8 @@
             "serve": "Serve",
             "reception": "Reception",
             "attack": "Attack",
-            "block": "Block"
+            "block": "Block",
+            "break": "Break"
         },
         "empty": "No player statistics available for this filter."
     }

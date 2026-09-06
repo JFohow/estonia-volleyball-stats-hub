@@ -143,7 +143,7 @@ function PlayerPage() {
 
     const statColumns = [
         { field: "points", label: "PTS" },
-        { field: "block_points", label: "BP" },
+        { field: "break_points", label: "b-P" },
         { field: "plus_minus", label: "W-P" },
         { field: "serve_total", label: "Tot" },
         { field: "serve_aces", label: "Ace" },
@@ -158,7 +158,7 @@ function PlayerPage() {
         { field: "attack_kills", label: "Exc." },
         { field: "attack_kill_pct", label: "Exc.%" },
         { field: "attack_efficiency", label: "Eff%" },
-        { field: "break_points", label: "PTS" },
+        { field: "block_points", label: "BP" },
     ] as const;
 
     const isPercentField = (field: string) =>
@@ -200,11 +200,19 @@ function PlayerPage() {
         return ((attackExc - attackBlk - attackErr) / attackTot) * 100;
     };
 
+    const pickStatsRowForMode = (rows: PlayerAppearance["player_match_stats"]) => {
+        if (!rows || rows.length === 0) return null;
+
+        if (statsMode === "all") {
+            return rows.find((row) => row?.stats_version === "ALL") ?? rows.find((row) => row?.stats_version === "AM") ?? rows[0] ?? null;
+        }
+
+        return rows.find((row) => row?.stats_version === "AM") ?? rows.find((row) => row?.stats_version === "ALL") ?? rows[0] ?? null;
+    };
+
     const appearanceMatchesWithStats = useMemo(() => {
         return appearances.filter((a) => {
-            const stats = Array.isArray(a.player_match_stats)
-                ? a.player_match_stats[0]
-                : a.player_match_stats;
+            const stats = pickStatsRowForMode(a.player_match_stats);
             if (!stats) return false;
 
             const match = getMatch(a);
@@ -369,9 +377,7 @@ function PlayerPage() {
         });
 
         filteredAppearances.forEach((a) => {
-            const stats = Array.isArray(a.player_match_stats)
-                ? a.player_match_stats[0]
-                : a.player_match_stats;
+            const stats = pickStatsRowForMode(a.player_match_stats);
             if (!stats) return;
 
             statColumns.forEach((column) => {

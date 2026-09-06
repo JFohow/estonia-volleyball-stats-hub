@@ -325,7 +325,8 @@
             "serve": "Serv",
             "reception": "Vastuvõtt",
             "attack": "Rünnak",
-            "block": "Blokk"
+            "block": "Blokk",
+            "break": "Murde"
         },
         "empty": "Selle filtri jaoks pole mängijastatistikat."
     }

@@ -77,6 +77,7 @@ export type StatisticsMatchRow = {
 export type AppearanceStatsRow = {
     [K in StatisticsField]: number | null;
 } & {
+    stats_version?: "ALL" | "AM" | string | null;
     set1_position?: string | null;
     set2_position?: string | null;
     set3_position?: string | null;
@@ -180,7 +181,7 @@ async function fetchStatisticsData(): Promise<StatisticsDataset> {
     const appearancesResponse = await supabase
         .from("appearances")
         .select(
-            `player_id, sets_played, matches(match_id, match_date, opponent, opponent_en, competition, competition_en, estonia_sets, opponent_sets, vm, am, mam), player_match_stats!inner(points, block_points, plus_minus, serve_total, serve_aces, serve_errors, reception_total, reception_errors, reception_positive_pct, reception_excellent_pct, attack_total, attack_errors, attack_blocked, attack_kills, attack_kill_pct, attack_efficiency, break_points, set1_position, set2_position, set3_position, set4_position, set5_position)`
+            `player_id, sets_played, matches(match_id, match_date, opponent, opponent_en, competition, competition_en, estonia_sets, opponent_sets, vm, am, mam), player_match_stats!inner(points, block_points, plus_minus, serve_total, serve_aces, serve_errors, reception_total, reception_errors, reception_positive_pct, reception_excellent_pct, attack_total, attack_errors, attack_blocked, attack_kills, attack_kill_pct, attack_efficiency, break_points, stats_version, set1_position, set2_position, set3_position, set4_position, set5_position)`
         );
 
     if (appearancesResponse.error) throw appearancesResponse.error;
@@ -196,6 +197,31 @@ async function fetchStatisticsData(): Promise<StatisticsDataset> {
 
 export function firstRelation<T>(value: T | T[] | null): T | null {
     return normalizeRelation(value);
+}
+
+export function pickAppearanceStats(
+    value: AppearanceStatsRow | AppearanceStatsRow[] | null,
+    mode: StatisticsMode
+): AppearanceStatsRow | null {
+    if (!value) return null;
+
+    const rows = Array.isArray(value) ? value : [value];
+
+    if (mode === "all") {
+        return (
+            rows.find((row) => row?.stats_version === "ALL") ??
+            rows.find((row) => row?.stats_version === "AM") ??
+            rows[0] ??
+            null
+        );
+    }
+
+    return (
+        rows.find((row) => row?.stats_version === "AM") ??
+        rows.find((row) => row?.stats_version === "ALL") ??
+        rows[0] ??
+        null
+    );
 }
 
 export function getDisplayValue(group: StatisticsGroup, field: StatisticsField): number {
