@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { gameHighsOptions, type GameHighRow } from "@/lib/game-highs.queries";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import MultiSelect from "@/components/ui/multi-select";
 import { useTranslation } from "react-i18next";
 
 const positionOrder = ["SET", "OPP", "OH", "MB", "LIB"];
@@ -101,13 +102,24 @@ function GameHighsPage() {
   const { data } = useSuspenseQuery(gameHighsOptions());
   const [selectedPosition, setSelectedPosition] = useState<string>("ALL");
   const [matchType, setMatchType] = useState<"ALL" | "OFFICIAL" | "COMPETITIVE" | "NON_OFFICIAL">("OFFICIAL");
+  const [selectedYear, setSelectedYear] = useState<string[]>(["all"]);
+  const [selectedCompetition, setSelectedCompetition] = useState<string[]>(["all"]);
+  const [selectedOpponent, setSelectedOpponent] = useState<string[]>(["all"]);
   const [category, setCategory] = useState<GameHighCategory>("pointsPerGame");
   const [visibleCount, setVisibleCount] = useState<number>(10);
 
   const positions = useMemo(() => ["ALL", ...positionOrder], []);
+  const currentLanguage = i18n.language?.toLowerCase() ?? "et";
+  const isEstonian = currentLanguage.startsWith("et");
 
-  const rows = useMemo(() => {
-    const filtered = data.filter((row) => {
+  const getLocalizedOpponent = (row: GameHighRow) =>
+    isEstonian ? row.opponent : row.opponentEn ?? row.opponent;
+
+  const getLocalizedCompetition = (row: GameHighRow) =>
+    isEstonian ? row.competition : row.competitionEn ?? row.competition;
+
+  const matchTypeFilteredRows = useMemo(() => {
+    return data.filter((row) => {
       if (selectedPosition !== "ALL" && row.position !== selectedPosition) {
         return false;
       }
@@ -122,7 +134,81 @@ function GameHighsPage() {
         default:
           return true;
       }
-    }).filter((row) => {
+    });
+  }, [data, selectedPosition, matchType]);
+
+  const yearOptions = useMemo(() => {
+    const values = new Set<string>();
+
+    matchTypeFilteredRows.forEach((row) => {
+      const localizedCompetition = getLocalizedCompetition(row);
+      const localizedOpponent = getLocalizedOpponent(row);
+
+      if (!selectedCompetition.includes("all") && localizedCompetition && !selectedCompetition.includes(localizedCompetition)) return;
+      if (!selectedOpponent.includes("all") && localizedOpponent && !selectedOpponent.includes(localizedOpponent)) return;
+
+      values.add(new Date(row.matchDate).getFullYear().toString());
+    });
+
+    return [...values].sort();
+  }, [matchTypeFilteredRows, selectedCompetition, selectedOpponent, currentLanguage]);
+
+  const competitionOptions = useMemo(() => {
+    const values = new Set<string>();
+
+    matchTypeFilteredRows.forEach((row) => {
+      const localizedCompetition = getLocalizedCompetition(row);
+      const localizedOpponent = getLocalizedOpponent(row);
+
+      if (!selectedYear.includes("all")) {
+        const year = new Date(row.matchDate).getFullYear().toString();
+        if (!selectedYear.includes(year)) return;
+      }
+      if (!selectedOpponent.includes("all") && localizedOpponent && !selectedOpponent.includes(localizedOpponent)) return;
+
+      if (localizedCompetition) values.add(localizedCompetition);
+    });
+
+    return [...values].sort();
+  }, [matchTypeFilteredRows, selectedYear, selectedOpponent, currentLanguage]);
+
+  const opponentOptions = useMemo(() => {
+    const values = new Set<string>();
+
+    matchTypeFilteredRows.forEach((row) => {
+      const localizedCompetition = getLocalizedCompetition(row);
+      const localizedOpponent = getLocalizedOpponent(row);
+
+      if (!selectedYear.includes("all")) {
+        const year = new Date(row.matchDate).getFullYear().toString();
+        if (!selectedYear.includes(year)) return;
+      }
+      if (!selectedCompetition.includes("all") && localizedCompetition && !selectedCompetition.includes(localizedCompetition)) return;
+
+      if (localizedOpponent) values.add(localizedOpponent);
+    });
+
+    return [...values].sort();
+  }, [matchTypeFilteredRows, selectedYear, selectedCompetition, currentLanguage]);
+
+  const rows = useMemo(() => {
+    const filtered = matchTypeFilteredRows.filter((row) => {
+      const localizedCompetition = getLocalizedCompetition(row);
+      const localizedOpponent = getLocalizedOpponent(row);
+
+      if (!selectedYear.includes("all") && selectedYear.length > 0) {
+        const year = new Date(row.matchDate).getFullYear().toString();
+        if (!selectedYear.includes(year)) return false;
+      }
+
+      if (!selectedCompetition.includes("all") && selectedCompetition.length > 0) {
+        if (!localizedCompetition || !selectedCompetition.includes(localizedCompetition)) return false;
+      }
+
+      if (!selectedOpponent.includes("all") && selectedOpponent.length > 0) {
+        if (!localizedOpponent || !selectedOpponent.includes(localizedOpponent)) return false;
+      }
+
       const value = getCategoryValue(row, category);
       if (value == null) {
         return false;
@@ -152,11 +238,11 @@ function GameHighsPage() {
     });
 
     return ranked;
-  }, [data, selectedPosition, matchType, category]);
+  }, [matchTypeFilteredRows, selectedYear, selectedCompetition, selectedOpponent, category, currentLanguage]);
 
   useEffect(() => {
     setVisibleCount(10);
-  }, [selectedPosition, matchType, category]);
+  }, [selectedPosition, matchType, selectedYear, selectedCompetition, selectedOpponent, category]);
 
   const categoryLabel = {
     pointsPerGame: t("gameHighs.categories.pointsInMatch"),
@@ -232,9 +318,6 @@ function GameHighsPage() {
     attackEfficiencyWorst: "Eff%",
     blockPoints: "BLK",
   };
-
-  const currentLanguage = i18n.language?.toLowerCase() ?? "et";
-  const isEstonian = currentLanguage.startsWith("et");
 
   const categoryGroups: Array<{ title: string; categories: GameHighCategory[] }> = [
     {
@@ -323,6 +406,41 @@ function GameHighsPage() {
                 </button>
               ))}
             </div>
+          </div>
+        </div>
+
+        <div className="mt-5 grid gap-2 sm:grid-cols-3">
+          <div>
+            <span className="sr-only">{t("players.statsFilter.year")}</span>
+            <MultiSelect
+              options={yearOptions.map((y) => ({ value: y, label: y }))}
+              value={selectedYear}
+              onChange={(v) => setSelectedYear(v.length === 0 ? ["all"] : v.includes("all") ? ["all"] : v)}
+              placeholder={t("players.statsFilter.allYears")}
+              className="w-full"
+            />
+          </div>
+
+          <div>
+            <span className="sr-only">{t("players.statsFilter.competition")}</span>
+            <MultiSelect
+              options={competitionOptions.map((c) => ({ value: c, label: c }))}
+              value={selectedCompetition}
+              onChange={(v) => setSelectedCompetition(v.length === 0 ? ["all"] : v.includes("all") ? ["all"] : v)}
+              placeholder={t("players.statsFilter.allCompetitions")}
+              className="w-full"
+            />
+          </div>
+
+          <div>
+            <span className="sr-only">{t("players.statsFilter.opponent")}</span>
+            <MultiSelect
+              options={opponentOptions.map((o) => ({ value: o, label: o }))}
+              value={selectedOpponent}
+              onChange={(v) => setSelectedOpponent(v.length === 0 ? ["all"] : v.includes("all") ? ["all"] : v)}
+              placeholder={t("players.statsFilter.allOpponents")}
+              className="w-full"
+            />
           </div>
         </div>
       </div>
