@@ -183,7 +183,7 @@ async function fetchGameHighs(): Promise<GameHighRow[]> {
       matchId: item.match_id,
       playerId: player.player_id,
       name: `${player.first_name} ${player.last_name}`,
-      position: player.position ?? item.player_position_in_match ?? "Unknown",
+      position: item.player_position_in_match ?? player.position ?? "Unknown",
       points: stats.points,
       plusMinus: stats.plus_minus,
       serveTotal: stats.serve_total,

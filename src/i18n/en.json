@@ -157,6 +157,7 @@
         "search": "Search",
         "year": "Year",
         "wins": "Wins",
+        "draws": "Draws",
         "losses": "Losses",
         "total": "Total",
         "loadMore": "Load more",
@@ -218,10 +219,18 @@
         "city": "City",
         "setScore": "Set score",
         "statistics": "Statistics",
+        "additionalSetsInfo": "Matches with additional sets have two different statistics: one for the official part, the second for the full match.",
         "sourceLink": "Source for statistics",
         "additional_set_one": "{{count}} additional set",
         "additional_set_other": "{{count}} additional sets",
         "year": "Year",
+        "filters": {
+            "allYears": "All years",
+            "allCompetitions": "All competitions",
+            "allOpponents": "All opponents"
+        },
+        "selectedOpponents": "{{count}} selected opponents",
+        "opponentRecordTitle": "Record vs {{opponent}}",
         "official_match": "Official Match",
         "match_with_additional_sets": "Match + Additional Sets"
     },

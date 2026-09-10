@@ -1,8 +1,9 @@
 import { useSuspenseQuery, useQueryErrorResetBoundary } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { allMatchesOptions, type MatchListItem } from "@/lib/matches.queries";
 import { useTranslation } from "react-i18next";
 import { FileText } from "lucide-react";
+import MultiSelect from "@/components/ui/multi-select";
 import {
   createFileRoute,
   useRouter,
@@ -60,41 +61,166 @@ function MatchesError({ error, reset }: { error: Error; reset: () => void }) {
 function MatchesPage() {
   const { data: matches } = useSuspenseQuery(allMatchesOptions());
   const { t, i18n } = useTranslation();
-  const [search, setSearch] = useState("");
   const [matchType, setMatchType] = useState<"ALL" | "OFFICIAL" | "COMPETITIVE" | "NON_OFFICIAL">("OFFICIAL");
-  const [year, setYear] = useState("ALL");
+  const [selectedYear, setSelectedYear] = useState<string[]>(["all"]);
+  const [selectedCompetition, setSelectedCompetition] = useState<string[]>(["all"]);
+  const [selectedOpponent, setSelectedOpponent] = useState<string[]>(["all"]);
   const currentLanguage = i18n.language?.startsWith("et") ? "et" : "en";
 
-  const years = useMemo(
-    () =>
-      [...new Set(matches.map((m) => m.match_date.slice(0, 4)))]
-        .sort()
-        .reverse(),
-    [matches]
-  );
+  const getLocalizedOpponent = (match: MatchListItem) =>
+    currentLanguage === "et" ? match.opponent : match.opponent_en ?? match.opponent;
+
+  const getLocalizedCompetition = (match: MatchListItem) =>
+    currentLanguage === "et" ? match.competition : match.competition_en ?? match.competition;
+
+  const matchTypeFilteredRows = useMemo(() => {
+    return matches.filter((m) => {
+      if (matchType === "OFFICIAL") return m.am === true;
+      if (matchType === "COMPETITIVE") return m.vm === true;
+      if (matchType === "NON_OFFICIAL") return m.mam === true;
+      return true;
+    });
+  }, [matches, matchType]);
+
+  const yearOptions = useMemo(() => {
+    const values = new Set<string>();
+
+    matchTypeFilteredRows.forEach((m) => {
+      const localizedCompetition = getLocalizedCompetition(m);
+      const localizedOpponent = getLocalizedOpponent(m);
+
+      if (!selectedCompetition.includes("all") && localizedCompetition && !selectedCompetition.includes(localizedCompetition)) return;
+      if (!selectedOpponent.includes("all") && localizedOpponent && !selectedOpponent.includes(localizedOpponent)) return;
+
+      values.add(new Date(m.match_date).getFullYear().toString());
+    });
+
+    return [...values].sort().reverse();
+  }, [matchTypeFilteredRows, selectedCompetition, selectedOpponent, currentLanguage]);
+
+  const competitionOptions = useMemo(() => {
+    const values = new Set<string>();
+
+    matchTypeFilteredRows.forEach((m) => {
+      const localizedCompetition = getLocalizedCompetition(m);
+      const localizedOpponent = getLocalizedOpponent(m);
+
+      if (!selectedYear.includes("all")) {
+        const year = new Date(m.match_date).getFullYear().toString();
+        if (!selectedYear.includes(year)) return;
+      }
+      if (!selectedOpponent.includes("all") && localizedOpponent && !selectedOpponent.includes(localizedOpponent)) return;
+
+      if (localizedCompetition) values.add(localizedCompetition);
+    });
+
+    return [...values].sort();
+  }, [matchTypeFilteredRows, selectedYear, selectedOpponent, currentLanguage]);
+
+  const opponentOptions = useMemo(() => {
+    const values = new Set<string>();
+
+    matchTypeFilteredRows.forEach((m) => {
+      const localizedCompetition = getLocalizedCompetition(m);
+      const localizedOpponent = getLocalizedOpponent(m);
+
+      if (!selectedYear.includes("all")) {
+        const year = new Date(m.match_date).getFullYear().toString();
+        if (!selectedYear.includes(year)) return;
+      }
+      if (!selectedCompetition.includes("all") && localizedCompetition && !selectedCompetition.includes(localizedCompetition)) return;
+
+      if (localizedOpponent) values.add(localizedOpponent);
+    });
+
+    return [...values].sort();
+  }, [matchTypeFilteredRows, selectedYear, selectedCompetition, currentLanguage]);
+
+  useEffect(() => {
+    const allowed = new Set(yearOptions);
+    setSelectedYear((current) => {
+      if (current.includes("all")) return current;
+      const next = current.filter((v) => allowed.has(v));
+      return next.length > 0 ? next : ["all"];
+    });
+  }, [yearOptions]);
+
+  useEffect(() => {
+    const allowed = new Set(competitionOptions);
+    setSelectedCompetition((current) => {
+      if (current.includes("all")) return current;
+      const next = current.filter((v) => allowed.has(v));
+      return next.length > 0 ? next : ["all"];
+    });
+  }, [competitionOptions]);
+
+  useEffect(() => {
+    const allowed = new Set(opponentOptions);
+    setSelectedOpponent((current) => {
+      if (current.includes("all")) return current;
+      const next = current.filter((v) => allowed.has(v));
+      return next.length > 0 ? next : ["all"];
+    });
+  }, [opponentOptions]);
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return matches.filter((m) => {
-      if (matchType === "OFFICIAL" && !m.am) return false;
-      if (matchType === "COMPETITIVE" && !m.vm) return false;
-      if (matchType === "NON_OFFICIAL" && !m.mam) return false;
-      if (year !== "ALL" && !m.match_date.startsWith(year)) return false;
-      if (!q) return true;
+    return matchTypeFilteredRows.filter((m) => {
+      const opponent = getLocalizedOpponent(m);
+      const competition = getLocalizedCompetition(m);
 
-      const opponent =
-        currentLanguage === "et" ? m.opponent : m.opponent_en ?? m.opponent;
-      const competition =
-        currentLanguage === "et" ? m.competition : m.competition_en ?? m.competition;
-      const city = currentLanguage === "et" ? m.city : m.city_en ?? m.city;
+      if (!selectedYear.includes("all") && selectedYear.length > 0) {
+        const year = new Date(m.match_date).getFullYear().toString();
+        if (!selectedYear.includes(year)) return false;
+      }
 
-      return (
-        opponent.toLowerCase().includes(q) ||
-        (competition ?? "").toLowerCase().includes(q) ||
-        (city ?? "").toLowerCase().includes(q)
-      );
+      if (!selectedCompetition.includes("all") && selectedCompetition.length > 0) {
+        if (!competition || !selectedCompetition.includes(competition)) return false;
+      }
+
+      if (!selectedOpponent.includes("all") && selectedOpponent.length > 0) {
+        if (!opponent || !selectedOpponent.includes(opponent)) return false;
+      }
+
+      return true;
     });
-  }, [matches, search, matchType, year, currentLanguage]);
+  }, [matchTypeFilteredRows, selectedYear, selectedCompetition, selectedOpponent]);
+
+  const selectedOpponentRecord = useMemo(() => {
+    if (selectedOpponent.includes("all") || selectedOpponent.length === 0) {
+      return null;
+    }
+
+    const rows = matchTypeFilteredRows.filter((m) => {
+      const opponent = getLocalizedOpponent(m);
+      const competition = getLocalizedCompetition(m);
+
+      if (!selectedYear.includes("all") && selectedYear.length > 0) {
+        const year = new Date(m.match_date).getFullYear().toString();
+        if (!selectedYear.includes(year)) return false;
+      }
+
+      if (!selectedCompetition.includes("all") && selectedCompetition.length > 0) {
+        if (!competition || !selectedCompetition.includes(competition)) return false;
+      }
+
+      return selectedOpponent.includes(opponent);
+    });
+
+    const wins = rows.filter((m) => m.estonia_sets > m.opponent_sets).length;
+    const draws = rows.filter((m) => m.estonia_sets === m.opponent_sets).length;
+    const losses = rows.filter((m) => m.estonia_sets < m.opponent_sets).length;
+
+    return {
+      count: rows.length,
+      wins,
+      draws,
+      losses,
+      label:
+        selectedOpponent.length === 1
+          ? selectedOpponent[0]
+          : t("matches.selectedOpponents", { count: selectedOpponent.length }),
+    };
+  }, [matchTypeFilteredRows, selectedYear, selectedCompetition, selectedOpponent, currentLanguage, t]);
 
   const vmMatches = matches.filter((m) => m.vm);
   const vmWins = vmMatches.filter(
@@ -119,29 +245,19 @@ function MatchesPage() {
   return (
     <>
       <div className="text-slate-900">
-        <header className="bg-estonia-dark px-6 py-12 text-white">
+        <header className="bg-estonia-dark px-6 py-10 text-white">
           <div className="mx-auto max-w-7xl">
-            <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
-              <div>
-                <h1 className="mt-2 font-display text-4xl uppercase italic leading-tight sm:text-5xl md:text-6xl">
-                  {t("matches.title")}
-                </h1>
-
-                <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/70 sm:text-base">
-                  {t("matches.subtitle")}
+            <div className="grid gap-4 lg:grid-cols-[1fr_340px]">
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
+                <p className="mt-2 max-w-3xl text-sm leading-relaxed text-white/75 sm:text-base">
+                  {t("common.databaseExplanation")}
                 </p>
               </div>
 
-              <div className="w-full max-w-xl">
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
-                  <div>
-
-                    <p className="text-xs leading-relaxed text-white/75">
-                      {t("common.databaseExplanation")}
-                    </p>
-
-                  </div>
-                </div>
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
+                <p className="mt-2 text-sm leading-relaxed text-white/75">
+                  {t("matches.additionalSetsInfo")}
+                </p>
               </div>
             </div>
 
@@ -171,43 +287,64 @@ function MatchesPage() {
         </header>
 
         <main className="mx-auto w-full max-w-[1400px] px-6 py-10">
-          <div className="mb-6 flex flex-wrap items-center gap-3">
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={t("matches.searchPlaceholder")}
-              className="w-full max-w-sm rounded-md border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm outline-none focus:border-estonia-blue"
-            />
+          <section className="mb-6 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="flex flex-wrap items-center gap-3">
+              <Segmented
+                value={matchType}
+                onChange={(v) => setMatchType(v as typeof matchType)}
+                options={[
+                  { value: "OFFICIAL", label: t("matches.officialMatches") },
+                  { value: "COMPETITIVE", label: t("matches.competitiveMatches") },
+                  { value: "NON_OFFICIAL", label: t("matches.nonOfficialMatches") },
+                  { value: "ALL", label: t("matches.allMatches") },
+                ]}
+              />
 
-            <select
-              value={year}
-              onChange={(e) => setYear(e.target.value)}
-              className="h-10 rounded-md border border-slate-200 bg-white px-3 text-xs font-semibold uppercase tracking-wide text-slate-500 shadow-sm"
-            >
-              <option value="ALL">{t("matches.year")}</option>
-
-              {years.map((y) => (
-                <option key={y} value={y}>
-                  {y}
-                </option>
-              ))}
-            </select>
-
-            <Segmented
-              value={matchType}
-              onChange={(v) => setMatchType(v as typeof matchType)}
-              options={[
-                { value: "OFFICIAL", label: t("matches.officialMatches") },
-                { value: "COMPETITIVE", label: t("matches.competitiveMatches") },
-                { value: "NON_OFFICIAL", label: t("matches.nonOfficialMatches") },
-                { value: "ALL", label: t("matches.allMatches") },
-              ]}
-            />
-
-            <div className="ml-auto text-xs uppercase tracking-widest text-slate-400">
-              {filtered.length} match{filtered.length === 1 ? "" : "es"}
+              <div className="ml-auto text-xs uppercase tracking-widest text-slate-400">
+                {filtered.length} match{filtered.length === 1 ? "" : "es"}
+              </div>
             </div>
-          </div>
+
+            <div className="mt-3 grid gap-3 sm:grid-cols-3">
+              <MultiSelect
+                options={yearOptions.map((y) => ({ value: y, label: y }))}
+                value={selectedYear}
+                onChange={(v) => setSelectedYear(v.length === 0 ? ["all"] : v.includes("all") ? ["all"] : v)}
+                placeholder={t("matches.filters.allYears")}
+                className="w-full"
+              />
+
+              <MultiSelect
+                options={competitionOptions.map((c) => ({ value: c, label: c }))}
+                value={selectedCompetition}
+                onChange={(v) => setSelectedCompetition(v.length === 0 ? ["all"] : v.includes("all") ? ["all"] : v)}
+                placeholder={t("matches.filters.allCompetitions")}
+                className="w-full"
+              />
+
+              <MultiSelect
+                options={opponentOptions.map((o) => ({ value: o, label: o }))}
+                value={selectedOpponent}
+                onChange={(v) => setSelectedOpponent(v.length === 0 ? ["all"] : v.includes("all") ? ["all"] : v)}
+                placeholder={t("matches.filters.allOpponents")}
+                className="w-full"
+              />
+            </div>
+          </section>
+
+          {selectedOpponentRecord ? (
+            <div className="mb-6 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="mb-3 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
+                {t("matches.opponentRecordTitle", { opponent: selectedOpponentRecord.label })}
+              </div>
+              <div className="grid gap-4 sm:grid-cols-4">
+                <RecordKpi label={t("common.total")} value={selectedOpponentRecord.count} />
+                <RecordKpi label={t("common.wins")} value={selectedOpponentRecord.wins} />
+                <RecordKpi label={t("common.draws")} value={selectedOpponentRecord.draws} />
+                <RecordKpi label={t("common.losses")} value={selectedOpponentRecord.losses} />
+              </div>
+            </div>
+          ) : null}
 
           <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
             <div className="hidden grid-cols-13 gap-3 border-b border-slate-200 bg-slate-50 px-6 py-4 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500 md:grid">
@@ -255,6 +392,15 @@ function MatchesPage() {
 
       <Outlet />
     </>
+  );
+}
+
+function RecordKpi({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-center">
+      <div className="font-display text-2xl text-slate-900">{value.toLocaleString("en-US")}</div>
+      <div className="mt-1 text-[10px] uppercase tracking-widest text-slate-500">{label}</div>
+    </div>
   );
 }
 

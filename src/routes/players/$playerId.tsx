@@ -428,6 +428,7 @@ function PlayerPage() {
         return {
             totals,
             averages,
+            counts,
         };
     }, [filteredAppearances, statColumns]);
 
@@ -791,7 +792,9 @@ function PlayerPage() {
                                                 column.field,
                                                 isPercentField(column.field)
                                                     ? filteredSummary.averages[column.field]
-                                                    : filteredSummary.totals[column.field]
+                                                    : filteredSummary.counts[column.field] > 0
+                                                        ? filteredSummary.totals[column.field]
+                                                        : null
                                             )}
                                         </td>
                                     ))}

@@ -157,6 +157,7 @@
         "search": "Otsi",
         "year": "Aasta",
         "wins": "Võidud",
+        "draws": "Viigid",
         "losses": "Kaotused",
         "total": "Kokku",
         "loadMore": "Laadi veel",
@@ -219,9 +220,17 @@
         "city": "Linn",
         "setScore": "Geimide tulemus",
         "statistics": "Statistika",
+        "additionalSetsInfo": "Lisageimidega kohtumistel on kaks erinevat statistikat: üks hõlmab mängu ametlikku osa, teine kogu kohtumist.",
         "additional_set_one": "{{count}} lisageim",
         "additional_set_other": "{{count}} lisageimi",
         "year": "Aasta",
+        "filters": {
+            "allYears": "Kõik aastad",
+            "allCompetitions": "Kõik võistlused",
+            "allOpponents": "Kõik vastased"
+        },
+        "selectedOpponents": "{{count}} valitud vastast",
+        "opponentRecordTitle": "Saldo vs {{opponent}}",
         "official_match": "Ametlik mäng",
         "match_with_additional_sets": "Mäng koos lisageimidega"
     },
