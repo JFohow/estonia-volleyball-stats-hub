@@ -51,27 +51,32 @@ export default function MultiSelect<T extends { value: string; label: string }>(
             <button
                 type="button"
                 onClick={() => setOpen((s) => !s)}
-                className="w-full text-left rounded-md border border-slate-200 bg-white px-3 py-2 text-xs shadow-sm"
+                className="h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-left text-sm shadow-sm transition hover:border-slate-400"
             >
                 <div className="flex items-center gap-2">
-                    <div className="flex-1 truncate text-slate-700">
+                    <div className="flex-1 truncate text-slate-800">
                         {value.length === 0 || (value.length === 1 && value[0] === "all") ? (
-                            <span className="text-slate-400">{placeholder ?? "Select..."}</span>
+                            <span className="text-slate-600">{placeholder ?? "Select..."}</span>
                         ) : (
                             <span className="inline-flex items-center gap-2">
                                 {options
                                     .filter((o) => value.includes(o.value))
                                     .slice(0, maxDisplay)
                                     .map((o) => (
-                                        <span key={o.value} className="inline-block rounded-full bg-slate-100 px-2 py-0.5 text-[11px]">
+                                        <span
+                                            key={o.value}
+                                            className="inline-block rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-700"
+                                        >
                                             {o.label}
                                         </span>
                                     ))}
-                                {value.length > maxDisplay && <span className="text-[11px] text-slate-500">+{value.length - maxDisplay}</span>}
+                                {value.length > maxDisplay && (
+                                    <span className="text-[11px] text-slate-500">+{value.length - maxDisplay}</span>
+                                )}
                             </span>
                         )}
                     </div>
-                    <div className="text-slate-400 text-xs">▾</div>
+                    <div className="text-slate-500 text-xs">▾</div>
                 </div>
             </button>
 
@@ -92,14 +97,17 @@ export default function MultiSelect<T extends { value: string; label: string }>(
                                 <button
                                     type="button"
                                     onClick={() => onChange(["all"])}
-                                    className="w-full rounded-md px-2 py-1 text-left text-[12px] text-slate-600 hover:bg-slate-50"
+                                    className="w-full rounded-md border border-estonia-blue/30 bg-estonia-blue/10 px-2 py-1.5 text-left text-[12px] font-semibold text-estonia-dark hover:bg-estonia-blue/20"
                                 >
                                     All
                                 </button>
                             </div>
 
                             {filtered.map((o) => (
-                                <label key={o.value} className="flex w-full cursor-pointer items-center gap-2 px-2 py-1 hover:bg-slate-50">
+                                <label
+                                    key={o.value}
+                                    className="flex w-full cursor-pointer items-center gap-2 px-2 py-1 hover:bg-slate-50"
+                                >
                                     <input
                                         type="checkbox"
                                         checked={value.includes(o.value)}
@@ -110,12 +118,29 @@ export default function MultiSelect<T extends { value: string; label: string }>(
                                 </label>
                             ))}
 
-                            {filtered.length === 0 && <div className="p-2 text-sm text-slate-400">No options</div>}
+                            {filtered.length === 0 && (
+                                <div className="p-2 text-sm text-slate-400">No options</div>
+                            )}
                         </div>
 
-                        <div className="mt-2 flex items-center justify-between">
-                            <button type="button" onClick={() => { setFilter(""); clear(); }} className="text-xs text-slate-500">Clear</button>
-                            <button type="button" onClick={() => setOpen(false)} className="text-xs text-slate-500">Done</button>
+                        <div className="mt-2 flex items-center justify-between gap-2 border-t border-slate-100 pt-2">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setFilter("");
+                                    clear();
+                                }}
+                                className="rounded-md border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700 transition hover:bg-rose-100"
+                            >
+                                Clear
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setOpen(false)}
+                                className="rounded-md border border-estonia-blue bg-estonia-blue px-2.5 py-1 text-xs font-semibold text-white transition hover:opacity-90"
+                            >
+                                Done
+                            </button>
                         </div>
                     </div>
                 </div>

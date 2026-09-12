@@ -147,6 +147,7 @@ function GameHighsError({ error, reset }: { error: Error; reset: () => void }) {
 function GameHighsPage() {
   const { t, i18n } = useTranslation();
   const { data } = useSuspenseQuery(gameHighsOptions());
+  const [viewMode, setViewMode] = useState<"PLAYERS" | "TEAM">("PLAYERS");
   const [selectedPosition, setSelectedPosition] = useState<string>("ALL");
   const [matchType, setMatchType] = useState<"ALL" | "OFFICIAL" | "COMPETITIVE" | "NON_OFFICIAL">(
     "OFFICIAL",
@@ -154,8 +155,7 @@ function GameHighsPage() {
   const [selectedYear, setSelectedYear] = useState<string[]>(["all"]);
   const [selectedCompetition, setSelectedCompetition] = useState<string[]>(["all"]);
   const [selectedOpponent, setSelectedOpponent] = useState<string[]>(["all"]);
-  const [category, setCategory] = useState<GameHighCategory>("pointsPerGame");
-  const [visibleCount, setVisibleCount] = useState<number>(10);
+  const [expandedPlayerMetric, setExpandedPlayerMetric] = useState<string | null>(null);
   const [expandedTeamMetric, setExpandedTeamMetric] = useState<string | null>(null);
 
   const positions = useMemo(() => ["ALL", ...positionOrder], []);
@@ -170,10 +170,6 @@ function GameHighsPage() {
 
   const matchTypeFilteredRows = useMemo(() => {
     return data.filter((row) => {
-      if (selectedPosition !== "ALL" && row.position !== selectedPosition) {
-        return false;
-      }
-
       switch (matchType) {
         case "OFFICIAL":
           return row.am === true;
@@ -185,12 +181,26 @@ function GameHighsPage() {
           return true;
       }
     });
-  }, [data, selectedPosition, matchType]);
+  }, [data, matchType]);
+
+  const viewFilteredRows = useMemo(() => {
+    if (viewMode === "TEAM") {
+      return matchTypeFilteredRows;
+    }
+
+    return matchTypeFilteredRows.filter((row) => {
+      if (selectedPosition === "ALL") {
+        return true;
+      }
+
+      return row.position === selectedPosition;
+    });
+  }, [matchTypeFilteredRows, selectedPosition, viewMode]);
 
   const yearOptions = useMemo(() => {
     const values = new Set<string>();
 
-    matchTypeFilteredRows.forEach((row) => {
+    viewFilteredRows.forEach((row) => {
       const localizedCompetition = getLocalizedCompetition(row);
       const localizedOpponent = getLocalizedOpponent(row);
 
@@ -210,13 +220,13 @@ function GameHighsPage() {
       values.add(new Date(row.matchDate).getFullYear().toString());
     });
 
-    return [...values].sort();
-  }, [matchTypeFilteredRows, selectedCompetition, selectedOpponent, currentLanguage]);
+    return [...values].sort((a, b) => Number.parseInt(b, 10) - Number.parseInt(a, 10));
+  }, [viewFilteredRows, selectedCompetition, selectedOpponent, currentLanguage]);
 
   const competitionOptions = useMemo(() => {
     const values = new Set<string>();
 
-    matchTypeFilteredRows.forEach((row) => {
+    viewFilteredRows.forEach((row) => {
       const localizedCompetition = getLocalizedCompetition(row);
       const localizedOpponent = getLocalizedOpponent(row);
 
@@ -234,13 +244,13 @@ function GameHighsPage() {
       if (localizedCompetition) values.add(localizedCompetition);
     });
 
-    return [...values].sort();
-  }, [matchTypeFilteredRows, selectedYear, selectedOpponent, currentLanguage]);
+    return [...values].sort((a, b) => a.localeCompare(b));
+  }, [viewFilteredRows, selectedYear, selectedOpponent, currentLanguage]);
 
   const opponentOptions = useMemo(() => {
     const values = new Set<string>();
 
-    matchTypeFilteredRows.forEach((row) => {
+    viewFilteredRows.forEach((row) => {
       const localizedCompetition = getLocalizedCompetition(row);
       const localizedOpponent = getLocalizedOpponent(row);
 
@@ -258,11 +268,11 @@ function GameHighsPage() {
       if (localizedOpponent) values.add(localizedOpponent);
     });
 
-    return [...values].sort();
-  }, [matchTypeFilteredRows, selectedYear, selectedCompetition, currentLanguage]);
+    return [...values].sort((a, b) => a.localeCompare(b));
+  }, [viewFilteredRows, selectedYear, selectedCompetition, currentLanguage]);
 
-  const rows = useMemo(() => {
-    const filtered = matchTypeFilteredRows.filter((row) => {
+  const playerFilteredRows = useMemo(() => {
+    const filtered = viewFilteredRows.filter((row) => {
       const localizedCompetition = getLocalizedCompetition(row);
       const localizedOpponent = getLocalizedOpponent(row);
 
@@ -280,49 +290,13 @@ function GameHighsPage() {
         if (!localizedOpponent || !selectedOpponent.includes(localizedOpponent)) return false;
       }
 
-      const value = getCategoryValue(row, category);
-      if (value == null) {
-        return false;
-      }
-
-      const rule = categoryRules[category];
-      if (rule.minAttemptsField && rule.minAttempts) {
-        const attempts = row[rule.minAttemptsField] ?? 0;
-        if (attempts < rule.minAttempts) {
-          return false;
-        }
-      }
-
       return true;
     });
 
-    const ranked = [...filtered].sort((a, b) => {
-      const aValue = getCategoryValue(a, category) ?? 0;
-      const bValue = getCategoryValue(b, category) ?? 0;
-      const direction = categoryRules[category].sortDirection ?? "desc";
+    return filtered;
+  }, [viewFilteredRows, selectedYear, selectedCompetition, selectedOpponent, currentLanguage]);
 
-      if (aValue !== bValue) {
-        return direction === "asc" ? aValue - bValue : bValue - aValue;
-      }
-
-      return new Date(b.matchDate).getTime() - new Date(a.matchDate).getTime();
-    });
-
-    return ranked;
-  }, [
-    matchTypeFilteredRows,
-    selectedYear,
-    selectedCompetition,
-    selectedOpponent,
-    category,
-    currentLanguage,
-  ]);
-
-  useEffect(() => {
-    setVisibleCount(10);
-  }, [selectedPosition, matchType, selectedYear, selectedCompetition, selectedOpponent, category]);
-
-  const categoryLabel = {
+  const categoryLabel: Record<GameHighCategory, string> = {
     pointsPerGame: t("gameHighs.categories.pointsInMatch"),
     plusMinusBest: t("gameHighs.categories.plusMinusBestInMatch"),
     plusMinusWorst: t("gameHighs.categories.plusMinusWorstInMatch"),
@@ -347,79 +321,24 @@ function GameHighsPage() {
     blockPoints: t("gameHighs.categories.blocksInMatch"),
   };
 
-  const categoryDescription = {
-    pointsPerGame: t("gameHighs.categoryDescriptions.pointsInMatch"),
-    plusMinusBest: t("gameHighs.categoryDescriptions.plusMinusBestInMatch"),
-    plusMinusWorst: t("gameHighs.categoryDescriptions.plusMinusWorstInMatch"),
-    serveTotal: t("gameHighs.categoryDescriptions.servesInMatch"),
-    serveAces: t("gameHighs.categoryDescriptions.acesInMatch"),
-    serveErrorsMost: t("gameHighs.categoryDescriptions.serveMistakesMostInMatch"),
-    serveErrorsLeast: t("gameHighs.categoryDescriptions.serveMistakesLeastInMatch"),
-    receptionTotal: t("gameHighs.categoryDescriptions.receptionsInMatch"),
-    receptionErrors: t("gameHighs.categoryDescriptions.receptionMistakesInMatch"),
-    receptionPositivePctBest: t("gameHighs.categoryDescriptions.receptionPctBestInMatch"),
-    receptionPositivePctWorst: t("gameHighs.categoryDescriptions.receptionPctWorstInMatch"),
-    receptionExcellentPctBest: t("gameHighs.categoryDescriptions.receptionIdealPctBestInMatch"),
-    receptionExcellentPctWorst: t("gameHighs.categoryDescriptions.receptionIdealPctWorstInMatch"),
-    attackTotal: t("gameHighs.categoryDescriptions.attacksInMatch"),
-    attackErrors: t("gameHighs.categoryDescriptions.attackOutInMatch"),
-    attackBlocked: t("gameHighs.categoryDescriptions.attackBlockedInMatch"),
-    attackKills: t("gameHighs.categoryDescriptions.attackSuccessfulInMatch"),
-    attackKillPctBest: t("gameHighs.categoryDescriptions.attackPctBestInMatch"),
-    attackKillPctWorst: t("gameHighs.categoryDescriptions.attackPctWorstInMatch"),
-    attackEfficiencyBest: t("gameHighs.categoryDescriptions.attackEfficiencyBestInMatch"),
-    attackEfficiencyWorst: t("gameHighs.categoryDescriptions.attackEfficiencyWorstInMatch"),
-    blockPoints: t("gameHighs.categoryDescriptions.blocksInMatch"),
-  };
-
-  const categoryHeaderCode: Record<GameHighCategory, string> = {
-    pointsPerGame: "PTS",
-    plusMinusBest: "WP",
-    plusMinusWorst: "WP",
-    serveTotal: "Tot",
-    serveAces: "Ace",
-    serveErrorsMost: "Err",
-    serveErrorsLeast: "Err",
-    receptionTotal: "Tot",
-    receptionErrors: "Err",
-    receptionPositivePctBest: "Rec%",
-    receptionPositivePctWorst: "Rec%",
-    receptionExcellentPctBest: "Id%",
-    receptionExcellentPctWorst: "Id%",
-    attackTotal: "Tot",
-    attackErrors: "Err",
-    attackBlocked: "Blk",
-    attackKills: "Exc.",
-    attackKillPctBest: "Att%",
-    attackKillPctWorst: "Att%",
-    attackEfficiencyBest: "Eff%",
-    attackEfficiencyWorst: "Eff%",
-    blockPoints: "BLK",
-  };
-
-  const categoryGroups: Array<{ title: string; categories: GameHighCategory[] }> = [
-    {
-      title: t("gameHighs.groups.general"),
-      categories: ["pointsPerGame", "plusMinusBest", "plusMinusWorst", "blockPoints"],
-    },
-    {
-      title: t("players.statsGroup.serve"),
-      categories: ["serveTotal", "serveAces", "serveErrorsMost", "serveErrorsLeast"],
-    },
-    {
-      title: t("players.statsGroup.reception"),
-      categories: [
+  const playerMetrics = useMemo(
+    () =>
+      [
+        "pointsPerGame",
+        "plusMinusBest",
+        "plusMinusWorst",
+        "blockPoints",
+        "serveTotal",
+        "serveAces",
+        "serveErrorsMost",
+        "serveErrorsLeast",
+        "bestAceErrorRatio",
         "receptionTotal",
         "receptionErrors",
         "receptionPositivePctBest",
         "receptionPositivePctWorst",
         "receptionExcellentPctBest",
         "receptionExcellentPctWorst",
-      ],
-    },
-    {
-      title: t("players.statsGroup.attack"),
-      categories: [
         "attackTotal",
         "attackErrors",
         "attackBlocked",
@@ -428,48 +347,268 @@ function GameHighsPage() {
         "attackKillPctWorst",
         "attackEfficiencyBest",
         "attackEfficiencyWorst",
-      ],
-    },
-  ];
+      ] as const,
+    [],
+  );
 
-  const activeGroup = categoryGroups.find((group) => group.categories.includes(category));
-  const visibleRows = rows.slice(0, visibleCount);
+  const playerGameHighRows = useMemo(() => {
+    type PlayerMetricKey = (typeof playerMetrics)[number];
+
+    const metricLabel: Record<PlayerMetricKey, string> = {
+      pointsPerGame: categoryLabel.pointsPerGame,
+      plusMinusBest: categoryLabel.plusMinusBest,
+      plusMinusWorst: categoryLabel.plusMinusWorst,
+      serveTotal: categoryLabel.serveTotal,
+      serveAces: categoryLabel.serveAces,
+      serveErrorsMost: categoryLabel.serveErrorsMost,
+      serveErrorsLeast: categoryLabel.serveErrorsLeast,
+      bestAceErrorRatio: isEstonian
+        ? "Ässa - vea suhe (viga/äss, min. 5 S Tot)"
+        : "Ace - Error Ratio (Err/Ace, min. 5 S Tot)",
+      receptionTotal: categoryLabel.receptionTotal,
+      receptionErrors: categoryLabel.receptionErrors,
+      receptionPositivePctBest: categoryLabel.receptionPositivePctBest,
+      receptionPositivePctWorst: categoryLabel.receptionPositivePctWorst,
+      receptionExcellentPctBest: categoryLabel.receptionExcellentPctBest,
+      receptionExcellentPctWorst: categoryLabel.receptionExcellentPctWorst,
+      attackTotal: categoryLabel.attackTotal,
+      attackErrors: categoryLabel.attackErrors,
+      attackBlocked: isEstonian ? "Rünnakud blokki" : "Attacks Blocked",
+      attackKills: categoryLabel.attackKills,
+      attackKillPctBest: categoryLabel.attackKillPctBest,
+      attackKillPctWorst: categoryLabel.attackKillPctWorst,
+      attackEfficiencyBest: categoryLabel.attackEfficiencyBest,
+      attackEfficiencyWorst: categoryLabel.attackEfficiencyWorst,
+      blockPoints: categoryLabel.blockPoints,
+    };
+
+    const tieBreakerDescription: Partial<Record<PlayerMetricKey, string>> = {
+      pointsPerGame: isEstonian
+        ? "Võrdsete punktide korral kasutatakse viigilahutajana rünnakute koguarvu. Eelistatakse väiksemat rünnakute arvu."
+        : "Total Attacks is used as a tie-breaker in case of equal points.",
+      serveAces: isEstonian
+        ? "Võrdsete ässade korral kasutatakse viigilahutajana servi koguarvu. Eelistatakse väiksemat servide arvu."
+        : "Serve Attempts is used as a tie-breaker in case of equal aces.",
+      serveErrorsMost: isEstonian
+        ? "Võrdsete servivigade korral kasutatakse viigilahutajana servi koguarvu. Eelistatakse väiksemat servide arvu."
+        : "Serve Attempts is used as a tie-breaker in case of equal serve mistakes (most).",
+      serveErrorsLeast: isEstonian
+        ? "Võrdsete servivigade korral kasutatakse viigilahutajana servi koguarvu. Eelistatakse suuremat servide arvu."
+        : "Serve Attempts is used as a tie-breaker in case of equal serve mistakes (least).",
+    };
+
+    const isSameDisplayedRank = (
+      metric: PlayerMetricKey,
+      current: GameHighRow,
+      previous: GameHighRow,
+    ) => {
+      if (metric === "bestAceErrorRatio") {
+        const currentRatio = (current.serveErrors ?? 0) / (current.serveAces ?? 1);
+        const previousRatio = (previous.serveErrors ?? 0) / (previous.serveAces ?? 1);
+        return Math.abs(currentRatio - previousRatio) < 0.0001;
+      }
+
+      const currentPrimary = getCategoryValue(current, metric);
+      const previousPrimary = getCategoryValue(previous, metric);
+      if (currentPrimary == null || previousPrimary == null) {
+        return false;
+      }
+
+      if (Math.abs(currentPrimary - previousPrimary) >= 0.0001) {
+        return false;
+      }
+
+      if (metric === "pointsPerGame") {
+        return (
+          (current.attackTotal ?? Number.MAX_SAFE_INTEGER) ===
+          (previous.attackTotal ?? Number.MAX_SAFE_INTEGER)
+        );
+      }
+
+      if (metric === "serveAces" || metric === "serveErrorsMost") {
+        return (
+          (current.serveTotal ?? Number.MAX_SAFE_INTEGER) ===
+          (previous.serveTotal ?? Number.MAX_SAFE_INTEGER)
+        );
+      }
+
+      if (metric === "serveErrorsLeast") {
+        return (current.serveTotal ?? 0) === (previous.serveTotal ?? 0);
+      }
+
+      return true;
+    };
+
+    return playerMetrics.map((metric) => {
+      const ranked = [...playerFilteredRows]
+        .filter((row) => {
+          if (metric === "bestAceErrorRatio") {
+            return (row.serveAces ?? 0) > 0 && (row.serveTotal ?? 0) >= 5;
+          }
+
+          const value = getCategoryValue(row, metric);
+          if (value == null) {
+            return false;
+          }
+
+          const rule = categoryRules[metric];
+          if (rule.minAttemptsField && rule.minAttempts) {
+            const attempts = row[rule.minAttemptsField] ?? 0;
+            if (attempts < rule.minAttempts) {
+              return false;
+            }
+          }
+
+          return true;
+        })
+        .sort((left, right) => {
+          if (metric === "bestAceErrorRatio") {
+            const leftRatio = (left.serveErrors ?? 0) / (left.serveAces ?? 1);
+            const rightRatio = (right.serveErrors ?? 0) / (right.serveAces ?? 1);
+
+            if (leftRatio !== rightRatio) {
+              return leftRatio - rightRatio;
+            }
+
+            return new Date(right.matchDate).getTime() - new Date(left.matchDate).getTime();
+          }
+
+          const leftValue = getCategoryValue(left, metric) ?? 0;
+          const rightValue = getCategoryValue(right, metric) ?? 0;
+          const direction = categoryRules[metric].sortDirection ?? "desc";
+
+          if (leftValue !== rightValue) {
+            return direction === "asc" ? leftValue - rightValue : rightValue - leftValue;
+          }
+
+          if (metric === "pointsPerGame") {
+            const leftAttackTotal = left.attackTotal ?? Number.MAX_SAFE_INTEGER;
+            const rightAttackTotal = right.attackTotal ?? Number.MAX_SAFE_INTEGER;
+            if (leftAttackTotal !== rightAttackTotal) {
+              return leftAttackTotal - rightAttackTotal;
+            }
+          }
+
+          if (metric === "serveAces" || metric === "serveErrorsMost") {
+            const leftServeTotal = left.serveTotal ?? Number.MAX_SAFE_INTEGER;
+            const rightServeTotal = right.serveTotal ?? Number.MAX_SAFE_INTEGER;
+            if (leftServeTotal !== rightServeTotal) {
+              return leftServeTotal - rightServeTotal;
+            }
+          }
+
+          if (metric === "serveErrorsLeast") {
+            const leftServeTotal = left.serveTotal ?? 0;
+            const rightServeTotal = right.serveTotal ?? 0;
+            if (leftServeTotal !== rightServeTotal) {
+              return rightServeTotal - leftServeTotal;
+            }
+          }
+
+          return new Date(right.matchDate).getTime() - new Date(left.matchDate).getTime();
+        });
+
+      const topTen = ranked.slice(0, 10);
+      let previousRow: GameHighRow | null = null;
+      let previousRank = 1;
+      const topTenWithRanks = topTen.map((row, index) => {
+        const rank =
+          index === 0
+            ? 1
+            : previousRow != null && isSameDisplayedRank(metric, row, previousRow)
+              ? previousRank
+              : index + 1;
+
+        previousRow = row;
+        previousRank = rank;
+
+        return {
+          rankLabel: `#${rank}`,
+          name: row.name,
+          playerHref: `/players/${row.playerId}`,
+          position: row.position ?? t("positions.Unknown"),
+          value:
+            metric === "bestAceErrorRatio"
+              ? `${row.serveAces ?? 0} - ${row.serveErrors ?? 0}`
+              : formatCategoryValue(getCategoryValue(row, metric), metric),
+          opponent: getLocalizedOpponent(row),
+          score: row.score,
+          date: new Date(row.matchDate).toLocaleDateString("en-GB", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+          }),
+          competition: getLocalizedCompetition(row) ?? "—",
+          matchHref: row.mam === true ? `/match/${row.matchId}/all` : `/match/${row.matchId}`,
+        };
+      });
+
+      const best = topTenWithRanks[0] ?? null;
+
+      return {
+        key: metric,
+        metric: metricLabel[metric],
+        best,
+        topTen: topTenWithRanks,
+        tieBreakerDescription: tieBreakerDescription[metric] ?? null,
+      };
+    });
+  }, [playerMetrics, playerFilteredRows, categoryLabel, isEstonian, t, currentLanguage]);
+
+  const playerSectionHeaders = {
+    serveTotal: isEstonian ? "SERV" : "SERVE",
+    receptionTotal: isEstonian ? "VASTUVOTT" : "RECEPTION",
+    attackTotal: isEstonian ? "RUNNAK" : "ATTACKS",
+  } as const;
+
+  const playerSectionToneClass = {
+    pointsPerGame: "bg-slate-50/60",
+    plusMinusBest: "bg-slate-50/60",
+    plusMinusWorst: "bg-slate-50/60",
+    blockPoints: "bg-slate-50/60",
+    serveTotal: "bg-amber-50/60",
+    serveAces: "bg-amber-50/60",
+    serveErrorsMost: "bg-amber-50/60",
+    serveErrorsLeast: "bg-amber-50/60",
+    bestAceErrorRatio: "bg-amber-50/60",
+    receptionTotal: "bg-sky-50/60",
+    receptionErrors: "bg-sky-50/60",
+    receptionPositivePctBest: "bg-sky-50/60",
+    receptionPositivePctWorst: "bg-sky-50/60",
+    receptionExcellentPctBest: "bg-sky-50/60",
+    receptionExcellentPctWorst: "bg-sky-50/60",
+    attackTotal: "bg-rose-50/60",
+    attackErrors: "bg-rose-50/60",
+    attackBlocked: "bg-rose-50/60",
+    attackKills: "bg-rose-50/60",
+    attackKillPctBest: "bg-rose-50/60",
+    attackKillPctWorst: "bg-rose-50/60",
+    attackEfficiencyBest: "bg-rose-50/60",
+    attackEfficiencyWorst: "bg-rose-50/60",
+  } as const;
 
   const teamFilteredRows = useMemo(() => {
-    return data
-      .filter((row) => {
-        switch (matchType) {
-          case "OFFICIAL":
-            return row.am === true;
-          case "COMPETITIVE":
-            return row.vm === true;
-          case "NON_OFFICIAL":
-            return row.am !== true;
-          default:
-            return true;
-        }
-      })
-      .filter((row) => {
-        const localizedCompetition = getLocalizedCompetition(row);
-        const localizedOpponent = getLocalizedOpponent(row);
+    return matchTypeFilteredRows.filter((row) => {
+      const localizedCompetition = getLocalizedCompetition(row);
+      const localizedOpponent = getLocalizedOpponent(row);
 
-        if (!selectedYear.includes("all") && selectedYear.length > 0) {
-          const year = new Date(row.matchDate).getFullYear().toString();
-          if (!selectedYear.includes(year)) return false;
-        }
+      if (!selectedYear.includes("all") && selectedYear.length > 0) {
+        const year = new Date(row.matchDate).getFullYear().toString();
+        if (!selectedYear.includes(year)) return false;
+      }
 
-        if (!selectedCompetition.includes("all") && selectedCompetition.length > 0) {
-          if (!localizedCompetition || !selectedCompetition.includes(localizedCompetition))
-            return false;
-        }
+      if (!selectedCompetition.includes("all") && selectedCompetition.length > 0) {
+        if (!localizedCompetition || !selectedCompetition.includes(localizedCompetition))
+          return false;
+      }
 
-        if (!selectedOpponent.includes("all") && selectedOpponent.length > 0) {
-          if (!localizedOpponent || !selectedOpponent.includes(localizedOpponent)) return false;
-        }
+      if (!selectedOpponent.includes("all") && selectedOpponent.length > 0) {
+        if (!localizedOpponent || !selectedOpponent.includes(localizedOpponent)) return false;
+      }
 
-        return true;
-      });
-  }, [data, matchType, selectedYear, selectedCompetition, selectedOpponent, currentLanguage]);
+      return true;
+    });
+  }, [matchTypeFilteredRows, selectedYear, selectedCompetition, selectedOpponent, currentLanguage]);
 
   const teamGameHighRows = useMemo(() => {
     type TeamMatchTotals = {
@@ -580,7 +719,7 @@ function GameHighsPage() {
       const attackEfficiency =
         match.attackTotal > 0
           ? ((match.attackKills - match.attackBlocked - match.attackErrors) / match.attackTotal) *
-          100
+            100
           : null;
 
       return {
@@ -593,31 +732,124 @@ function GameHighsPage() {
     });
 
     const metrics = [
-      { key: "points", label: t("players.statsField.points") },
+      { key: "points", label: t("players.statsField.points"), direction: "desc" as const },
       {
         key: "maxEstoniaSetPoints",
         label: isEstonian ? "Kõige rohkem punkte geimis" : "Most points in a set",
+        direction: "desc" as const,
       },
-      { key: "breakPoints", label: t("players.statsField.breakPoints") },
-      { key: "plusMinus", label: t("players.statsField.plusMinus") },
-      { key: "serveTotal", label: t("players.statsField.serveTotal") },
-      { key: "serveAces", label: t("players.statsField.serveAces") },
-      { key: "serveErrors", label: t("players.statsField.serveErrors") },
+      {
+        key: "breakPoints",
+        label: t("players.statsField.breakPoints"),
+        direction: "desc" as const,
+      },
+      {
+        key: "plusMinus",
+        label: isEstonian ? "+/- (parim)" : "+/- (best)",
+        direction: "desc" as const,
+      },
+      {
+        key: "plusMinus",
+        label: isEstonian ? "+/- (halvim)" : "+/- (worst)",
+        direction: "asc" as const,
+      },
+      {
+        key: "blockPoints",
+        label: isEstonian ? "Blokid" : "Blocks",
+        direction: "desc" as const,
+      },
+      {
+        key: "serveTotal",
+        label: isEstonian ? "Servid" : "Serves",
+        direction: "desc" as const,
+      },
+      {
+        key: "serveAces",
+        label: isEstonian ? "Ässad" : "Aces",
+        direction: "desc" as const,
+      },
+      {
+        key: "serveErrors",
+        label: isEstonian ? "Servivead" : "Serve Errors",
+        direction: "desc" as const,
+      },
       {
         key: "bestAceErrorRatio",
-        label: isEstonian ? "Parim ässa/vea suhe" : "Best Ace/Error Ratio",
+        label: isEstonian
+          ? "Ässa - vea suhe (viga/äss, min. 5 S Tot)"
+          : "Ace - Error Ratio (Err/Ace, min. 5 S Tot)",
+        direction: "asc" as const,
       },
-      { key: "receptionTotal", label: t("players.statsField.receptionTotal") },
-      { key: "receptionErrors", label: t("players.statsField.receptionErrors") },
-      { key: "receptionPositivePct", label: t("players.statsField.receptionPositivePct") },
-      { key: "receptionExcellentPct", label: t("players.statsField.receptionExcellentPct") },
-      { key: "attackTotal", label: t("players.statsField.attackTotal") },
-      { key: "attackErrors", label: t("players.statsField.attackErrors") },
-      { key: "attackBlocked", label: t("players.statsField.attackBlocked") },
-      { key: "attackKills", label: t("players.statsField.attackKills") },
-      { key: "attackKillPct", label: t("players.statsField.attackKillPct") },
-      { key: "attackEfficiency", label: t("players.statsField.attackEfficiency") },
-      { key: "blockPoints", label: t("players.statsField.blockPoints") },
+      {
+        key: "receptionTotal",
+        label: isEstonian ? "Vastuvõtud" : "Receptions",
+        direction: "desc" as const,
+      },
+      {
+        key: "receptionErrors",
+        label: t("players.statsField.receptionErrors"),
+        direction: "desc" as const,
+      },
+      {
+        key: "receptionPositivePct",
+        label: isEstonian ? "Vastuvõtu % (parim)" : "Reception % (best)",
+        direction: "desc" as const,
+      },
+      {
+        key: "receptionPositivePct",
+        label: isEstonian ? "Vastuvõtu % (halvim)" : "Reception % (worst)",
+        direction: "asc" as const,
+      },
+      {
+        key: "receptionExcellentPct",
+        label: isEstonian ? "Ideaalse vastuvõtu % (parim)" : "Ideal Reception % (best)",
+        direction: "desc" as const,
+      },
+      {
+        key: "receptionExcellentPct",
+        label: isEstonian ? "Ideaalse vastuvõtu % (halvim)" : "Ideal Reception % (worst)",
+        direction: "asc" as const,
+      },
+      {
+        key: "attackTotal",
+        label: isEstonian ? "Rünnakud" : "Attacks",
+        direction: "desc" as const,
+      },
+      {
+        key: "attackErrors",
+        label: isEstonian ? "Rünnakud auti" : "Attacks Out of Bounds",
+        direction: "desc" as const,
+      },
+      {
+        key: "attackBlocked",
+        label: isEstonian ? "Rünnakud blokki" : "Attacks Blocked",
+        direction: "desc" as const,
+      },
+      {
+        key: "attackKills",
+        label: isEstonian ? "Resultatiivsed rünnakud" : "Successful Attacks",
+        direction: "desc" as const,
+      },
+      {
+        key: "attackKillPct",
+        label: isEstonian ? "Rünnaku % (parim)" : "Attack % (best)",
+        direction: "desc" as const,
+      },
+      {
+        key: "attackKillPct",
+        label: isEstonian ? "Rünnaku % (halvim)" : "Attack % (worst)",
+        direction: "asc" as const,
+      },
+      {
+        key: "attackEfficiency",
+        label: isEstonian ? "Rünnakuefektiivsus (parim)" : "Attack Efficiency (best)",
+        direction: "desc" as const,
+      },
+      {
+        key: "attackEfficiency",
+        label: isEstonian ? "Rünnakuefektiivsus (halvim)" : "Attack Efficiency (worst)",
+        direction: "asc" as const,
+      },
     ] as const;
 
     const formatTeamValue = (value: number | null, key: string) => {
@@ -629,7 +861,7 @@ function GameHighsPage() {
         key === "attackKillPct" ||
         key === "attackEfficiency"
       ) {
-        return `${value.toFixed(1)}%`;
+        return `${Math.round(value)}%`;
       }
 
       return Number.isInteger(value) ? String(value) : value.toFixed(2);
@@ -639,7 +871,7 @@ function GameHighsPage() {
       const ranked = [...teamMatches]
         .filter((match) => {
           if (metric.key === "bestAceErrorRatio") {
-            return match.serveAces > 0;
+            return match.serveAces > 0 && match.serveTotal >= 5;
           }
 
           const value = match[metric.key as keyof typeof match] as number | null | undefined;
@@ -661,53 +893,45 @@ function GameHighsPage() {
           const rightValue = right[metric.key as keyof typeof right] as number | null | undefined;
 
           if ((leftValue ?? 0) !== (rightValue ?? 0)) {
-            return (rightValue ?? 0) - (leftValue ?? 0);
+            return metric.direction === "asc"
+              ? (leftValue ?? 0) - (rightValue ?? 0)
+              : (rightValue ?? 0) - (leftValue ?? 0);
           }
 
           return new Date(right.matchDate).getTime() - new Date(left.matchDate).getTime();
         });
 
       const best = ranked[0] ?? null;
+      const topTen = ranked.slice(0, 10);
 
-      return {
-        key: metric.key,
-        metric: metric.label,
-        value:
+      let previousComparableValue: number | null = null;
+      let previousRank = 1;
+      const topTenWithRanks = topTen.map((match, index) => {
+        const currentComparableValue =
           metric.key === "bestAceErrorRatio"
-            ? best
-              ? `${best.serveAces} - ${best.serveErrors}`
-              : "—"
-            : formatTeamValue(
-              best ? ((best[metric.key as keyof typeof best] as number | null) ?? null) : null,
-              metric.key,
-            ),
-        opponent: best ? (isEstonian ? best.opponent : (best.opponentEn ?? best.opponent)) : "—",
-        score: best?.score ?? "—",
-        date: best
-          ? new Date(best.matchDate).toLocaleDateString("en-GB", {
-            day: "numeric",
-            month: "short",
-            year: "numeric",
-          })
-          : "—",
-        competition: best
-          ? isEstonian
-            ? (best.competition ?? "—")
-            : (best.competitionEn ?? best.competition ?? "—")
-          : "—",
-        matchHref: best
-          ? best.mam === true
-            ? `/match/${best.matchId}/all`
-            : `/match/${best.matchId}`
-          : null,
-        topTen: ranked.slice(0, 10).map((match) => ({
+            ? match.serveErrors / match.serveAces
+            : ((match[metric.key as keyof typeof match] as number | null | undefined) ?? 0);
+
+        const rank =
+          index === 0
+            ? 1
+            : previousComparableValue != null &&
+                Math.abs(currentComparableValue - previousComparableValue) < 0.0001
+              ? previousRank
+              : index + 1;
+
+        previousComparableValue = currentComparableValue;
+        previousRank = rank;
+
+        return {
+          rankLabel: `#${rank}`,
           value:
             metric.key === "bestAceErrorRatio"
               ? `${match.serveAces} - ${match.serveErrors}`
               : formatTeamValue(
-                (match[metric.key as keyof typeof match] as number | null) ?? null,
-                metric.key,
-              ),
+                  (match[metric.key as keyof typeof match] as number | null) ?? null,
+                  metric.key,
+                ),
           opponent: isEstonian ? match.opponent : (match.opponentEn ?? match.opponent),
           score: match.score,
           date: new Date(match.matchDate).toLocaleDateString("en-GB", {
@@ -719,14 +943,109 @@ function GameHighsPage() {
             ? (match.competition ?? "—")
             : (match.competitionEn ?? match.competition ?? "—"),
           matchHref: match.mam === true ? `/match/${match.matchId}/all` : `/match/${match.matchId}`,
-        })),
+        };
+      });
+
+      return {
+        key: metric.key,
+        metric: metric.label,
+        value:
+          metric.key === "bestAceErrorRatio"
+            ? best
+              ? `${best.serveAces} - ${best.serveErrors}`
+              : "—"
+            : formatTeamValue(
+                best ? ((best[metric.key as keyof typeof best] as number | null) ?? null) : null,
+                metric.key,
+              ),
+        opponent: best ? (isEstonian ? best.opponent : (best.opponentEn ?? best.opponent)) : "—",
+        score: best?.score ?? "—",
+        date: best
+          ? new Date(best.matchDate).toLocaleDateString("en-GB", {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+            })
+          : "—",
+        competition: best
+          ? isEstonian
+            ? (best.competition ?? "—")
+            : (best.competitionEn ?? best.competition ?? "—")
+          : "—",
+        matchHref: best
+          ? best.mam === true
+            ? `/match/${best.matchId}/all`
+            : `/match/${best.matchId}`
+          : null,
+        topTen: topTenWithRanks,
       };
     });
   }, [teamFilteredRows, t, isEstonian]);
 
+  const positionButtonsDisabled = viewMode === "TEAM";
+
+  const teamSectionHeaders = {
+    serveTotal: isEstonian ? "SERV" : "SERVE",
+    receptionTotal: isEstonian ? "VASTUVOTT" : "RECEPTION",
+    attackTotal: isEstonian ? "RUNNAK" : "ATTACKS",
+  } as const;
+
+  const teamSectionToneClass: Record<string, string> = {
+    points: "bg-slate-50/60",
+    maxEstoniaSetPoints: "bg-slate-50/60",
+    breakPoints: "bg-slate-50/60",
+    plusMinus: "bg-slate-50/60",
+    blockPoints: "bg-slate-50/60",
+    serveTotal: "bg-amber-50/60",
+    serveAces: "bg-amber-50/60",
+    serveErrors: "bg-amber-50/60",
+    bestAceErrorRatio: "bg-amber-50/60",
+    receptionTotal: "bg-sky-50/60",
+    receptionErrors: "bg-sky-50/60",
+    receptionPositivePct: "bg-sky-50/60",
+    receptionExcellentPct: "bg-sky-50/60",
+    attackTotal: "bg-rose-50/60",
+    attackErrors: "bg-rose-50/60",
+    attackBlocked: "bg-rose-50/60",
+    attackKills: "bg-rose-50/60",
+    attackKillPct: "bg-rose-50/60",
+    attackEfficiency: "bg-rose-50/60",
+  };
+
+  useEffect(() => {
+    setExpandedPlayerMetric(null);
+    setExpandedTeamMetric(null);
+  }, [viewMode, selectedPosition, matchType, selectedYear, selectedCompetition, selectedOpponent]);
+
   return (
     <main className="mx-auto w-full max-w-[1400px] px-6 py-10 text-slate-900">
       <div className="mb-6 rounded-2xl bg-estonia-dark p-6 text-white shadow-sm md:p-8">
+        <div className="mx-auto mb-5 grid w-full max-w-[520px] grid-cols-2 gap-2">
+          {[
+            {
+              value: "PLAYERS",
+              label: isEstonian ? "Mängu maksimumid mängijate lõikes" : "Game Highs by Players",
+            },
+            {
+              value: "TEAM",
+              label: isEstonian ? "Mängu maksimumid koondise lõikes" : "Game Highs by Team",
+            },
+          ].map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => setViewMode(option.value as typeof viewMode)}
+              className={`h-10 w-full rounded-md border px-3 text-xs font-semibold uppercase tracking-[0.14em] transition ${
+                viewMode === option.value
+                  ? "border-estonia-blue bg-estonia-blue text-white"
+                  : "border-white/30 bg-white/10 text-white/90 hover:bg-white/20"
+              }`}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+
         <div className="grid gap-5 lg:grid-cols-2">
           <div className="text-center">
             <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/60">
@@ -743,10 +1062,11 @@ function GameHighsPage() {
                   key={option.value}
                   type="button"
                   onClick={() => setMatchType(option.value as typeof matchType)}
-                  className={`w-full rounded-md border px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] transition ${matchType === option.value
+                  className={`h-10 w-full rounded-md border px-3 text-xs font-semibold uppercase tracking-[0.16em] transition ${
+                    matchType === option.value
                       ? "border-estonia-blue bg-estonia-blue text-white"
                       : "border-white/30 bg-white/10 text-white/90 hover:bg-white/20"
-                    }`}
+                  }`}
                 >
                   {option.label}
                 </button>
@@ -758,16 +1078,20 @@ function GameHighsPage() {
             <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/60">
               {t("gameHighs.filters.position")}
             </div>
-            <div className="mx-auto grid w-full max-w-[440px] grid-cols-3 gap-2">
+            <div
+              className={`mx-auto grid w-full max-w-[440px] grid-cols-3 gap-2 ${positionButtonsDisabled ? "opacity-45" : ""}`}
+            >
               {positions.map((position) => (
                 <button
                   key={position}
                   type="button"
+                  disabled={positionButtonsDisabled}
                   onClick={() => setSelectedPosition(position)}
-                  className={`w-full rounded-md border px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] transition ${selectedPosition === position
+                  className={`h-10 w-full rounded-md border px-3 text-xs font-semibold uppercase tracking-[0.16em] transition ${
+                    selectedPosition === position
                       ? "border-estonia-blue bg-estonia-blue text-white"
                       : "border-white/30 bg-white/10 text-white/90 hover:bg-white/20"
-                    }`}
+                  }`}
                 >
                   {position === "ALL" ? "ALL" : position}
                 </button>
@@ -817,280 +1141,187 @@ function GameHighsPage() {
           </div>
         </div>
       </div>
+      {viewMode === "PLAYERS" && (
+        <section>
+          <h2 className="mb-4 text-center font-display text-2xl uppercase italic text-estonia-dark">
+            {isEstonian ? "Mängijate mängu maksimumid" : "Game Highs by Players"}
+          </h2>
 
-      <div className="mb-6 grid gap-4 xl:grid-cols-4">
-        {categoryGroups.map((group, index) => {
-          const selectedCategory = group.categories.includes(category) ? category : "";
-          const isActiveGroup = group.categories.includes(category);
-          const tone =
-            [
-              "from-sky-50 to-white border-sky-200",
-              "from-emerald-50 to-white border-emerald-200",
-              "from-amber-50 to-white border-amber-200",
-              "from-rose-50 to-white border-rose-200",
-            ][index] ?? "from-slate-50 to-white border-slate-200";
-
-          return (
-            <section
-              key={group.title}
-              className={`rounded-xl border bg-gradient-to-br p-4 shadow-sm transition ${tone} ${isActiveGroup ? "ring-2 ring-estonia-blue/40" : ""}`}
-            >
-              <h2 className="mb-3 text-center text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-600">
-                {group.title}
-              </h2>
-              <select
-                value={selectedCategory}
-                onChange={(event) => setCategory(event.target.value as GameHighCategory)}
-                className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:border-estonia-blue"
-              >
-                <option value="">{t("gameHighs.filters.selectMetric")}</option>
-                {group.categories.map((categoryOption) => (
-                  <option key={categoryOption} value={categoryOption}>
-                    {categoryLabel[categoryOption]}
-                  </option>
-                ))}
-              </select>
-            </section>
-          );
-        })}
-      </div>
-
-      {activeGroup && (
-        <p className="mb-6 rounded-lg border border-slate-200 bg-slate-50 px-6 py-4 text-center text-base font-medium text-estonia-dark md:text-lg">
-          {trimTrailingPeriod(categoryDescription[category])}
-        </p>
-      )}
-
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-        <div className="min-w-[980px]">
-          <Table className="min-w-full">
-            <TableHeader>
-              <TableRow className="bg-slate-50">
-                <TableHead className="p-3 text-center">{t("gameHighs.table.rank")}</TableHead>
-                <TableHead className="p-3 text-center">{t("gameHighs.table.name")}</TableHead>
-                <TableHead className="p-3 text-center">{categoryHeaderCode[category]}</TableHead>
-                <TableHead className="p-3 text-center">{t("gameHighs.table.position")}</TableHead>
-                <TableHead className="p-3 text-center">{t("gameHighs.table.opponent")}</TableHead>
-                <TableHead className="p-3 text-center">{t("gameHighs.table.score")}</TableHead>
-                <TableHead className="p-3 text-center">{t("gameHighs.table.date")}</TableHead>
-                <TableHead className="p-3 text-center">
-                  {t("gameHighs.table.competition")}
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {visibleRows.map((row, index) => {
-                const resultStyle =
-                  Number.parseInt(row.score.split("-")[0] ?? "0", 10) >
-                    Number.parseInt(row.score.split("-")[1] ?? "0", 10)
-                    ? "text-estonia-blue"
-                    : Number.parseInt(row.score.split("-")[0] ?? "0", 10) ===
-                      Number.parseInt(row.score.split("-")[1] ?? "0", 10)
-                      ? "text-green-700"
-                      : "text-red-700";
-                const opponent = isEstonian ? row.opponent : (row.opponentEn ?? row.opponent);
-
-                return (
-                  <TableRow key={row.appearanceId}>
-                    <TableCell className="p-3 text-center font-medium text-slate-900">
-                      {index + 1}
-                    </TableCell>
-                    <TableCell className="p-3 text-center font-medium text-slate-900">
-                      <a
-                        href={`/players/${row.playerId}`}
-                        className="text-estonia-dark underline-offset-2 hover:text-estonia-blue hover:underline"
-                      >
-                        {row.name}
-                      </a>
-                    </TableCell>
-                    <TableCell className="p-3 text-center font-semibold text-estonia-dark">
-                      {formatCategoryValue(getCategoryValue(row, category), category)}
-                    </TableCell>
-                    <TableCell className="p-3 text-center">
-                      {row.position ?? t("positions.Unknown")}
-                    </TableCell>
-                    <TableCell className="p-3 text-center">{opponent}</TableCell>
-                    <TableCell className="p-3 text-center">
-                      <a
-                        href={`/match/${row.matchId}`}
-                        className={`font-semibold hover:underline ${resultStyle}`}
-                      >
-                        {row.score}
-                      </a>
-                    </TableCell>
-                    <TableCell className="p-3 text-center">
-                      {new Date(row.matchDate).toLocaleDateString("en-GB", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })}
-                    </TableCell>
-                    <TableCell className="p-3 text-center">
-                      {isEstonian
-                        ? (row.competition ?? "—")
-                        : (row.competitionEn ?? row.competition ?? "—")}
-                    </TableCell>
+          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div className="min-w-[1180px]">
+              <Table className="min-w-full">
+                <TableHeader>
+                  <TableRow className="bg-slate-50">
+                    <TableHead className="sticky top-0 z-20 bg-slate-50 p-3 text-left">
+                      Category
+                    </TableHead>
+                    <TableHead className="sticky top-0 z-20 bg-slate-50 p-3 text-left">
+                      {t("gameHighs.table.name")}
+                    </TableHead>
+                    <TableHead className="sticky top-0 z-20 bg-slate-50 p-3 text-center">
+                      {t("gameHighs.table.value")}
+                    </TableHead>
+                    <TableHead className="sticky top-0 z-20 bg-slate-50 p-3 text-left">
+                      {t("gameHighs.table.opponent")}
+                    </TableHead>
+                    <TableHead className="sticky top-0 z-20 bg-slate-50 p-3 text-center">
+                      Score
+                    </TableHead>
+                    <TableHead className="sticky top-0 z-20 bg-slate-50 p-3 text-center">
+                      {t("gameHighs.table.date")}
+                    </TableHead>
+                    <TableHead className="sticky top-0 z-20 bg-slate-50 p-3 text-left">
+                      {t("gameHighs.table.competition")}
+                    </TableHead>
+                    <TableHead className="sticky top-0 z-20 bg-slate-50 p-3 text-center">
+                      Top 10
+                    </TableHead>
                   </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </div>
-      </div>
-
-      {rows.length > visibleCount && (
-        <div className="mt-4 flex justify-center">
-          <button
-            type="button"
-            onClick={() => setVisibleCount((prev) => prev + 10)}
-            className="rounded-md border border-estonia-blue bg-white px-5 py-2 text-sm font-semibold text-estonia-blue transition hover:bg-estonia-blue hover:text-white"
-          >
-            {t("common.loadMore")}
-          </button>
-        </div>
-      )}
-
-      {rows.length === 0 && (
-        <div className="mt-8 rounded-xl border border-slate-200 bg-slate-50 p-12 text-center text-slate-500">
-          {t("common.noResults")}
-        </div>
-      )}
-
-      <section className="mt-10">
-        <h2 className="mb-4 font-display text-2xl uppercase italic text-estonia-dark">
-          {isEstonian ? "Koondise Ühe mängu parimad" : "National Team Game Highs"}
-        </h2>
-
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-          <div className="min-w-[980px]">
-            <Table className="min-w-full">
-              <TableHeader>
-                <TableRow className="bg-slate-50">
-                  <TableHead className="p-3 text-left">{t("players.statsField.stat")}</TableHead>
-                  <TableHead className="p-3 text-center">{t("gameHighs.table.value")}</TableHead>
-                  <TableHead className="p-3 text-left">{t("gameHighs.table.opponent")}</TableHead>
-                  <TableHead className="p-3 text-center">{t("gameHighs.table.score")}</TableHead>
-                  <TableHead className="p-3 text-center">{t("gameHighs.table.date")}</TableHead>
-                  <TableHead className="p-3 text-left">
-                    {t("gameHighs.table.competition")}
-                  </TableHead>
-                  <TableHead className="p-3 text-center">Top 10</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {teamGameHighRows.map((row) => (
-                  <Fragment key={row.key}>
-                    <TableRow>
-                      <TableCell className="p-3 text-sm text-slate-700">{row.metric}</TableCell>
-                      <TableCell className="p-3 text-center font-semibold text-estonia-dark">
-                        {row.value}
-                      </TableCell>
-                      <TableCell className="p-3 text-sm text-slate-700">{row.opponent}</TableCell>
-                      <TableCell className="p-3 text-center">
-                        {row.matchHref
-                          ? (() => {
-                            const parts = row.score.split("-");
-                            const estonia = Number.parseInt(parts[0] ?? "0", 10);
-                            const opponent = Number.parseInt(parts[1] ?? "0", 10);
-                            const resultStyle =
-                              estonia > opponent
-                                ? "text-estonia-blue"
-                                : estonia === opponent
-                                  ? "text-green-700"
-                                  : "text-red-700";
-
-                            return (
-                              <a
-                                href={row.matchHref}
-                                className={`font-semibold hover:underline ${resultStyle}`}
-                              >
-                                {row.score}
-                              </a>
-                            );
-                          })()
-                          : "—"}
-                      </TableCell>
-                      <TableCell className="p-3 text-center text-sm text-slate-700">
-                        {row.date}
-                      </TableCell>
-                      <TableCell className="p-3 text-sm text-slate-700">
-                        {row.competition}
-                      </TableCell>
-                      <TableCell className="p-3 text-center">
-                        {row.topTen.length > 0 ? (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setExpandedTeamMetric((current) =>
-                                current === row.key ? null : row.key,
-                              )
-                            }
-                            className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-300 text-slate-700 transition hover:border-estonia-blue hover:text-estonia-blue"
-                            aria-label={
-                              isEstonian
-                                ? "Ava või peida selle kategooria TOP 10"
-                                : "Toggle top 10 for this category"
-                            }
-                            title={
-                              isEstonian
-                                ? "Ava või peida selle kategooria TOP 10"
-                                : "Toggle top 10 for this category"
-                            }
+                </TableHeader>
+                <TableBody>
+                  {playerGameHighRows.map((row) => (
+                    <Fragment key={row.key}>
+                      {(row.key === "serveTotal" ||
+                        row.key === "receptionTotal" ||
+                        row.key === "attackTotal") && (
+                        <TableRow className="bg-slate-100">
+                          <TableCell
+                            colSpan={8}
+                            className="py-2 text-center text-[11px] font-bold uppercase tracking-[0.2em] text-slate-600"
                           >
-                            {expandedTeamMetric === row.key ? "▴" : "▾"}
-                          </button>
-                        ) : (
-                          <span className="text-slate-300">—</span>
-                        )}
-                      </TableCell>
-                    </TableRow>
+                            {row.key === "serveTotal"
+                              ? playerSectionHeaders.serveTotal
+                              : row.key === "receptionTotal"
+                                ? playerSectionHeaders.receptionTotal
+                                : playerSectionHeaders.attackTotal}
+                          </TableCell>
+                        </TableRow>
+                      )}
 
-                    {expandedTeamMetric === row.key && (
-                      <TableRow>
-                        <TableCell colSpan={7} className="bg-slate-50/60 p-3">
-                          <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-                            <table className="min-w-[760px] w-full border-collapse">
-                              <thead className="bg-slate-50">
-                                <tr>
-                                  <th className="px-2 py-2 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
-                                    #
-                                  </th>
-                                  <th className="px-2 py-2 text-center text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
-                                    {t("gameHighs.table.value")}
-                                  </th>
-                                  <th className="px-2 py-2 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
-                                    {t("gameHighs.table.opponent")}
-                                  </th>
-                                  <th className="px-2 py-2 text-center text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
-                                    {t("gameHighs.table.score")}
-                                  </th>
-                                  <th className="px-2 py-2 text-center text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
-                                    {t("gameHighs.table.date")}
-                                  </th>
-                                  <th className="px-2 py-2 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
-                                    {t("gameHighs.table.competition")}
-                                  </th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {row.topTen.map((item, index) => {
-                                  const parts = item.score.split("-");
-                                  const estonia = Number.parseInt(parts[0] ?? "0", 10);
-                                  const opponent = Number.parseInt(parts[1] ?? "0", 10);
-                                  const resultStyle =
-                                    estonia > opponent
-                                      ? "text-estonia-blue"
-                                      : estonia === opponent
-                                        ? "text-green-700"
-                                        : "text-red-700";
+                      <TableRow className={playerSectionToneClass[row.key]}>
+                        <TableCell className="p-3 text-sm text-slate-700">{row.metric}</TableCell>
+                        <TableCell className="p-3 text-sm text-slate-700">
+                          {row.best ? (
+                            <a
+                              href={row.best.playerHref}
+                              className="font-medium text-estonia-dark hover:text-estonia-blue hover:underline"
+                            >
+                              {row.best.name}
+                            </a>
+                          ) : (
+                            "—"
+                          )}
+                        </TableCell>
+                        <TableCell className="p-3 text-center font-semibold text-estonia-dark">
+                          {row.best?.value ?? "—"}
+                        </TableCell>
+                        <TableCell className="p-3 text-sm text-slate-700">
+                          {row.best?.opponent ?? "—"}
+                        </TableCell>
+                        <TableCell className="p-3 text-center">
+                          {row.best ? (
+                            <a
+                              href={row.best.matchHref}
+                              className={`font-semibold hover:underline ${getScoreResultStyle(row.best.score)}`}
+                            >
+                              {row.best.score}
+                            </a>
+                          ) : (
+                            "—"
+                          )}
+                        </TableCell>
+                        <TableCell className="p-3 text-center text-sm text-slate-700">
+                          {row.best?.date ?? "—"}
+                        </TableCell>
+                        <TableCell className="p-3 text-sm text-slate-700">
+                          {row.best?.competition ?? "—"}
+                        </TableCell>
+                        <TableCell className="p-3 text-center">
+                          {row.topTen.length > 0 ? (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setExpandedPlayerMetric((current) =>
+                                  current === row.key ? null : row.key,
+                                )
+                              }
+                              className="inline-flex h-9 w-9 items-center justify-center rounded-full border-2 border-slate-500 bg-white text-base font-bold text-slate-900 shadow-sm transition hover:border-estonia-blue hover:text-estonia-blue"
+                              aria-label={
+                                isEstonian
+                                  ? "Ava või peida selle kategooria TOP 10"
+                                  : "Toggle top 10 for this category"
+                              }
+                              title={
+                                isEstonian
+                                  ? "Ava või peida selle kategooria TOP 10"
+                                  : "Toggle top 10 for this category"
+                              }
+                            >
+                              {expandedPlayerMetric === row.key ? "▴" : "▾"}
+                            </button>
+                          ) : (
+                            <span className="text-slate-300">—</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
 
-                                  return (
+                      {expandedPlayerMetric === row.key && (
+                        <TableRow>
+                          <TableCell colSpan={8} className="bg-slate-50/60 p-3">
+                            <div className="mb-2 rounded-md border border-slate-200 bg-slate-100/70 px-3 py-2 text-center">
+                              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-700">
+                                {row.metric}
+                              </p>
+                            </div>
+                            <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+                              <table className="min-w-[1020px] w-full border-collapse">
+                                <thead className="bg-slate-50">
+                                  <tr>
+                                    <th className="px-2 py-2 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
+                                      #
+                                    </th>
+                                    <th className="px-2 py-2 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
+                                      {t("gameHighs.table.name")}
+                                    </th>
+                                    <th className="px-2 py-2 text-center text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
+                                      {t("gameHighs.table.position")}
+                                    </th>
+                                    <th className="px-2 py-2 text-center text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
+                                      {t("gameHighs.table.value")}
+                                    </th>
+                                    <th className="px-2 py-2 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
+                                      {t("gameHighs.table.opponent")}
+                                    </th>
+                                    <th className="px-2 py-2 text-center text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
+                                      Score
+                                    </th>
+                                    <th className="px-2 py-2 text-center text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
+                                      {t("gameHighs.table.date")}
+                                    </th>
+                                    <th className="px-2 py-2 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
+                                      {t("gameHighs.table.competition")}
+                                    </th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {row.topTen.map((item, index) => (
                                     <tr
                                       key={`${row.key}-${index}`}
                                       className="border-t border-slate-100"
                                     >
                                       <td className="px-2 py-2 text-sm text-slate-600">
-                                        {index + 1}
+                                        {item.rankLabel}
+                                      </td>
+                                      <td className="px-2 py-2 text-sm text-slate-700">
+                                        <a
+                                          href={item.playerHref}
+                                          className="font-medium text-estonia-dark hover:text-estonia-blue hover:underline"
+                                        >
+                                          {item.name}
+                                        </a>
+                                      </td>
+                                      <td className="px-2 py-2 text-center text-sm text-slate-700">
+                                        {item.position}
                                       </td>
                                       <td className="px-2 py-2 text-center text-sm font-semibold text-estonia-dark">
                                         {item.value}
@@ -1101,7 +1332,7 @@ function GameHighsPage() {
                                       <td className="px-2 py-2 text-center text-sm">
                                         <a
                                           href={item.matchHref}
-                                          className={`font-semibold hover:underline ${resultStyle}`}
+                                          className={`font-semibold hover:underline ${getScoreResultStyle(item.score)}`}
                                         >
                                           {item.score}
                                         </a>
@@ -1113,21 +1344,231 @@ function GameHighsPage() {
                                         {item.competition}
                                       </td>
                                     </tr>
-                                  );
-                                })}
-                              </tbody>
-                            </table>
-                          </div>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                            {row.tieBreakerDescription && (
+                              <p className="mt-2 px-1 text-xs italic text-slate-600">
+                                {row.tieBreakerDescription}
+                              </p>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </Fragment>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+
+          {playerFilteredRows.length === 0 && (
+            <div className="mt-8 rounded-xl border border-slate-200 bg-slate-50 p-12 text-center text-slate-500">
+              {t("common.noResults")}
+            </div>
+          )}
+        </section>
+      )}
+
+      {viewMode === "TEAM" && (
+        <section>
+          <h2 className="mb-4 text-center font-display text-2xl uppercase italic text-estonia-dark">
+            {isEstonian ? "Koondise Ühe mängu parimad" : "National Team Game Highs"}
+          </h2>
+
+          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div className="min-w-[980px]">
+              <Table className="min-w-full">
+                <TableHeader>
+                  <TableRow className="bg-slate-50">
+                    <TableHead className="sticky top-0 z-20 bg-slate-50 p-3 text-left">
+                      Category
+                    </TableHead>
+                    <TableHead className="sticky top-0 z-20 bg-slate-50 p-3 text-center">
+                      {t("gameHighs.table.value")}
+                    </TableHead>
+                    <TableHead className="sticky top-0 z-20 bg-slate-50 p-3 text-left">
+                      {t("gameHighs.table.opponent")}
+                    </TableHead>
+                    <TableHead className="sticky top-0 z-20 bg-slate-50 p-3 text-center">
+                      Score
+                    </TableHead>
+                    <TableHead className="sticky top-0 z-20 bg-slate-50 p-3 text-center">
+                      {t("gameHighs.table.date")}
+                    </TableHead>
+                    <TableHead className="sticky top-0 z-20 bg-slate-50 p-3 text-left">
+                      {t("gameHighs.table.competition")}
+                    </TableHead>
+                    <TableHead className="sticky top-0 z-20 bg-slate-50 p-3 text-center">
+                      Top 10
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {teamGameHighRows.map((row) => (
+                    <Fragment key={row.key}>
+                      {(row.key === "serveTotal" ||
+                        row.key === "receptionTotal" ||
+                        row.key === "attackTotal") && (
+                        <TableRow className="bg-slate-100">
+                          <TableCell
+                            colSpan={7}
+                            className="py-2 text-center text-[11px] font-bold uppercase tracking-[0.2em] text-slate-600"
+                          >
+                            {row.key === "serveTotal"
+                              ? teamSectionHeaders.serveTotal
+                              : row.key === "receptionTotal"
+                                ? teamSectionHeaders.receptionTotal
+                                : teamSectionHeaders.attackTotal}
+                          </TableCell>
+                        </TableRow>
+                      )}
+
+                      <TableRow className={teamSectionToneClass[row.key] ?? "bg-white"}>
+                        <TableCell className="p-3 text-sm text-slate-700">{row.metric}</TableCell>
+                        <TableCell className="p-3 text-center font-semibold text-estonia-dark">
+                          {row.value}
+                        </TableCell>
+                        <TableCell className="p-3 text-sm text-slate-700">{row.opponent}</TableCell>
+                        <TableCell className="p-3 text-center">
+                          {row.matchHref
+                            ? (() => {
+                                const parts = row.score.split("-");
+                                const estonia = Number.parseInt(parts[0] ?? "0", 10);
+                                const opponent = Number.parseInt(parts[1] ?? "0", 10);
+                                const resultStyle =
+                                  estonia > opponent
+                                    ? "text-estonia-blue"
+                                    : estonia === opponent
+                                      ? "text-green-700"
+                                      : "text-red-700";
+
+                                return (
+                                  <a
+                                    href={row.matchHref}
+                                    className={`font-semibold hover:underline ${resultStyle}`}
+                                  >
+                                    {row.score}
+                                  </a>
+                                );
+                              })()
+                            : "—"}
+                        </TableCell>
+                        <TableCell className="p-3 text-center text-sm text-slate-700">
+                          {row.date}
+                        </TableCell>
+                        <TableCell className="p-3 text-sm text-slate-700">
+                          {row.competition}
+                        </TableCell>
+                        <TableCell className="p-3 text-center">
+                          {row.topTen.length > 0 ? (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setExpandedTeamMetric((current) =>
+                                  current === row.key ? null : row.key,
+                                )
+                              }
+                              className="inline-flex h-9 w-9 items-center justify-center rounded-full border-2 border-slate-500 bg-white text-base font-bold text-slate-900 shadow-sm transition hover:border-estonia-blue hover:text-estonia-blue"
+                              aria-label={
+                                isEstonian
+                                  ? "Ava või peida selle kategooria TOP 10"
+                                  : "Toggle top 10 for this category"
+                              }
+                              title={
+                                isEstonian
+                                  ? "Ava või peida selle kategooria TOP 10"
+                                  : "Toggle top 10 for this category"
+                              }
+                            >
+                              {expandedTeamMetric === row.key ? "▴" : "▾"}
+                            </button>
+                          ) : (
+                            <span className="text-slate-300">—</span>
+                          )}
                         </TableCell>
                       </TableRow>
-                    )}
-                  </Fragment>
-                ))}
-              </TableBody>
-            </Table>
+
+                      {expandedTeamMetric === row.key && (
+                        <TableRow>
+                          <TableCell colSpan={7} className="bg-slate-50/60 p-3">
+                            <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+                              <div className="mb-2 rounded-md border border-slate-200 bg-slate-100/70 px-3 py-2 text-center">
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-700">
+                                  {row.metric}
+                                </p>
+                              </div>
+                              <table className="min-w-[760px] w-full border-collapse">
+                                <thead className="bg-slate-50">
+                                  <tr>
+                                    <th className="px-2 py-2 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
+                                      #
+                                    </th>
+                                    <th className="px-2 py-2 text-center text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
+                                      {t("gameHighs.table.value")}
+                                    </th>
+                                    <th className="px-2 py-2 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
+                                      {t("gameHighs.table.opponent")}
+                                    </th>
+                                    <th className="px-2 py-2 text-center text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
+                                      Score
+                                    </th>
+                                    <th className="px-2 py-2 text-center text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
+                                      {t("gameHighs.table.date")}
+                                    </th>
+                                    <th className="px-2 py-2 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
+                                      {t("gameHighs.table.competition")}
+                                    </th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {row.topTen.map((item, index) => {
+                                    return (
+                                      <tr
+                                        key={`${row.key}-${index}`}
+                                        className="border-t border-slate-100"
+                                      >
+                                        <td className="px-2 py-2 text-sm text-slate-600">
+                                          {item.rankLabel}
+                                        </td>
+                                        <td className="px-2 py-2 text-center text-sm font-semibold text-estonia-dark">
+                                          {item.value}
+                                        </td>
+                                        <td className="px-2 py-2 text-sm text-slate-700">
+                                          {item.opponent}
+                                        </td>
+                                        <td className="px-2 py-2 text-center text-sm">
+                                          <a
+                                            href={item.matchHref}
+                                            className={`font-semibold hover:underline ${getScoreResultStyle(item.score)}`}
+                                          >
+                                            {item.score}
+                                          </a>
+                                        </td>
+                                        <td className="px-2 py-2 text-center text-sm text-slate-700">
+                                          {item.date}
+                                        </td>
+                                        <td className="px-2 py-2 text-sm text-slate-700">
+                                          {item.competition}
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </Fragment>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
     </main>
   );
 }
@@ -1177,18 +1618,30 @@ function getCategoryValue(row: GameHighRow, category: GameHighCategory): number 
   }
 }
 
-function trimTrailingPeriod(text: string): string {
-  return text.trim().replace(/[.!?]$/, "");
-}
-
 function formatCategoryValue(value: number | null, category: GameHighCategory): string {
   if (value == null) {
     return "—";
   }
 
   if (categoryRules[category].isPercent) {
-    return `${value.toFixed(1)}%`;
+    return `${Math.round(value)}%`;
   }
 
   return Number.isInteger(value) ? String(value) : value.toFixed(2);
+}
+
+function getScoreResultStyle(score: string): string {
+  const parts = score.split("-");
+  const estonia = Number.parseInt(parts[0] ?? "0", 10);
+  const opponent = Number.parseInt(parts[1] ?? "0", 10);
+
+  if (estonia > opponent) {
+    return "text-estonia-blue";
+  }
+
+  if (estonia === opponent) {
+    return "text-green-700";
+  }
+
+  return "text-red-700";
 }
