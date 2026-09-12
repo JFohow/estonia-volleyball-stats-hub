@@ -10,6 +10,7 @@ export type GameHighRow = {
   position: string | null;
   points: number;
   plusMinus: number | null;
+  breakPoints: number | null;
   serveTotal: number | null;
   serveAces: number | null;
   serveErrors: number | null;
@@ -28,6 +29,7 @@ export type GameHighRow = {
   opponentEn: string | null;
   competition: string | null;
   competitionEn: string | null;
+  maxEstoniaSetPoints: number | null;
   matchDate: string;
   score: string;
   vm: boolean | null;
@@ -57,6 +59,7 @@ type GameHighAppearanceRow = {
   | {
     points: number | null;
     plus_minus: number | null;
+    break_points: number | null;
     serve_total: number | null;
     serve_aces: number | null;
     serve_errors: number | null;
@@ -75,6 +78,7 @@ type GameHighAppearanceRow = {
   | Array<{
     points: number | null;
     plus_minus: number | null;
+    break_points: number | null;
     serve_total: number | null;
     serve_aces: number | null;
     serve_errors: number | null;
@@ -105,6 +109,11 @@ type MatchRow = {
   vm: boolean | null;
   am: boolean | null;
   mam: boolean | null;
+};
+
+type MatchSetRow = {
+  match_id: number;
+  estonia_points: number;
 };
 
 function normalizeRelation<T>(value: T | T[] | null): T | null {
@@ -141,14 +150,16 @@ function deriveAttackEfficiency(stats: {
     return null;
   }
 
-  return ((stats.attack_kills - stats.attack_blocked - stats.attack_errors) / stats.attack_total) * 100;
+  return (
+    ((stats.attack_kills - stats.attack_blocked - stats.attack_errors) / stats.attack_total) * 100
+  );
 }
 
 async function fetchGameHighs(): Promise<GameHighRow[]> {
   const { data, error } = await supabase
     .from("appearances")
     .select(
-      `appearance_id, player_position_in_match, match_id, players(player_id, first_name, last_name, position), player_match_stats!inner(points, plus_minus, serve_total, serve_aces, serve_errors, reception_total, reception_errors, reception_positive_pct, reception_excellent_pct, attack_total, attack_errors, attack_blocked, attack_kills, attack_kill_pct, attack_efficiency, block_points)`
+      `appearance_id, player_position_in_match, match_id, players(player_id, first_name, last_name, position), player_match_stats!inner(points, plus_minus, break_points, serve_total, serve_aces, serve_errors, reception_total, reception_errors, reception_positive_pct, reception_excellent_pct, attack_total, attack_errors, attack_blocked, attack_kills, attack_kill_pct, attack_efficiency, block_points)`,
     );
 
   if (error) throw error;
@@ -158,13 +169,30 @@ async function fetchGameHighs(): Promise<GameHighRow[]> {
 
   const { data: matchesData, error: matchError } = await supabase
     .from("matches")
-    .select("match_id, match_date, opponent, opponent_en, competition, competition_en, estonia_sets, opponent_sets, vm, am, mam")
+    .select(
+      "match_id, match_date, opponent, opponent_en, competition, competition_en, estonia_sets, opponent_sets, vm, am, mam",
+    )
     .in("match_id", matchIds);
 
   if (matchError) throw matchError;
 
+  const { data: matchSetsData, error: matchSetsError } = await supabase
+    .from("match_sets")
+    .select("match_id, estonia_points")
+    .in("match_id", matchIds);
+
+  if (matchSetsError) throw matchSetsError;
+
+  const maxSetPointsByMatch = new Map<number, number>();
+  for (const setRow of (matchSetsData ?? []) as MatchSetRow[]) {
+    const current = maxSetPointsByMatch.get(setRow.match_id);
+    if (current == null || setRow.estonia_points > current) {
+      maxSetPointsByMatch.set(setRow.match_id, setRow.estonia_points);
+    }
+  }
+
   const matchesById = new Map(
-    ((matchesData ?? []) as MatchRow[]).map((match) => [match.match_id, match])
+    ((matchesData ?? []) as MatchRow[]).map((match) => [match.match_id, match]),
   );
 
   const rows: GameHighRow[] = [];
@@ -186,6 +214,7 @@ async function fetchGameHighs(): Promise<GameHighRow[]> {
       position: item.player_position_in_match ?? player.position ?? "Unknown",
       points: stats.points,
       plusMinus: stats.plus_minus,
+      breakPoints: stats.break_points,
       serveTotal: stats.serve_total,
       serveAces: stats.serve_aces,
       serveErrors: stats.serve_errors,
@@ -204,6 +233,7 @@ async function fetchGameHighs(): Promise<GameHighRow[]> {
       opponentEn: match.opponent_en,
       competition: match.competition,
       competitionEn: match.competition_en,
+      maxEstoniaSetPoints: maxSetPointsByMatch.get(item.match_id) ?? null,
       matchDate: match.match_date,
       score: `${match.estonia_sets}-${match.opponent_sets}`,
       vm: match.vm,

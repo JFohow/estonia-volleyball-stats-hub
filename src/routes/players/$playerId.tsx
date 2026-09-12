@@ -31,8 +31,7 @@ type PlayerAppearance = {
     on_the_bench: boolean;
     shirt_number: number | null;
     matches: RawMatchRecord | RawMatchRecord[] | null;
-    player_match_stats:
-    | Array<{
+    player_match_stats: Array<{
         attack_blocked: number | null;
         attack_efficiency: number | null;
         attack_errors: number | null;
@@ -51,8 +50,7 @@ type PlayerAppearance = {
         serve_errors: number | null;
         serve_total: number | null;
         stats_version: string | null;
-    }>
-    | null;
+    }> | null;
 };
 
 type PlayerPageData = {
@@ -105,19 +103,11 @@ function PlayerPage() {
         const rawMatch = appearance.matches;
         if (!rawMatch) return null;
 
-        const normalized = Array.isArray(rawMatch)
-            ? rawMatch[0]
-            : rawMatch;
+        const normalized = Array.isArray(rawMatch) ? rawMatch[0] : rawMatch;
 
         if (!normalized) return null;
 
-        const match_type = normalized.vm
-            ? "VM"
-            : normalized.am
-                ? "AM"
-                : normalized.mam
-                    ? "MAM"
-                    : null;
+        const match_type = normalized.vm ? "VM" : normalized.am ? "AM" : normalized.mam ? "MAM" : null;
 
         return {
             ...normalized,
@@ -126,14 +116,10 @@ function PlayerPage() {
     };
 
     const getLocalizedOpponent = (match: MatchRecord) =>
-        currentLanguage === "et"
-            ? match.opponent
-            : match.opponent_en ?? match.opponent;
+        currentLanguage === "et" ? match.opponent : (match.opponent_en ?? match.opponent);
 
     const getLocalizedCompetition = (match: MatchRecord) =>
-        currentLanguage === "et"
-            ? match.competition
-            : match.competition_en ?? match.competition;
+        currentLanguage === "et" ? match.competition : (match.competition_en ?? match.competition);
 
     const [statsMode, setStatsMode] = useState<"official" | "competitive" | "all">("official");
     const [selectedYear, setSelectedYear] = useState<string[]>(["all"]);
@@ -204,10 +190,20 @@ function PlayerPage() {
         if (!rows || rows.length === 0) return null;
 
         if (statsMode === "all") {
-            return rows.find((row) => row?.stats_version === "ALL") ?? rows.find((row) => row?.stats_version === "AM") ?? rows[0] ?? null;
+            return (
+                rows.find((row) => row?.stats_version === "ALL") ??
+                rows.find((row) => row?.stats_version === "AM") ??
+                rows[0] ??
+                null
+            );
         }
 
-        return rows.find((row) => row?.stats_version === "AM") ?? rows.find((row) => row?.stats_version === "ALL") ?? rows[0] ?? null;
+        return (
+            rows.find((row) => row?.stats_version === "AM") ??
+            rows.find((row) => row?.stats_version === "ALL") ??
+            rows[0] ??
+            null
+        );
     };
 
     const appearanceMatchesWithStats = useMemo(() => {
@@ -219,11 +215,7 @@ function PlayerPage() {
             if (!match) return false;
 
             if (statsMode === "official") {
-                return (
-                    match.match_type === "AM" ||
-                    match.match_type === "MAM" ||
-                    match.match_type === "VM"
-                );
+                return match.match_type === "AM" || match.match_type === "MAM" || match.match_type === "VM";
             }
 
             if (statsMode === "competitive") {
@@ -243,8 +235,18 @@ function PlayerPage() {
             const localizedOpponent = getLocalizedOpponent(match);
 
             // adaptive: respect selected competition/opponent when building year list
-            if (!selectedCompetition.includes("all") && localizedCompetition && !selectedCompetition.includes(localizedCompetition)) return;
-            if (!selectedOpponent.includes("all") && localizedOpponent && !selectedOpponent.includes(localizedOpponent)) return;
+            if (
+                !selectedCompetition.includes("all") &&
+                localizedCompetition &&
+                !selectedCompetition.includes(localizedCompetition)
+            )
+                return;
+            if (
+                !selectedOpponent.includes("all") &&
+                localizedOpponent &&
+                !selectedOpponent.includes(localizedOpponent)
+            )
+                return;
 
             if (match.match_date) {
                 values.add(new Date(match.match_date).getFullYear().toString());
@@ -266,7 +268,12 @@ function PlayerPage() {
                 const year = new Date(match.match_date).getFullYear().toString();
                 if (!selectedYear.includes(year)) return;
             }
-            if (!selectedOpponent.includes("all") && localizedOpponent && !selectedOpponent.includes(localizedOpponent)) return;
+            if (
+                !selectedOpponent.includes("all") &&
+                localizedOpponent &&
+                !selectedOpponent.includes(localizedOpponent)
+            )
+                return;
 
             if (localizedCompetition) {
                 values.add(localizedCompetition);
@@ -288,7 +295,12 @@ function PlayerPage() {
                 const year = new Date(match.match_date).getFullYear().toString();
                 if (!selectedYear.includes(year)) return;
             }
-            if (!selectedCompetition.includes("all") && localizedCompetition && !selectedCompetition.includes(localizedCompetition)) return;
+            if (
+                !selectedCompetition.includes("all") &&
+                localizedCompetition &&
+                !selectedCompetition.includes(localizedCompetition)
+            )
+                return;
 
             if (localizedOpponent) {
                 values.add(localizedOpponent);
@@ -311,18 +323,37 @@ function PlayerPage() {
                 const year = new Date(match.match_date).getFullYear().toString();
                 if (!selectedYear.includes(year)) return;
             }
-            if (!selectedCompetition.includes("all") && localizedCompetition && !selectedCompetition.includes(localizedCompetition)) return;
-            if (!selectedOpponent.includes("all") && localizedOpponent && !selectedOpponent.includes(localizedOpponent)) return;
+            if (
+                !selectedCompetition.includes("all") &&
+                localizedCompetition &&
+                !selectedCompetition.includes(localizedCompetition)
+            )
+                return;
+            if (
+                !selectedOpponent.includes("all") &&
+                localizedOpponent &&
+                !selectedOpponent.includes(localizedOpponent)
+            )
+                return;
 
             if (!seen.has(a.match_id)) {
                 seen.add(a.match_id);
                 const dateLabel = new Date(match.match_date).toLocaleDateString("en-GB");
                 const scoreLabel = `${match.estonia_sets}-${match.opponent_sets}`;
-                values.push({ id: a.match_id, label: `${dateLabel} | ${localizedOpponent} | ${scoreLabel}` });
+                values.push({
+                    id: a.match_id,
+                    label: `${dateLabel} | ${localizedOpponent} | ${scoreLabel}`,
+                });
             }
         });
         return values.sort((l, r) => l.label.localeCompare(r.label));
-    }, [appearanceMatchesWithStats, selectedYear, selectedCompetition, selectedOpponent, currentLanguage]);
+    }, [
+        appearanceMatchesWithStats,
+        selectedYear,
+        selectedCompetition,
+        selectedOpponent,
+        currentLanguage,
+    ]);
 
     useEffect(() => {
         const allowedIds = new Set(matchOptions.map((m) => String(m.id)));
@@ -363,7 +394,13 @@ function PlayerPage() {
 
             return true;
         });
-    }, [appearanceMatchesWithStats, selectedYear, selectedCompetition, selectedOpponent, selectedMatches]);
+    }, [
+        appearanceMatchesWithStats,
+        selectedYear,
+        selectedCompetition,
+        selectedOpponent,
+        selectedMatches,
+    ]);
 
     const filteredSummary = useMemo(() => {
         const totals: Record<string, number> = {};
@@ -408,7 +445,8 @@ function PlayerPage() {
 
         const averages: Record<string, number | null> = {};
         statColumns.forEach((column) => {
-            averages[column.field] = counts[column.field] > 0 ? totals[column.field] / counts[column.field] : null;
+            averages[column.field] =
+                counts[column.field] > 0 ? totals[column.field] / counts[column.field] : null;
         });
 
         // Always derive attack percentages from attack totals, never from stored pct sums/averages.
@@ -416,9 +454,13 @@ function PlayerPage() {
         averages["attack_efficiency"] = computeAttackEffFromTotals(totals);
 
         const weightedReceptionPositivePct =
-            totals["reception_total"] > 0 ? (receptionPositiveCount / totals["reception_total"]) * 100 : null;
+            totals["reception_total"] > 0
+                ? (receptionPositiveCount / totals["reception_total"]) * 100
+                : null;
         const weightedReceptionExcellentPct =
-            totals["reception_total"] > 0 ? (receptionExcellentCount / totals["reception_total"]) * 100 : null;
+            totals["reception_total"] > 0
+                ? (receptionExcellentCount / totals["reception_total"]) * 100
+                : null;
 
         averages["reception_positive_pct"] = weightedReceptionPositivePct;
         averages["reception_excellent_pct"] = weightedReceptionExcellentPct;
@@ -460,7 +502,9 @@ function PlayerPage() {
             row["set5_position"],
         ];
 
-        const count = positions.filter((position) => typeof position === "string" && position.trim() !== "").length;
+        const count = positions.filter(
+            (position) => typeof position === "string" && position.trim() !== "",
+        ).length;
         return count;
     };
 
@@ -490,28 +534,18 @@ function PlayerPage() {
         });
     }, [filteredAppearances]);
 
-    const shirtNumbers = [
-        ...new Set(
-            appearances
-                .map((a) => a.shirt_number)
-                .filter(Boolean)
-        ),
-    ].sort((a, b) => Number(a) - Number(b));
+    const shirtNumbers = [...new Set(appearances.map((a) => a.shirt_number).filter(Boolean))].sort(
+        (a, b) => Number(a) - Number(b),
+    );
 
     const amApps = appearances.filter((a) => {
         const match = getMatch(a);
-        return (
-            match?.match_type === "AM" ||
-            match?.match_type === "MAM" ||
-            match?.match_type === "VM"
-        );
+        return match?.match_type === "AM" || match?.match_type === "MAM" || match?.match_type === "VM";
     }).length;
 
     const age = player.birth_date
         ? Math.floor(
-            (Date.now() -
-                new Date(player.birth_date).getTime()) /
-            (365.25 * 24 * 60 * 60 * 1000)
+            (Date.now() - new Date(player.birth_date).getTime()) / (365.25 * 24 * 60 * 60 * 1000),
         )
         : null;
 
@@ -523,30 +557,31 @@ function PlayerPage() {
         LIB: "Libero",
     };
 
-    const debutOpponent = currentLanguage === "et"
-        ? debutMatchRecord?.opponent
-        : debutMatchRecord?.opponent_en ?? debutMatchRecord?.opponent;
-    const debutCompetition = currentLanguage === "et"
-        ? debutMatchRecord?.competition
-        : debutMatchRecord?.competition_en ?? debutMatchRecord?.competition;
-    const lastOpponent = currentLanguage === "et"
-        ? lastMatchRecord?.opponent
-        : lastMatchRecord?.opponent_en ?? lastMatchRecord?.opponent;
-    const lastCompetition = currentLanguage === "et"
-        ? lastMatchRecord?.competition
-        : lastMatchRecord?.competition_en ?? lastMatchRecord?.competition;
+    const debutOpponent =
+        currentLanguage === "et"
+            ? debutMatchRecord?.opponent
+            : (debutMatchRecord?.opponent_en ?? debutMatchRecord?.opponent);
+    const debutCompetition =
+        currentLanguage === "et"
+            ? debutMatchRecord?.competition
+            : (debutMatchRecord?.competition_en ?? debutMatchRecord?.competition);
+    const lastOpponent =
+        currentLanguage === "et"
+            ? lastMatchRecord?.opponent
+            : (lastMatchRecord?.opponent_en ?? lastMatchRecord?.opponent);
+    const lastCompetition =
+        currentLanguage === "et"
+            ? lastMatchRecord?.competition
+            : (lastMatchRecord?.competition_en ?? lastMatchRecord?.competition);
 
     const localizedPosition =
         currentLanguage === "et"
-            ? player.position_name_ee ??
-            player.position_name ??
-            positionLabels[player.position ?? ""] ??
-            player.position ??
-            "N/A"
-            : player.position_name ??
-            positionLabels[player.position ?? ""] ??
-            player.position ??
-            "N/A";
+            ? (player.position_name_ee ??
+                player.position_name ??
+                positionLabels[player.position ?? ""] ??
+                player.position ??
+                "N/A")
+            : (player.position_name ?? positionLabels[player.position ?? ""] ?? player.position ?? "N/A");
 
     const matchHistoryTitle = currentLanguage === "et" ? "Kõik mängud" : "Match History";
     const matchHistoryDateLabel = currentLanguage === "et" ? "Kuupäev" : "Date";
@@ -554,6 +589,115 @@ function PlayerPage() {
     const matchHistoryScoreLabel = currentLanguage === "et" ? "Tulemus" : "Score";
     const matchHistoryCompetitionLabel = currentLanguage === "et" ? "Võistlus" : "Competition";
     const matchHistorySetsLabel = currentLanguage === "et" ? "Geime" : "Sets";
+    const minReceptionsLabel =
+        currentLanguage === "et" ? "(min 10 vastuvõttu)" : "(min 10 receptions)";
+    const minAttacksLabel = currentLanguage === "et" ? "(min 10 rünnakut)" : "(min 10 attacks)";
+
+    const statFieldLabels: Record<string, string> = {
+        points: t("players.statsField.points"),
+        break_points: t("players.statsField.breakPoints"),
+        plus_minus: t("players.statsField.plusMinus"),
+        serve_total: t("players.statsField.serveTotal"),
+        serve_aces: t("players.statsField.serveAces"),
+        serve_errors: t("players.statsField.serveErrors"),
+        reception_total: t("players.statsField.receptionTotal"),
+        reception_errors: t("players.statsField.receptionErrors"),
+        reception_positive_pct: `${t("players.statsField.receptionPositivePct")} ${minReceptionsLabel}`,
+        reception_excellent_pct: `${t("players.statsField.receptionExcellentPct")} ${minReceptionsLabel}`,
+        attack_total: t("players.statsField.attackTotal"),
+        attack_errors: t("players.statsField.attackErrors"),
+        attack_blocked: t("players.statsField.attackBlocked"),
+        attack_kills: t("players.statsField.attackKills"),
+        attack_kill_pct: `${t("players.statsField.attackKillPct")} ${minAttacksLabel}`,
+        attack_efficiency: `${t("players.statsField.attackEfficiency")} ${minAttacksLabel}`,
+        block_points: t("players.statsField.blockPoints"),
+    };
+
+    const gameHighRows = useMemo<
+        Array<{
+            field: (typeof statColumns)[number]["field"];
+            label: string;
+            result: {
+                value: number;
+                appearance: PlayerAppearance;
+                match: MatchRecord;
+            } | null;
+        }>
+    >(() => {
+        return statColumns.map((column) => {
+            let best: {
+                value: number;
+                appearance: PlayerAppearance;
+                match: MatchRecord;
+            } | null = null;
+
+            filteredAppearances.forEach((appearance) => {
+                const match = getMatch(appearance);
+                if (!match) return;
+
+                const stats = pickStatsRowForMode(appearance.player_match_stats);
+                if (!stats) return;
+
+                const receptionAttempts =
+                    typeof stats.reception_total === "number" ? stats.reception_total : 0;
+                const attackAttempts = typeof stats.attack_total === "number" ? stats.attack_total : 0;
+
+                if (
+                    (column.field === "reception_positive_pct" ||
+                        column.field === "reception_excellent_pct") &&
+                    receptionAttempts < 10
+                ) {
+                    return;
+                }
+
+                if (
+                    (column.field === "attack_kill_pct" || column.field === "attack_efficiency") &&
+                    attackAttempts < 10
+                ) {
+                    return;
+                }
+
+                let value: number | null = null;
+                if (column.field === "attack_efficiency") {
+                    value = computeAttackEff(stats);
+                } else if (column.field === "attack_kill_pct") {
+                    if (typeof stats.attack_kill_pct === "number") {
+                        value = stats.attack_kill_pct;
+                    } else if (
+                        typeof stats.attack_total === "number" &&
+                        stats.attack_total > 0 &&
+                        typeof stats.attack_kills === "number"
+                    ) {
+                        value = (stats.attack_kills / stats.attack_total) * 100;
+                    }
+                } else {
+                    const raw = stats[column.field as keyof typeof stats];
+                    value = typeof raw === "number" ? raw : null;
+                }
+
+                if (value == null) return;
+
+                if (!best || value > best.value) {
+                    best = { value, appearance, match };
+                    return;
+                }
+
+                if (best && value === best.value) {
+                    const currentTime = new Date(match.match_date).getTime();
+                    const bestTime = new Date(best.match.match_date).getTime();
+                    if (currentTime > bestTime) {
+                        best = { value, appearance, match };
+                    }
+                }
+            });
+
+            return {
+                field: column.field,
+                label: statFieldLabels[column.field] ?? column.field,
+                result: best,
+            };
+        });
+    }, [filteredAppearances, statColumns, currentLanguage]);
 
     return (
         <div>
@@ -569,22 +713,17 @@ function PlayerPage() {
                             className="h-63 w-48 rounded-2xl border-2 border-white/20 object-cover"
                         />
                         <div className="col-span-2">
-
                             <h1 className="font-display text-5xl uppercase italic">
                                 {player.first_name} {player.last_name}
                             </h1>
 
                             <div className="mt-8 grid gap-x-16 gap-y-4 text-white/80 md:grid-cols-2">
-
                                 <div className="space-y-5">
-
                                     <div>
                                         <div className="text-xs uppercase tracking-widest text-white/50">
                                             {t("players.position")}
                                         </div>
-                                        <div className="mt-1">
-                                            🏐 {localizedPosition}
-                                        </div>
+                                        <div className="mt-1">🏐 {localizedPosition}</div>
                                     </div>
 
                                     <div>
@@ -592,11 +731,7 @@ function PlayerPage() {
                                             {t("players.height")}
                                         </div>
                                         <div className="mt-1">
-                                            📏 {
-                                                player.height_cm
-                                                    ? `${player.height_cm} cm`
-                                                    : "N/A"
-                                            }
+                                            📏 {player.height_cm ? `${player.height_cm} cm` : "N/A"}
                                         </div>
                                     </div>
 
@@ -605,30 +740,23 @@ function PlayerPage() {
                                             {t("players.birth_date")}
                                         </div>
                                         <div className="mt-1">
-                                            🎂 {
-                                                player.birth_date
-                                                    ? new Date(
-                                                        player.birth_date
-                                                    ).toLocaleDateString("en-GB")
-                                                    : "N/A"
-                                            }
+                                            🎂{" "}
+                                            {player.birth_date
+                                                ? new Date(player.birth_date).toLocaleDateString("en-GB")
+                                                : "N/A"}
                                             {age ? ` (${age})` : ""}
                                         </div>
                                     </div>
-
                                 </div>
 
                                 <div className="space-y-5">
-
                                     <div>
                                         <div className="text-xs uppercase tracking-widest text-white/50">
                                             {t("players.place_of_birth")}
                                         </div>
                                         <div className="mt-1">
                                             📍 {player.place_of_birth ?? "N/A"}
-                                            {player.birth_county
-                                                ? `, ${player.birth_county}`
-                                                : ""}
+                                            {player.birth_county ? `, ${player.birth_county}` : ""}
                                         </div>
                                     </div>
 
@@ -636,9 +764,7 @@ function PlayerPage() {
                                         <div className="text-xs uppercase tracking-widest text-white/50">
                                             {t("players.handedness")}
                                         </div>
-                                        <div className="mt-1">
-                                            ✋ {player.handedness ?? "N/A"}
-                                        </div>
+                                        <div className="mt-1">✋ {player.handedness ?? "N/A"}</div>
                                     </div>
 
                                     <div>
@@ -646,22 +772,14 @@ function PlayerPage() {
                                             {t("players.shirt_numbers")}
                                         </div>
                                         <div className="mt-1">
-                                            👕 {
-                                                shirtNumbers.length > 0
-                                                    ? shirtNumbers.join(", ")
-                                                    : "N/A"
-                                            }
+                                            👕 {shirtNumbers.length > 0 ? shirtNumbers.join(", ") : "N/A"}
                                         </div>
                                     </div>
-
                                 </div>
-
                             </div>
-
                         </div>
 
                         <div className="space-y-4">
-
                             <InfoCard
                                 title={t("players.national_team_debut")}
                                 date={debutMatchRecord?.match_date}
@@ -678,7 +796,7 @@ function PlayerPage() {
                         </div>
                     </div>
                 </div>
-            </header >
+            </header>
 
             <main className="mx-auto max-w-[1480px] px-4 py-8 sm:px-6 sm:py-10 lg:px-14">
                 <section className="mb-10 rounded-3xl border border-slate-200 bg-slate-50 p-4 shadow-sm sm:p-6">
@@ -690,46 +808,50 @@ function PlayerPage() {
                                     onClick={() => setStatsMode(mode)}
                                     className={`rounded-full border px-2.5 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] transition ${statsMode === mode ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 bg-white text-slate-700 hover:bg-slate-100"}`}
                                 >
-                                    {t(`common.${mode === "official" ? "official" : mode === "competitive" ? "competitive" : "allMatches"}`)}
+                                    {t(
+                                        `common.${mode === "official" ? "official" : mode === "competitive" ? "competitive" : "allMatches"}`,
+                                    )}
                                 </button>
                             ))}
                         </div>
 
                         <div className="grid gap-2 sm:grid-cols-3">
                             <div>
-                                <span className="sr-only">
-                                    {t("players.statsFilter.year")}
-                                </span>
+                                <span className="sr-only">{t("players.statsFilter.year")}</span>
                                 <MultiSelect
                                     options={yearOptions.map((y) => ({ value: y, label: y }))}
                                     value={selectedYear}
-                                    onChange={(v) => setSelectedYear(v.length === 0 ? ["all"] : v.includes("all") ? ["all"] : v)}
+                                    onChange={(v) =>
+                                        setSelectedYear(v.length === 0 ? ["all"] : v.includes("all") ? ["all"] : v)
+                                    }
                                     placeholder={t("players.statsFilter.allYears")}
                                     className="w-full"
                                 />
                             </div>
 
                             <div>
-                                <span className="sr-only">
-                                    {t("players.statsFilter.competition")}
-                                </span>
+                                <span className="sr-only">{t("players.statsFilter.competition")}</span>
                                 <MultiSelect
                                     options={competitionOptions.map((c) => ({ value: c, label: c }))}
                                     value={selectedCompetition}
-                                    onChange={(v) => setSelectedCompetition(v.length === 0 ? ["all"] : v.includes("all") ? ["all"] : v)}
+                                    onChange={(v) =>
+                                        setSelectedCompetition(
+                                            v.length === 0 ? ["all"] : v.includes("all") ? ["all"] : v,
+                                        )
+                                    }
                                     placeholder={t("players.statsFilter.allCompetitions")}
                                     className="w-full"
                                 />
                             </div>
 
                             <div>
-                                <span className="sr-only">
-                                    {t("players.statsFilter.opponent")}
-                                </span>
+                                <span className="sr-only">{t("players.statsFilter.opponent")}</span>
                                 <MultiSelect
                                     options={opponentOptions.map((o) => ({ value: o, label: o }))}
                                     value={selectedOpponent}
-                                    onChange={(v) => setSelectedOpponent(v.length === 0 ? ["all"] : v.includes("all") ? ["all"] : v)}
+                                    onChange={(v) =>
+                                        setSelectedOpponent(v.length === 0 ? ["all"] : v.includes("all") ? ["all"] : v)
+                                    }
                                     placeholder={t("players.statsFilter.allOpponents")}
                                     className="w-full"
                                 />
@@ -752,22 +874,51 @@ function PlayerPage() {
                         <table className="w-full table-fixed border-collapse">
                             <thead className="bg-slate-50">
                                 <tr className="border-b-2 border-slate-300">
-                                    <th rowSpan={2} className="sticky left-0 z-10 border-r-2 border-slate-300 bg-slate-50 px-3 py-2 text-left text-[9px] font-bold uppercase tracking-[0.16em] text-slate-600"></th>
+                                    <th
+                                        rowSpan={2}
+                                        className="sticky left-0 z-10 border-r-2 border-slate-300 bg-slate-50 px-3 py-2 text-left text-[9px] font-bold uppercase tracking-[0.16em] text-slate-600"
+                                    ></th>
 
-                                    <th colSpan={3} className="border-r-2 border-slate-300 px-1.5 py-2 text-center text-[9px] font-bold uppercase tracking-[0.16em] text-slate-500"></th>
+                                    <th
+                                        colSpan={3}
+                                        className="border-r-2 border-slate-300 px-1.5 py-2 text-center text-[9px] font-bold uppercase tracking-[0.16em] text-slate-500"
+                                    ></th>
 
-                                    <th colSpan={3} className="border-r-2 border-slate-300 px-1.5 py-2 text-center text-[9px] font-bold uppercase tracking-[0.16em] text-slate-500">{t("players.statsGroup.serve")}</th>
+                                    <th
+                                        colSpan={3}
+                                        className="border-r-2 border-slate-300 px-1.5 py-2 text-center text-[9px] font-bold uppercase tracking-[0.16em] text-slate-500"
+                                    >
+                                        {t("players.statsGroup.serve")}
+                                    </th>
 
-                                    <th colSpan={4} className="border-r-2 border-slate-300 px-1.5 py-2 text-center text-[9px] font-bold uppercase tracking-[0.16em] text-slate-500">{t("players.statsGroup.reception")}</th>
+                                    <th
+                                        colSpan={4}
+                                        className="border-r-2 border-slate-300 px-1.5 py-2 text-center text-[9px] font-bold uppercase tracking-[0.16em] text-slate-500"
+                                    >
+                                        {t("players.statsGroup.reception")}
+                                    </th>
 
-                                    <th colSpan={6} className="border-r-2 border-slate-300 px-1.5 py-2 text-center text-[9px] font-bold uppercase tracking-[0.16em] text-slate-500">{t("players.statsGroup.attack")}</th>
+                                    <th
+                                        colSpan={6}
+                                        className="border-r-2 border-slate-300 px-1.5 py-2 text-center text-[9px] font-bold uppercase tracking-[0.16em] text-slate-500"
+                                    >
+                                        {t("players.statsGroup.attack")}
+                                    </th>
 
-                                    <th colSpan={1} className="px-1.5 py-2 text-center text-[9px] font-bold uppercase tracking-[0.16em] text-slate-500">{t("players.statsGroup.blocks")}</th>
+                                    <th
+                                        colSpan={1}
+                                        className="px-1.5 py-2 text-center text-[9px] font-bold uppercase tracking-[0.16em] text-slate-500"
+                                    >
+                                        {t("players.statsGroup.blocks")}
+                                    </th>
                                 </tr>
 
                                 <tr className="border-b-2 border-slate-300">
                                     {statColumns.map((column) => (
-                                        <th key={column.field} className={`whitespace-nowrap px-1.5 py-2 text-center text-[9px] font-bold uppercase tracking-[0.16em] text-slate-600 ${column.field === "plus_minus" || column.field === "serve_errors" || column.field === "reception_excellent_pct" || column.field === "attack_efficiency" ? "border-r-2 border-slate-300" : "border-r border-slate-200"}`}>
+                                        <th
+                                            key={column.field}
+                                            className={`whitespace-nowrap px-1.5 py-2 text-center text-[9px] font-bold uppercase tracking-[0.16em] text-slate-600 ${column.field === "plus_minus" || column.field === "serve_errors" || column.field === "reception_excellent_pct" || column.field === "attack_efficiency" ? "border-r-2 border-slate-300" : "border-r border-slate-200"}`}
+                                        >
                                             {column.label}
                                         </th>
                                     ))}
@@ -776,25 +927,35 @@ function PlayerPage() {
 
                             <tbody className="divide-y divide-slate-100">
                                 <tr className="bg-slate-50 font-semibold uppercase tracking-[0.16em] text-slate-600">
-                                    <td className="sticky left-0 z-10 border-r-2 border-slate-300 bg-inherit px-3 py-2 text-xs">AVG</td>
+                                    <td className="sticky left-0 z-10 border-r-2 border-slate-300 bg-inherit px-3 py-2 text-xs">
+                                        AVG
+                                    </td>
                                     {statColumns.map((column) => (
-                                        <td key={`${column.field}-avg`} className={`whitespace-nowrap px-1.5 py-2 text-center text-xs text-slate-700 ${column.field === "plus_minus" || column.field === "serve_errors" || column.field === "reception_excellent_pct" || column.field === "attack_efficiency" ? "border-r-2 border-slate-300" : "border-r border-slate-200"}`}>
+                                        <td
+                                            key={`${column.field}-avg`}
+                                            className={`whitespace-nowrap px-1.5 py-2 text-center text-xs text-slate-700 ${column.field === "plus_minus" || column.field === "serve_errors" || column.field === "reception_excellent_pct" || column.field === "attack_efficiency" ? "border-r-2 border-slate-300" : "border-r border-slate-200"}`}
+                                        >
                                             {formatStatValue(column.field, filteredSummary.averages[column.field])}
                                         </td>
                                     ))}
                                 </tr>
 
                                 <tr className="bg-white font-semibold text-slate-900">
-                                    <td className="sticky left-0 z-10 border-r-2 border-slate-300 bg-inherit px-3 py-2 text-xs">TOT</td>
+                                    <td className="sticky left-0 z-10 border-r-2 border-slate-300 bg-inherit px-3 py-2 text-xs">
+                                        TOT
+                                    </td>
                                     {statColumns.map((column) => (
-                                        <td key={`${column.field}-tot`} className={`whitespace-nowrap px-1.5 py-2 text-center text-xs text-slate-700 ${column.field === "plus_minus" || column.field === "serve_errors" || column.field === "reception_excellent_pct" || column.field === "attack_efficiency" ? "border-r-2 border-slate-300" : "border-r border-slate-200"}`}>
+                                        <td
+                                            key={`${column.field}-tot`}
+                                            className={`whitespace-nowrap px-1.5 py-2 text-center text-xs text-slate-700 ${column.field === "plus_minus" || column.field === "serve_errors" || column.field === "reception_excellent_pct" || column.field === "attack_efficiency" ? "border-r-2 border-slate-300" : "border-r border-slate-200"}`}
+                                        >
                                             {formatStatValue(
                                                 column.field,
                                                 isPercentField(column.field)
                                                     ? filteredSummary.averages[column.field]
                                                     : filteredSummary.counts[column.field] > 0
                                                         ? filteredSummary.totals[column.field]
-                                                        : null
+                                                        : null,
                                             )}
                                         </td>
                                     ))}
@@ -802,11 +963,88 @@ function PlayerPage() {
                             </tbody>
                         </table>
                     </div>
+
+                    <h3 className="mt-4 mb-2 font-display text-2xl uppercase italic text-slate-900">
+                        {currentLanguage === "et" ? "Ühe mängu parimad" : "Game Highs"}
+                    </h3>
+
+                    <div className="mt-4 overflow-x-auto rounded-3xl border border-slate-200 bg-white shadow-sm">
+                        <table className="w-full min-w-[980px] border-collapse">
+                            <thead className="bg-slate-50">
+                                <tr className="border-b border-slate-200">
+                                    <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-slate-600">
+                                        {t("players.statsField.stat")}
+                                    </th>
+                                    <th className="px-3 py-2 text-center text-[10px] font-bold uppercase tracking-[0.16em] text-slate-600">
+                                        {t("gameHighs.table.value")}
+                                    </th>
+                                    <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-slate-600">
+                                        {t("gameHighs.table.opponent")}
+                                    </th>
+                                    <th className="px-3 py-2 text-center text-[10px] font-bold uppercase tracking-[0.16em] text-slate-600">
+                                        {t("gameHighs.table.score")}
+                                    </th>
+                                    <th className="px-3 py-2 text-center text-[10px] font-bold uppercase tracking-[0.16em] text-slate-600">
+                                        {t("gameHighs.table.date")}
+                                    </th>
+                                    <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-slate-600">
+                                        {t("gameHighs.table.competition")}
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {gameHighRows.map((item) => {
+                                    const best = item.result;
+                                    const match = best?.match;
+                                    const appearance = best?.appearance;
+                                    const scoreTarget =
+                                        match?.match_type === "MAM" ? "/match/$matchId/all" : "/match/$matchId";
+                                    const resultStyle =
+                                        match && match.estonia_sets > match.opponent_sets
+                                            ? "text-estonia-blue"
+                                            : match && match.estonia_sets === match.opponent_sets
+                                                ? "text-green-700"
+                                                : "text-red-700";
+
+                                    return (
+                                        <tr key={item.field} className="border-t border-slate-100">
+                                            <td className="px-3 py-2 text-sm text-slate-700">{item.label}</td>
+                                            <td className="px-3 py-2 text-center text-sm font-semibold text-estonia-dark">
+                                                {best ? formatStatValue(item.field, best.value) : "—"}
+                                            </td>
+                                            <td className="px-3 py-2 text-sm text-slate-700">
+                                                {match ? getLocalizedOpponent(match) : "—"}
+                                            </td>
+                                            <td className="px-3 py-2 text-center text-sm">
+                                                {match && appearance ? (
+                                                    <Link
+                                                        to={scoreTarget}
+                                                        params={{
+                                                            matchId: String(appearance.match_id),
+                                                        }}
+                                                        className={`font-semibold hover:underline ${resultStyle}`}
+                                                    >
+                                                        {match.estonia_sets}-{match.opponent_sets}
+                                                    </Link>
+                                                ) : (
+                                                    "—"
+                                                )}
+                                            </td>
+                                            <td className="px-3 py-2 text-center text-sm text-slate-700">
+                                                {match ? new Date(match.match_date).toLocaleDateString("en-GB") : "—"}
+                                            </td>
+                                            <td className="px-3 py-2 text-sm text-slate-700">
+                                                {match ? (getLocalizedCompetition(match) ?? "—") : "—"}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
                 </section>
 
-                <h2 className="mb-6 font-display text-3xl uppercase italic">
-                    {matchHistoryTitle}
-                </h2>
+                <h2 className="mb-6 font-display text-3xl uppercase italic">{matchHistoryTitle}</h2>
 
                 <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
                     <div className="min-w-[920px]">
@@ -824,9 +1062,7 @@ function PlayerPage() {
                             if (!match) return null;
 
                             const scoreTarget =
-                                match.match_type === "MAM"
-                                    ? "/match/$matchId/all"
-                                    : "/match/$matchId";
+                                match.match_type === "MAM" ? "/match/$matchId/all" : "/match/$matchId";
                             const resultStyle =
                                 match.estonia_sets > match.opponent_sets
                                     ? "text-estonia-blue"
@@ -839,19 +1075,13 @@ function PlayerPage() {
                                     key={a.appearance_id}
                                     className="grid grid-cols-13 gap-3 border-t border-slate-100 px-6 py-4"
                                 >
-                                    <div className="col-span-1 text-center text-slate-500">
-                                        {index + 1}
-                                    </div>
+                                    <div className="col-span-1 text-center text-slate-500">{index + 1}</div>
 
                                     <div className="col-span-2">
-                                        {new Date(
-                                            match.match_date
-                                        ).toLocaleDateString("en-GB")}
+                                        {new Date(match.match_date).toLocaleDateString("en-GB")}
                                     </div>
 
-                                    <div className="col-span-3">
-                                        {getLocalizedOpponent(match)}
-                                    </div>
+                                    <div className="col-span-3">{getLocalizedOpponent(match)}</div>
 
                                     <div className="col-span-2 text-center">
                                         <Link
@@ -861,25 +1091,20 @@ function PlayerPage() {
                                             }}
                                             className={`font-semibold hover:underline ${resultStyle}`}
                                         >
-                                            {match.estonia_sets}–
-                                            {match.opponent_sets}
+                                            {match.estonia_sets}–{match.opponent_sets}
                                         </Link>
                                     </div>
 
-                                    <div className="col-span-4">
-                                        {getLocalizedCompetition(match)}
-                                    </div>
+                                    <div className="col-span-4">{getLocalizedCompetition(match)}</div>
 
-                                    <div className="col-span-1 text-center">
-                                        {getSetCountFromPositions(a)}
-                                    </div>
+                                    <div className="col-span-1 text-center">{getSetCountFromPositions(a)}</div>
                                 </div>
                             );
                         })}
                     </div>
                 </div>
             </main>
-        </div >
+        </div>
     );
 }
 
@@ -902,20 +1127,12 @@ function InfoCard({
 
             <div className="mt-2 text-center">
                 <div className="font-semibold">
-                    {date
-                        ? new Date(date).toLocaleDateString("en-GB")
-                        : "N/A"}
+                    {date ? new Date(date).toLocaleDateString("en-GB") : "N/A"}
                 </div>
 
-                <div className="mt-1 text-sm text-white/80">
-                    {opponent
-                        ? `vs ${opponent}`
-                        : "N/A"}
-                </div>
+                <div className="mt-1 text-sm text-white/80">{opponent ? `vs ${opponent}` : "N/A"}</div>
 
-                <div className="mt-1 text-xs text-white/60">
-                    {competition ?? "N/A"}
-                </div>
+                <div className="mt-1 text-xs text-white/60">{competition ?? "N/A"}</div>
             </div>
         </div>
     );

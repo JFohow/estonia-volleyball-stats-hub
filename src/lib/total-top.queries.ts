@@ -30,78 +30,116 @@ export type TotalTopRow = {
   name: string;
   position: string | null;
   photoUrl: string | null;
+  appearances: TotalTopAppearance[];
   official: PlayerTotals;
   competitive: PlayerTotals;
   nonOfficial: PlayerTotals;
   all: PlayerTotals;
 };
 
+export type TotalTopAppearance = {
+  appearanceId: number;
+  matchId: number;
+  matchDate: string;
+  opponent: string;
+  opponentEn: string | null;
+  competition: string | null;
+  competitionEn: string | null;
+  estoniaSets: number;
+  opponentSets: number;
+  vm: boolean | null;
+  am: boolean | null;
+  mam: boolean | null;
+  onTheBench: boolean;
+  statsRows: PlayerMatchStatsRow[];
+};
+
 type AppearanceRow = {
+  appearance_id: number;
   player_id: number;
+  match_id: number;
   sets_played: number | null;
   on_the_bench: boolean | null;
   matches:
-  | {
-    vm: boolean | null;
-    am: boolean | null;
-    mam: boolean | null;
-  }
-  | Array<{
-    vm: boolean | null;
-    am: boolean | null;
-    mam: boolean | null;
-  }>
-  | null;
+    | {
+        match_id: number;
+        match_date: string;
+        opponent: string;
+        opponent_en: string | null;
+        competition: string | null;
+        competition_en: string | null;
+        estonia_sets: number;
+        opponent_sets: number;
+        vm: boolean | null;
+        am: boolean | null;
+        mam: boolean | null;
+      }
+    | Array<{
+        match_id: number;
+        match_date: string;
+        opponent: string;
+        opponent_en: string | null;
+        competition: string | null;
+        competition_en: string | null;
+        estonia_sets: number;
+        opponent_sets: number;
+        vm: boolean | null;
+        am: boolean | null;
+        mam: boolean | null;
+      }>
+    | null;
   player_match_stats:
-  | {
-    points: number | null;
-    block_points: number | null;
-    plus_minus: number | null;
-    serve_total: number | null;
-    serve_aces: number | null;
-    serve_errors: number | null;
-    reception_total: number | null;
-    reception_errors: number | null;
-    reception_positive_pct: number | null;
-    reception_excellent_pct: number | null;
-    attack_total: number | null;
-    attack_errors: number | null;
-    attack_blocked: number | null;
-    attack_kills: number | null;
-    attack_kill_pct: number | null;
-    attack_efficiency: number | null;
-    break_points: number | null;
-    set1_position: string | null;
-    set2_position: string | null;
-    set3_position: string | null;
-    set4_position: string | null;
-    set5_position: string | null;
-  }
-  | Array<{
-    points: number | null;
-    block_points: number | null;
-    plus_minus: number | null;
-    serve_total: number | null;
-    serve_aces: number | null;
-    serve_errors: number | null;
-    reception_total: number | null;
-    reception_errors: number | null;
-    reception_positive_pct: number | null;
-    reception_excellent_pct: number | null;
-    attack_total: number | null;
-    attack_errors: number | null;
-    attack_blocked: number | null;
-    attack_kills: number | null;
-    attack_kill_pct: number | null;
-    attack_efficiency: number | null;
-    break_points: number | null;
-    set1_position: string | null;
-    set2_position: string | null;
-    set3_position: string | null;
-    set4_position: string | null;
-    set5_position: string | null;
-  }>
-  | null;
+    | {
+        points: number | null;
+        block_points: number | null;
+        plus_minus: number | null;
+        serve_total: number | null;
+        serve_aces: number | null;
+        serve_errors: number | null;
+        reception_total: number | null;
+        reception_errors: number | null;
+        reception_positive_pct: number | null;
+        reception_excellent_pct: number | null;
+        attack_total: number | null;
+        attack_errors: number | null;
+        attack_blocked: number | null;
+        attack_kills: number | null;
+        attack_kill_pct: number | null;
+        attack_efficiency: number | null;
+        break_points: number | null;
+        stats_version: string | null;
+        set1_position: string | null;
+        set2_position: string | null;
+        set3_position: string | null;
+        set4_position: string | null;
+        set5_position: string | null;
+      }
+    | Array<{
+        points: number | null;
+        block_points: number | null;
+        plus_minus: number | null;
+        serve_total: number | null;
+        serve_aces: number | null;
+        serve_errors: number | null;
+        reception_total: number | null;
+        reception_errors: number | null;
+        reception_positive_pct: number | null;
+        reception_excellent_pct: number | null;
+        attack_total: number | null;
+        attack_errors: number | null;
+        attack_blocked: number | null;
+        attack_kills: number | null;
+        attack_kill_pct: number | null;
+        attack_efficiency: number | null;
+        break_points: number | null;
+        stats_version: string | null;
+        set1_position: string | null;
+        set2_position: string | null;
+        set3_position: string | null;
+        set4_position: string | null;
+        set5_position: string | null;
+      }>
+    | null;
 };
 
 type PlayerMatchStatsRow = {
@@ -122,6 +160,7 @@ type PlayerMatchStatsRow = {
   attack_kill_pct: number | null;
   attack_efficiency: number | null;
   break_points: number | null;
+  stats_version: string | null;
   set1_position: string | null;
   set2_position: string | null;
   set3_position: string | null;
@@ -158,6 +197,39 @@ function normalizeRelation<T>(value: T | T[] | null): T | null {
     return value[0] ?? null;
   }
   return value;
+}
+
+function normalizeRelations<T>(value: T | T[] | null): T[] {
+  if (Array.isArray(value)) {
+    return value.filter((item): item is T => Boolean(item));
+  }
+
+  return value ? [value] : [];
+}
+
+function pickStatsRowForMode(
+  rows: PlayerMatchStatsRow[],
+  mode: "all" | "am",
+): PlayerMatchStatsRow | null {
+  if (rows.length === 0) {
+    return null;
+  }
+
+  if (mode === "all") {
+    return (
+      rows.find((row) => row.stats_version === "ALL") ??
+      rows.find((row) => row.stats_version === "AM") ??
+      rows[0] ??
+      null
+    );
+  }
+
+  return (
+    rows.find((row) => row.stats_version === "AM") ??
+    rows.find((row) => row.stats_version === "ALL") ??
+    rows[0] ??
+    null
+  );
 }
 
 function createTotals(): PlayerTotals {
@@ -200,7 +272,11 @@ function createTotalsAccumulator(): TotalsAccumulator {
   };
 }
 
-function updateTotals(accumulator: TotalsAccumulator, appearance: AppearanceRow, stats: PlayerMatchStatsRow | null) {
+function updateTotals(
+  accumulator: TotalsAccumulator,
+  appearance: AppearanceRow,
+  stats: PlayerMatchStatsRow | null,
+) {
   const totals = accumulator.totals;
 
   totals.appearances += 1;
@@ -270,7 +346,9 @@ function computeAttackEfficiency(totals: PlayerTotals): number {
   if (!totals.attackTotal) {
     return 0;
   }
-  return ((totals.attackKills - totals.attackBlocked - totals.attackErrors) / totals.attackTotal) * 100;
+  return (
+    ((totals.attackKills - totals.attackBlocked - totals.attackErrors) / totals.attackTotal) * 100
+  );
 }
 
 async function fetchTotalTop(): Promise<TotalTopRow[]> {
@@ -283,22 +361,26 @@ async function fetchTotalTop(): Promise<TotalTopRow[]> {
   const appearancesResponse = await supabase
     .from("appearances")
     .select(
-      `player_id, sets_played, on_the_bench, matches(vm, am, mam), player_match_stats!inner(points, block_points, plus_minus, serve_total, serve_aces, serve_errors, reception_total, reception_errors, reception_positive_pct, reception_excellent_pct, attack_total, attack_errors, attack_blocked, attack_kills, attack_kill_pct, attack_efficiency, break_points, set1_position, set2_position, set3_position, set4_position, set5_position)`
+      `appearance_id, player_id, match_id, sets_played, on_the_bench, matches(match_id, match_date, opponent, opponent_en, competition, competition_en, estonia_sets, opponent_sets, vm, am, mam), player_match_stats!inner(points, block_points, plus_minus, serve_total, serve_aces, serve_errors, reception_total, reception_errors, reception_positive_pct, reception_excellent_pct, attack_total, attack_errors, attack_blocked, attack_kills, attack_kill_pct, attack_efficiency, break_points, stats_version, set1_position, set2_position, set3_position, set4_position, set5_position)`,
     );
 
   if (appearancesResponse.error) throw appearancesResponse.error;
 
-  const totalsByPlayer = new Map<number, {
-    official: TotalsAccumulator;
-    competitive: TotalsAccumulator;
-    nonOfficial: TotalsAccumulator;
-    all: TotalsAccumulator;
-  }>();
+  const totalsByPlayer = new Map<
+    number,
+    {
+      official: TotalsAccumulator;
+      competitive: TotalsAccumulator;
+      nonOfficial: TotalsAccumulator;
+      all: TotalsAccumulator;
+    }
+  >();
+  const appearancesByPlayer = new Map<number, TotalTopAppearance[]>();
   const appearances = (appearancesResponse.data ?? []) as AppearanceRow[];
 
   for (const appearance of appearances) {
     const match = normalizeRelation(appearance.matches);
-    const stats = normalizeRelation(appearance.player_match_stats);
+    const statsRows = normalizeRelations(appearance.player_match_stats);
 
     if (!match) {
       continue;
@@ -316,18 +398,37 @@ async function fetchTotalTop(): Promise<TotalTopRow[]> {
     };
 
     if (isOfficial) {
-      updateTotals(totals.official, appearance, stats);
+      updateTotals(totals.official, appearance, pickStatsRowForMode(statsRows, "am"));
     }
 
     if (isCompetitive) {
-      updateTotals(totals.competitive, appearance, stats);
+      updateTotals(totals.competitive, appearance, pickStatsRowForMode(statsRows, "am"));
     }
 
     if (isNonOfficial) {
-      updateTotals(totals.nonOfficial, appearance, stats);
+      updateTotals(totals.nonOfficial, appearance, pickStatsRowForMode(statsRows, "am"));
     }
 
-    updateTotals(totals.all, appearance, stats);
+    updateTotals(totals.all, appearance, pickStatsRowForMode(statsRows, "all"));
+
+    const playerAppearances = appearancesByPlayer.get(appearance.player_id) ?? [];
+    playerAppearances.push({
+      appearanceId: appearance.appearance_id,
+      matchId: appearance.match_id,
+      matchDate: match.match_date,
+      opponent: match.opponent,
+      opponentEn: match.opponent_en,
+      competition: match.competition,
+      competitionEn: match.competition_en,
+      estoniaSets: match.estonia_sets,
+      opponentSets: match.opponent_sets,
+      vm: match.vm,
+      am: match.am,
+      mam: match.mam,
+      onTheBench: Boolean(appearance.on_the_bench),
+      statsRows,
+    });
+    appearancesByPlayer.set(appearance.player_id, playerAppearances);
 
     totalsByPlayer.set(appearance.player_id, totals);
   }
@@ -362,6 +463,7 @@ async function fetchTotalTop(): Promise<TotalTopRow[]> {
       name: `${player.first_name} ${player.last_name}`,
       position: player.position,
       photoUrl: player.photo_url,
+      appearances: appearancesByPlayer.get(player.player_id) ?? [],
       official: totals.official.totals,
       competitive: totals.competitive.totals,
       nonOfficial: totals.nonOfficial.totals,
