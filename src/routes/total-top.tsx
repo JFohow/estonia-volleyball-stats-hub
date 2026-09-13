@@ -1,5 +1,5 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { totalTopOptions, type PlayerTotals } from "@/lib/total-top.queries";
 import {
@@ -17,23 +17,32 @@ const positionOrder = ["SET", "OPP", "OH", "MB", "LIB"];
 
 type TotalTopStatKey =
     | "appearances"
+    | "matchesNotPlayed"
     | "sets"
+    | "setsStarted"
+    | "setsBench"
     | "points"
     | "blockPoints"
     | "plusMinus"
     | "serveTotal"
     | "serveAces"
     | "serveErrors"
+    | "serveErrorsLeast"
+    | "serveAceErrorRatio"
     | "receptionTotal"
     | "receptionErrors"
     | "receptionPositivePct"
+    | "receptionPositivePctWorst"
     | "receptionExcellentPct"
+    | "receptionExcellentPctWorst"
     | "attackTotal"
     | "attackErrors"
     | "attackBlocked"
     | "attackKills"
     | "attackKillPct"
+    | "attackKillPctWorst"
     | "attackEfficiency"
+    | "attackEfficiencyWorst"
     | "breakPoints";
 
 type MatchType = "OFFICIAL" | "COMPETITIVE" | "NON_OFFICIAL" | "ALL";
@@ -73,18 +82,35 @@ function TotalTopError({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 function getStatValue(group: PlayerTotals, stat: TotalTopStatKey) {
+    if (stat === "serveErrorsLeast") return group.serveErrors;
+    if (stat === "serveAceErrorRatio") {
+        if (group.serveAces <= 0) return null;
+        return group.serveErrors / group.serveAces;
+    }
+    if (stat === "receptionPositivePctWorst") return group.receptionPositivePct;
+    if (stat === "receptionExcellentPctWorst") return group.receptionExcellentPct;
+    if (stat === "attackKillPctWorst") return group.attackKillPct;
+    if (stat === "attackEfficiencyWorst") return group.attackEfficiency;
+
     return group[stat];
 }
 
 function getPerGameValue(group: PlayerTotals, stat: TotalTopStatKey) {
+    if (stat === "serveAceErrorRatio") {
+        return getStatValue(group, stat);
+    }
+
     if (
         stat === "attackKillPct" ||
+        stat === "attackKillPctWorst" ||
         stat === "attackEfficiency" ||
+        stat === "attackEfficiencyWorst" ||
         stat === "receptionPositivePct" ||
-        stat === "receptionExcellentPct"
+        stat === "receptionPositivePctWorst" ||
+        stat === "receptionExcellentPct" ||
+        stat === "receptionExcellentPctWorst"
     ) {
-        const total = getStatValue(group, stat);
-        return total == null ? null : Number(total.toFixed(2));
+        return getStatValue(group, stat);
     }
 
     if (group.games <= 0) {
@@ -92,22 +118,44 @@ function getPerGameValue(group: PlayerTotals, stat: TotalTopStatKey) {
     }
 
     const total = getStatValue(group, stat);
-    return total == null ? null : Number((total / group.games).toFixed(2));
+    return total == null ? null : total / group.games;
 }
 
-function formatStatValue(value: number | null | undefined) {
+function isPercentageMetric(stat: TotalTopStatKey): boolean {
+    return (
+        stat === "receptionPositivePct" ||
+        stat === "receptionPositivePctWorst" ||
+        stat === "receptionExcellentPct" ||
+        stat === "receptionExcellentPctWorst" ||
+        stat === "attackKillPct" ||
+        stat === "attackKillPctWorst" ||
+        stat === "attackEfficiency" ||
+        stat === "attackEfficiencyWorst"
+    );
+}
+
+function formatMetricValue(stat: TotalTopStatKey, value: number | null | undefined, mode: SortMode) {
     if (value == null) {
         return "—";
     }
 
-    return Number.isInteger(value) ? String(value) : value.toFixed(2);
+    const decimals = mode === "perGame" ? 1 : 2;
+    const normalized = mode === "perGame" ? Number(value.toFixed(1)) : value;
+    const valueLabel = Number.isInteger(normalized)
+        ? String(normalized)
+        : normalized.toFixed(decimals);
+
+    return isPercentageMetric(stat) ? `${valueLabel}%` : valueLabel;
 }
 
 function createEmptyTotals(): PlayerTotals {
     return {
         appearances: 0,
+        matchesNotPlayed: 0,
         games: 0,
         sets: 0,
+        setsStarted: 0,
+        setsBench: 0,
         bench: 0,
         points: 0,
         blockPoints: 0,
@@ -129,20 +177,32 @@ function createEmptyTotals(): PlayerTotals {
     };
 }
 
-function countSetsFromPositions(stats: Record<string, unknown> | null): number {
-    if (!stats) {
-        return 0;
+function getSetSlotSummary(
+    stats: Record<string, unknown> | null,
+    totalSetsInMatch: number,
+): { setsPlayed: number; setsBench: number; matchNotPlayed: number } {
+    const boundedSetCount = Math.min(Math.max(totalSetsInMatch, 0), 6);
+    if (!stats || boundedSetCount === 0) {
+        return { setsPlayed: 0, setsBench: 0, matchNotPlayed: 0 };
     }
 
-    const positions = [
+    const slots = [
         stats["set1_position"],
         stats["set2_position"],
         stats["set3_position"],
         stats["set4_position"],
         stats["set5_position"],
-    ];
+        stats["set6_position"],
+    ].slice(0, boundedSetCount);
 
-    return positions.filter((value) => typeof value === "string" && value.trim() !== "").length;
+    const setsPlayed = slots.filter((value) => typeof value === "string" && value.trim() !== "").length;
+    const setsBench = boundedSetCount - setsPlayed;
+
+    return {
+        setsPlayed,
+        setsBench,
+        matchNotPlayed: setsPlayed === 0 ? 1 : 0,
+    };
 }
 
 function matchesSelectedType(
@@ -193,9 +253,8 @@ function TotalTopPage() {
     const [selectedYear, setSelectedYear] = useState<string[]>(["all"]);
     const [selectedCompetition, setSelectedCompetition] = useState<string[]>(["all"]);
     const [selectedOpponent, setSelectedOpponent] = useState<string[]>(["all"]);
-    const [selectedStat, setSelectedStat] = useState<TotalTopStatKey>("points");
     const [displayMode, setDisplayMode] = useState<SortMode>("total");
-    const [visibleCount, setVisibleCount] = useState<number>(10);
+    const [expandedMetric, setExpandedMetric] = useState<TotalTopStatKey | null>(null);
 
     const positions = useMemo(() => ["ALL", ...positionOrder], []);
     const currentLanguage = i18n.language?.toLowerCase() ?? "et";
@@ -205,7 +264,10 @@ function TotalTopPage() {
 
     const categoryLabel: Record<TotalTopStatKey, string> = {
         appearances: t("totalTop.metrics.mostAppearances"),
+        matchesNotPlayed: t("totalTop.metrics.mostMatchesNotPlayed"),
         sets: t("totalTop.metrics.mostSets"),
+        setsStarted: t("totalTop.metrics.mostSetsStarted"),
+        setsBench: t("totalTop.metrics.mostSetsSatOnBench"),
         points: t("totalTop.metrics.mostPoints"),
         breakPoints: t("totalTop.metrics.mostBreakPoints"),
         plusMinus: t("totalTop.metrics.bestPlusMinus"),
@@ -213,26 +275,48 @@ function TotalTopPage() {
         serveTotal: t("totalTop.metrics.mostServes"),
         serveAces: t("totalTop.metrics.mostServeAces"),
         serveErrors: t("totalTop.metrics.mostServeErrors"),
+        serveErrorsLeast: t("totalTop.metrics.leastServeErrors"),
+        serveAceErrorRatio: t("totalTop.metrics.aceErrorRatio"),
         receptionTotal: t("totalTop.metrics.mostReceptions"),
         receptionErrors: t("totalTop.metrics.mostReceptionErrors"),
         receptionPositivePct: `${t("totalTop.metrics.bestReceptionPct")} ${minReceptionsLabel}`,
+        receptionPositivePctWorst: `${t("totalTop.metrics.worstReceptionPct")} ${minReceptionsLabel}`,
         receptionExcellentPct: `${t("totalTop.metrics.bestIdealReceptionPct")} ${minReceptionsLabel}`,
+        receptionExcellentPctWorst: `${t("totalTop.metrics.worstIdealReceptionPct")} ${minReceptionsLabel}`,
         attackTotal: t("totalTop.metrics.mostAttacks"),
         attackErrors: t("totalTop.metrics.mostAttackErrors"),
         attackBlocked: t("totalTop.metrics.mostAttackBlocks"),
         attackKills: t("totalTop.metrics.mostSuccessfulAttack"),
         attackKillPct: `${t("totalTop.metrics.bestAttackPct")} ${minAttacksLabel}`,
+        attackKillPctWorst: `${t("totalTop.metrics.worstAttackPct")} ${minAttacksLabel}`,
         attackEfficiency: `${t("totalTop.metrics.bestAttackEffPct")} ${minAttacksLabel}`,
+        attackEfficiencyWorst: `${t("totalTop.metrics.worstAttackEffPct")} ${minAttacksLabel}`,
     };
 
     const categoryGroups: Array<{ title: string; categories: TotalTopStatKey[] }> = [
         {
             title: t("gameHighs.groups.general"),
-            categories: ["appearances", "sets", "points", "breakPoints", "plusMinus", "blockPoints"],
+            categories: [
+                "appearances",
+                "matchesNotPlayed",
+                "sets",
+                "setsStarted",
+                "setsBench",
+                "points",
+                "breakPoints",
+                "plusMinus",
+                "blockPoints",
+            ],
         },
         {
             title: t("players.statsGroup.serve"),
-            categories: ["serveTotal", "serveAces", "serveErrors"],
+            categories: [
+                "serveTotal",
+                "serveAces",
+                "serveErrors",
+                "serveErrorsLeast",
+                "serveAceErrorRatio",
+            ],
         },
         {
             title: t("players.statsGroup.reception"),
@@ -240,7 +324,9 @@ function TotalTopPage() {
                 "receptionTotal",
                 "receptionErrors",
                 "receptionPositivePct",
+                "receptionPositivePctWorst",
                 "receptionExcellentPct",
+                "receptionExcellentPctWorst",
             ],
         },
         {
@@ -251,12 +337,12 @@ function TotalTopPage() {
                 "attackBlocked",
                 "attackKills",
                 "attackKillPct",
+                "attackKillPctWorst",
                 "attackEfficiency",
+                "attackEfficiencyWorst",
             ],
         },
     ];
-
-    const activeGroup = categoryGroups.find((group) => group.categories.includes(selectedStat));
 
     const positionFilteredEntries = useMemo(() => {
         return data.flatMap((row) => {
@@ -309,7 +395,7 @@ function TotalTopPage() {
             values.add(new Date(appearance.matchDate).getFullYear().toString());
         });
 
-        return [...values].sort();
+        return [...values].sort((a, b) => Number.parseInt(b, 10) - Number.parseInt(a, 10));
     }, [matchTypeFilteredEntries, selectedCompetition, selectedOpponent, currentLanguage]);
 
     const competitionOptions = useMemo(() => {
@@ -333,7 +419,7 @@ function TotalTopPage() {
             if (localizedCompetition) values.add(localizedCompetition);
         });
 
-        return [...values].sort();
+        return [...values].sort((a, b) => a.localeCompare(b));
     }, [matchTypeFilteredEntries, selectedYear, selectedOpponent, currentLanguage]);
 
     const opponentOptions = useMemo(() => {
@@ -357,7 +443,7 @@ function TotalTopPage() {
             if (localizedOpponent) values.add(localizedOpponent);
         });
 
-        return [...values].sort();
+        return [...values].sort((a, b) => a.localeCompare(b));
     }, [matchTypeFilteredEntries, selectedYear, selectedCompetition, currentLanguage]);
 
     const filteredEntries = useMemo(() => {
@@ -389,7 +475,7 @@ function TotalTopPage() {
         currentLanguage,
     ]);
 
-    const rows = useMemo(() => {
+    const playerRows = useMemo(() => {
         const groupedTotals = new Map<
             number,
             {
@@ -425,10 +511,17 @@ function TotalTopPage() {
             };
 
             bucket.totals.appearances += 1;
-            const setsPlayed = countSetsFromPositions(stats);
-            bucket.totals.sets += setsPlayed;
+            const totalSetsInMatch = Math.min(Math.max(appearance.estoniaSets + appearance.opponentSets, 0), 6);
+            const setSummary = getSetSlotSummary(stats, totalSetsInMatch);
+            bucket.totals.sets += setSummary.setsPlayed;
+            bucket.totals.setsBench += setSummary.setsBench;
+            bucket.totals.matchesNotPlayed += setSummary.matchNotPlayed;
+            bucket.totals.setsStarted +=
+                typeof appearance.setsStarted === "number" && appearance.setsStarted >= 0
+                    ? Math.min(appearance.setsStarted, totalSetsInMatch)
+                    : setSummary.setsPlayed;
 
-            if (setsPlayed > 0) {
+            if (setSummary.setsPlayed > 0) {
                 bucket.totals.games += 1;
             }
 
@@ -523,25 +616,7 @@ function TotalTopPage() {
             })
             .filter((row) => (hasActiveDetailFilters ? row.filteredTotals.appearances > 0 : true));
 
-        ranked.sort((a, b) => {
-            const aGroup = a.filteredTotals;
-            const bGroup = b.filteredTotals;
-
-            const aValue =
-                displayMode === "perGame"
-                    ? (getPerGameValue(aGroup, selectedStat) ?? 0)
-                    : (getStatValue(aGroup, selectedStat) ?? 0);
-            const bValue =
-                displayMode === "perGame"
-                    ? (getPerGameValue(bGroup, selectedStat) ?? 0)
-                    : (getStatValue(bGroup, selectedStat) ?? 0);
-
-            if (aValue !== bValue) {
-                return bValue - aValue;
-            }
-
-            return a.name.localeCompare(b.name);
-        });
+        ranked.sort((a, b) => a.name.localeCompare(b.name));
 
         return ranked;
     }, [
@@ -549,31 +624,168 @@ function TotalTopPage() {
         filteredEntries,
         matchType,
         selectedPosition,
-        displayMode,
-        selectedStat,
         selectedYear,
         selectedCompetition,
         selectedOpponent,
     ]);
+
+    const metricRows = useMemo(() => {
+        const rankableRows = playerRows.filter((row) => row.filteredTotals.appearances > 0);
+        const perGameHiddenMetrics = new Set<TotalTopStatKey>([
+            "appearances",
+            "matchesNotPlayed",
+            "sets",
+            "setsStarted",
+            "setsBench",
+        ]);
+        const orderedMetrics = categoryGroups
+            .flatMap((group) => group.categories)
+            .filter((metric) => !(displayMode === "perGame" && perGameHiddenMetrics.has(metric)));
+        const ascendingMetrics = new Set<TotalTopStatKey>([
+            "serveErrorsLeast",
+            "serveAceErrorRatio",
+            "receptionPositivePctWorst",
+            "receptionExcellentPctWorst",
+            "attackKillPctWorst",
+            "attackEfficiencyWorst",
+        ]);
+
+        const getMetricValue = (
+            totals: PlayerTotals,
+            metric: TotalTopStatKey,
+            mode: SortMode,
+        ): number | null => {
+            if (metric === "serveErrorsLeast") {
+                if (totals.serveTotal < 10) return null;
+                return mode === "perGame"
+                    ? getPerGameValue(totals, "serveErrors")
+                    : getStatValue(totals, "serveErrors");
+            }
+
+            if (metric === "serveAceErrorRatio") {
+                if (totals.serveTotal < 5 || totals.serveAces <= 0) return null;
+                return getStatValue(totals, "serveAceErrorRatio");
+            }
+
+            return mode === "perGame"
+                ? getPerGameValue(totals, metric)
+                : getStatValue(totals, metric);
+        };
+
+        return orderedMetrics.map((metric) => {
+            const ranked = rankableRows
+                .map((row) => {
+                    const value = getMetricValue(row.filteredTotals, metric, displayMode);
+
+                    return {
+                        playerId: row.playerId,
+                        name: row.name,
+                        position: row.position ?? t("positions.Unknown"),
+                        rawValue: value,
+                        valueLabel: formatMetricValue(metric, value, displayMode),
+                        playerHref: `/players/${row.playerId}`,
+                    };
+                })
+                .filter((item) => item.rawValue != null)
+                .sort((a, b) => {
+                    if (a.rawValue !== b.rawValue) {
+                        if (ascendingMetrics.has(metric)) {
+                            return (a.rawValue ?? 0) - (b.rawValue ?? 0);
+                        }
+
+                        return (b.rawValue ?? 0) - (a.rawValue ?? 0);
+                    }
+
+                    return a.name.localeCompare(b.name);
+                });
+
+            let previousValue: number | null = null;
+            let previousRank = 0;
+            const topTen = ranked.slice(0, 10).map((item, index) => {
+                const currentValue = item.rawValue ?? 0;
+
+                if (previousValue === null || currentValue !== previousValue) {
+                    previousRank = index + 1;
+                    previousValue = currentValue;
+                }
+
+                return {
+                    ...item,
+                    rankLabel: `#${previousRank}`,
+                };
+            });
+
+            return {
+                key: metric,
+                metric: categoryLabel[metric],
+                best: topTen[0] ?? null,
+                topTen,
+            };
+        });
+    }, [playerRows, categoryGroups, categoryLabel, displayMode, t]);
 
     useEffect(() => {
-        setVisibleCount(10);
-    }, [
-        selectedPosition,
-        matchType,
-        selectedYear,
-        selectedCompetition,
-        selectedOpponent,
-        selectedStat,
-        displayMode,
-    ]);
+        setExpandedMetric(null);
+    }, [selectedPosition, matchType, selectedYear, selectedCompetition, selectedOpponent, displayMode]);
 
-    const visibleRows = rows.slice(0, visibleCount);
+    const metricToneClass: Record<TotalTopStatKey, string> = {
+        appearances: "bg-slate-50/60",
+        matchesNotPlayed: "bg-slate-50/60",
+        sets: "bg-slate-50/60",
+        setsStarted: "bg-slate-50/60",
+        setsBench: "bg-slate-50/60",
+        points: "bg-emerald-50/60",
+        blockPoints: "bg-emerald-50/60",
+        plusMinus: "bg-emerald-50/60",
+        breakPoints: "bg-emerald-50/60",
+        serveTotal: "bg-amber-50/60",
+        serveAces: "bg-amber-50/60",
+        serveErrors: "bg-amber-50/60",
+        serveErrorsLeast: "bg-amber-50/60",
+        serveAceErrorRatio: "bg-amber-50/60",
+        receptionTotal: "bg-sky-50/60",
+        receptionErrors: "bg-sky-50/60",
+        receptionPositivePct: "bg-sky-50/60",
+        receptionPositivePctWorst: "bg-sky-50/60",
+        receptionExcellentPct: "bg-sky-50/60",
+        receptionExcellentPctWorst: "bg-sky-50/60",
+        attackTotal: "bg-rose-50/60",
+        attackErrors: "bg-rose-50/60",
+        attackBlocked: "bg-rose-50/60",
+        attackKills: "bg-rose-50/60",
+        attackKillPct: "bg-rose-50/60",
+        attackKillPctWorst: "bg-rose-50/60",
+        attackEfficiency: "bg-rose-50/60",
+        attackEfficiencyWorst: "bg-rose-50/60",
+    };
 
     return (
         <main className="mx-auto w-full max-w-[1400px] px-6 py-10 text-slate-900">
             <div className="mb-6 rounded-2xl bg-estonia-dark p-6 text-white shadow-sm md:p-8">
-                <div className="grid gap-5 lg:grid-cols-3">
+                <div className="mx-auto mb-5 grid w-full max-w-[520px] grid-cols-2 gap-2">
+                    <button
+                        type="button"
+                        onClick={() => setDisplayMode("total")}
+                        className={`h-10 w-full rounded-md border px-3 text-xs font-semibold uppercase tracking-[0.14em] transition ${displayMode === "total"
+                            ? "border-estonia-blue bg-estonia-blue text-white"
+                            : "border-white/30 bg-white/10 text-white/90 hover:bg-white/20"
+                            }`}
+                    >
+                        {t("totalTop.table.totals")}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setDisplayMode("perGame")}
+                        className={`h-10 w-full rounded-md border px-3 text-xs font-semibold uppercase tracking-[0.14em] transition ${displayMode === "perGame"
+                            ? "border-estonia-blue bg-estonia-blue text-white"
+                            : "border-white/30 bg-white/10 text-white/90 hover:bg-white/20"
+                            }`}
+                    >
+                        {t("totalTop.table.perGame")}
+                    </button>
+                </div>
+
+                <div className="grid gap-5 lg:grid-cols-2">
                     <div className="text-center">
                         <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/60">
                             {t("gameHighs.filters.matchType")}
@@ -589,9 +801,9 @@ function TotalTopPage() {
                                     key={option.value}
                                     type="button"
                                     onClick={() => setMatchType(option.value as MatchType)}
-                                    className={`w-full rounded-md border px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] transition ${matchType === option.value
-                                            ? "border-estonia-blue bg-estonia-blue text-white"
-                                            : "border-white/30 bg-white/10 text-white/90 hover:bg-white/20"
+                                    className={`h-10 w-full rounded-md border px-3 text-xs font-semibold uppercase tracking-[0.16em] transition ${matchType === option.value
+                                        ? "border-estonia-blue bg-estonia-blue text-white"
+                                        : "border-white/30 bg-white/10 text-white/90 hover:bg-white/20"
                                         }`}
                                 >
                                     {option.label}
@@ -610,42 +822,14 @@ function TotalTopPage() {
                                     key={position}
                                     type="button"
                                     onClick={() => setSelectedPosition(position)}
-                                    className={`w-full rounded-md border px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] transition ${selectedPosition === position
-                                            ? "border-estonia-blue bg-estonia-blue text-white"
-                                            : "border-white/30 bg-white/10 text-white/90 hover:bg-white/20"
+                                    className={`h-10 w-full rounded-md border px-3 text-xs font-semibold uppercase tracking-[0.16em] transition ${selectedPosition === position
+                                        ? "border-estonia-blue bg-estonia-blue text-white"
+                                        : "border-white/30 bg-white/10 text-white/90 hover:bg-white/20"
                                         }`}
                                 >
                                     {position === "ALL" ? "ALL" : position}
                                 </button>
                             ))}
-                        </div>
-                    </div>
-
-                    <div className="text-center">
-                        <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/60">
-                            {t("totalTop.table.totals")} / {t("totalTop.table.perGame")}
-                        </div>
-                        <div className="mx-auto grid w-full max-w-[440px] grid-cols-2 gap-2">
-                            <button
-                                type="button"
-                                onClick={() => setDisplayMode("total")}
-                                className={`w-full rounded-md border px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] transition ${displayMode === "total"
-                                        ? "border-estonia-blue bg-estonia-blue text-white"
-                                        : "border-white/30 bg-white/10 text-white/90 hover:bg-white/20"
-                                    }`}
-                            >
-                                {t("totalTop.table.totals")}
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setDisplayMode("perGame")}
-                                className={`w-full rounded-md border px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] transition ${displayMode === "perGame"
-                                        ? "border-estonia-blue bg-estonia-blue text-white"
-                                        : "border-white/30 bg-white/10 text-white/90 hover:bg-white/20"
-                                    }`}
-                            >
-                                {t("totalTop.table.perGame")}
-                            </button>
                         </div>
                     </div>
                 </div>
@@ -701,105 +885,179 @@ function TotalTopPage() {
                 </div>
             </div>
 
-            <div className="mb-6 grid gap-4 xl:grid-cols-4">
-                {categoryGroups.map((group, index) => {
-                    const selectedCategory = group.categories.includes(selectedStat) ? selectedStat : "";
-                    const isActiveGroup = group.categories.includes(selectedStat);
-                    const tone =
-                        [
-                            "from-sky-50 to-white border-sky-200",
-                            "from-emerald-50 to-white border-emerald-200",
-                            "from-amber-50 to-white border-amber-200",
-                            "from-rose-50 to-white border-rose-200",
-                        ][index] ?? "from-slate-50 to-white border-slate-200";
-
-                    return (
-                        <section
-                            key={group.title}
-                            className={`rounded-xl border bg-gradient-to-br p-4 shadow-sm transition ${tone} ${isActiveGroup ? "ring-2 ring-estonia-blue/40" : ""
-                                }`}
-                        >
-                            <h2 className="mb-3 text-center text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-600">
-                                {group.title}
-                            </h2>
-                            <select
-                                value={selectedCategory}
-                                onChange={(event) => setSelectedStat(event.target.value as TotalTopStatKey)}
-                                className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:border-estonia-blue"
-                            >
-                                <option value="">{t("gameHighs.filters.selectMetric")}</option>
-                                {group.categories.map((category) => (
-                                    <option key={category} value={category}>
-                                        {categoryLabel[category]}
-                                    </option>
-                                ))}
-                            </select>
-                        </section>
-                    );
-                })}
-            </div>
-
-            {activeGroup && (
-                <p className="mb-6 rounded-lg border border-slate-200 bg-slate-50 px-6 py-4 text-center text-base font-medium text-estonia-dark md:text-lg">
-                    {categoryLabel[selectedStat]}
-                </p>
-            )}
+            <h2 className="mb-4 text-center font-display text-2xl uppercase italic text-estonia-dark">
+                {displayMode === "total"
+                    ? "Estonian National Team All Time Tops"
+                    : "Estonian National Team All Time Tops Per Match"}
+            </h2>
 
             <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
                 <div className="min-w-[860px]">
                     <Table className="min-w-full">
                         <TableHeader>
                             <TableRow className="bg-slate-50">
-                                <TableHead className="p-3 text-center">{t("gameHighs.table.rank")}</TableHead>
-                                <TableHead className="p-3 text-center">{t("gameHighs.table.name")}</TableHead>
-                                <TableHead className="p-3 text-center">{t("gameHighs.table.value")}</TableHead>
-                                <TableHead className="p-3 text-center">{t("gameHighs.table.position")}</TableHead>
+                                <TableHead className="sticky top-0 z-20 bg-slate-50 p-3 text-left">
+                                    Category
+                                </TableHead>
+                                <TableHead className="sticky top-0 z-20 bg-slate-50 p-3 text-left">
+                                    Best
+                                </TableHead>
+                                <TableHead className="sticky top-0 z-20 bg-slate-50 p-3 text-center">
+                                    {t("gameHighs.table.value")}
+                                </TableHead>
+                                <TableHead className="sticky top-0 z-20 bg-slate-50 p-3 text-center">
+                                    Top 10
+                                </TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {visibleRows.map((row, index) => {
-                                const group = row.filteredTotals;
-                                const value =
-                                    displayMode === "perGame"
-                                        ? getPerGameValue(group, selectedStat)
-                                        : getStatValue(group, selectedStat);
-
-                                return (
-                                    <TableRow key={row.playerId}>
-                                        <TableCell className="p-3 text-center font-medium text-slate-900">
-                                            {index + 1}
-                                        </TableCell>
-                                        <TableCell className="p-3 text-center font-medium text-slate-900">
-                                            <a
-                                                href={`/players/${row.playerId}`}
-                                                className="text-estonia-dark underline-offset-2 hover:text-estonia-blue hover:underline"
+                            {metricRows.map((row) => (
+                                <Fragment key={row.key}>
+                                    {displayMode === "total" && row.key === "points" && (
+                                        <TableRow className="bg-emerald-100">
+                                            <TableCell
+                                                colSpan={4}
+                                                className="py-2 text-center text-[11px] font-bold uppercase tracking-[0.2em] text-emerald-900"
                                             >
-                                                {row.name}
-                                            </a>
-                                        </TableCell>
-                                        <TableCell className="p-3 text-center font-semibold text-estonia-dark">
-                                            {formatStatValue(value)}
+                                                GENERAL
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+
+                                    {(row.key === "serveTotal" ||
+                                        row.key === "receptionTotal" ||
+                                        row.key === "attackTotal") && (
+                                            <TableRow className="bg-slate-100">
+                                                <TableCell
+                                                    colSpan={4}
+                                                    className="py-2 text-center text-[11px] font-bold uppercase tracking-[0.2em] text-slate-600"
+                                                >
+                                                    {row.key === "serveTotal"
+                                                        ? t("players.statsGroup.serve")
+                                                        : row.key === "receptionTotal"
+                                                            ? t("players.statsGroup.reception")
+                                                            : t("players.statsGroup.attack")}
+                                                </TableCell>
+                                            </TableRow>
+                                        )}
+
+                                    <TableRow className={metricToneClass[row.key]}>
+                                        <TableCell className="p-3 text-sm text-slate-700">{row.metric}</TableCell>
+                                        <TableCell className="p-3 text-sm text-slate-700">
+                                            {row.best ? (
+                                                <div className="space-y-0.5">
+                                                    <a
+                                                        href={row.best.playerHref}
+                                                        className="block font-semibold text-estonia-dark hover:text-estonia-blue hover:underline"
+                                                    >
+                                                        {row.best.name}
+                                                    </a>
+                                                    <div className="text-xs uppercase tracking-[0.08em] text-slate-500">
+                                                        {row.best.position}
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                "—"
+                                            )}
                                         </TableCell>
                                         <TableCell className="p-3 text-center">
-                                            {row.position ?? t("positions.Unknown")}
+                                            <span className="inline-flex min-w-[88px] items-center justify-center rounded-md bg-white/90 px-2 py-1 text-sm font-bold text-estonia-dark shadow-sm">
+                                                {row.best?.valueLabel ?? "—"}
+                                            </span>
+                                        </TableCell>
+                                        <TableCell className="p-3 text-center">
+                                            {row.topTen.length > 0 ? (
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        setExpandedMetric((current) =>
+                                                            current === row.key ? null : row.key,
+                                                        )
+                                                    }
+                                                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border-2 border-slate-500 bg-white text-base font-bold text-slate-900 shadow-sm transition hover:border-estonia-blue hover:text-estonia-blue"
+                                                    aria-label={
+                                                        isEstonian
+                                                            ? "Ava või peida selle kategooria TOP 10"
+                                                            : "Toggle top 10 for this category"
+                                                    }
+                                                    title={
+                                                        isEstonian
+                                                            ? "Ava või peida selle kategooria TOP 10"
+                                                            : "Toggle top 10 for this category"
+                                                    }
+                                                >
+                                                    {expandedMetric === row.key ? "▴" : "▾"}
+                                                </button>
+                                            ) : (
+                                                <span className="text-slate-300">—</span>
+                                            )}
                                         </TableCell>
                                     </TableRow>
-                                );
-                            })}
+
+                                    {expandedMetric === row.key && (
+                                        <TableRow>
+                                            <TableCell colSpan={4} className="bg-slate-50/60 p-3">
+                                                <div className="mb-2 rounded-md border border-slate-200 bg-slate-100/70 px-3 py-2 text-center">
+                                                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-700">
+                                                        {row.metric}
+                                                    </p>
+                                                </div>
+                                                <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+                                                    <table className="min-w-[620px] w-full border-collapse">
+                                                        <thead className="bg-slate-50">
+                                                            <tr>
+                                                                <th className="px-2 py-2 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
+                                                                    #
+                                                                </th>
+                                                                <th className="px-2 py-2 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
+                                                                    {t("gameHighs.table.name")}
+                                                                </th>
+                                                                <th className="px-2 py-2 text-center text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
+                                                                    {t("gameHighs.table.position")}
+                                                                </th>
+                                                                <th className="px-2 py-2 text-center text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
+                                                                    {t("gameHighs.table.value")}
+                                                                </th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {row.topTen.map((item, index) => (
+                                                                <tr key={`${row.key}-${index}`} className="border-t border-slate-100">
+                                                                    <td className="px-2 py-2 text-sm text-slate-600">
+                                                                        {item.rankLabel}
+                                                                    </td>
+                                                                    <td className="px-2 py-2 text-sm text-slate-700">
+                                                                        <a
+                                                                            href={item.playerHref}
+                                                                            className="font-medium text-estonia-dark hover:text-estonia-blue hover:underline"
+                                                                        >
+                                                                            {item.name}
+                                                                        </a>
+                                                                    </td>
+                                                                    <td className="px-2 py-2 text-center text-sm text-slate-700">
+                                                                        {item.position}
+                                                                    </td>
+                                                                    <td className="px-2 py-2 text-center text-sm font-semibold text-estonia-dark">
+                                                                        {item.valueLabel}
+                                                                    </td>
+                                                                </tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </Fragment>
+                            ))}
                         </TableBody>
                     </Table>
                 </div>
             </div>
 
-            {visibleCount < rows.length && (
-                <div className="mt-6 flex justify-center">
-                    <button
-                        type="button"
-                        onClick={() => setVisibleCount((count) => count + 10)}
-                        className="rounded-md border border-slate-300 bg-white px-5 py-2 text-sm font-semibold text-slate-700 transition hover:border-estonia-blue hover:text-estonia-blue"
-                    >
-                        {t("common.loadMore")}
-                    </button>
+            {metricRows.length === 0 && (
+                <div className="mt-8 rounded-xl border border-slate-200 bg-slate-50 p-12 text-center text-slate-500">
+                    {t("common.noResults")}
                 </div>
             )}
         </main>

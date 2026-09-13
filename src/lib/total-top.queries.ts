@@ -3,8 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type PlayerTotals = {
   appearances: number;
+  matchesNotPlayed: number;
   games: number;
   sets: number;
+  setsStarted: number;
+  setsBench: number;
   bench: number;
   points: number;
   blockPoints: number;
@@ -40,6 +43,7 @@ export type TotalTopRow = {
 export type TotalTopAppearance = {
   appearanceId: number;
   matchId: number;
+  setsStarted: number | null;
   matchDate: string;
   opponent: string;
   opponentEn: string | null;
@@ -59,87 +63,88 @@ type AppearanceRow = {
   player_id: number;
   match_id: number;
   sets_played: number | null;
+  sets_started: number | null;
   on_the_bench: boolean | null;
   matches:
-    | {
-        match_id: number;
-        match_date: string;
-        opponent: string;
-        opponent_en: string | null;
-        competition: string | null;
-        competition_en: string | null;
-        estonia_sets: number;
-        opponent_sets: number;
-        vm: boolean | null;
-        am: boolean | null;
-        mam: boolean | null;
-      }
-    | Array<{
-        match_id: number;
-        match_date: string;
-        opponent: string;
-        opponent_en: string | null;
-        competition: string | null;
-        competition_en: string | null;
-        estonia_sets: number;
-        opponent_sets: number;
-        vm: boolean | null;
-        am: boolean | null;
-        mam: boolean | null;
-      }>
-    | null;
+  | {
+    match_id: number;
+    match_date: string;
+    opponent: string;
+    opponent_en: string | null;
+    competition: string | null;
+    competition_en: string | null;
+    estonia_sets: number;
+    opponent_sets: number;
+    vm: boolean | null;
+    am: boolean | null;
+    mam: boolean | null;
+  }
+  | Array<{
+    match_id: number;
+    match_date: string;
+    opponent: string;
+    opponent_en: string | null;
+    competition: string | null;
+    competition_en: string | null;
+    estonia_sets: number;
+    opponent_sets: number;
+    vm: boolean | null;
+    am: boolean | null;
+    mam: boolean | null;
+  }>
+  | null;
   player_match_stats:
-    | {
-        points: number | null;
-        block_points: number | null;
-        plus_minus: number | null;
-        serve_total: number | null;
-        serve_aces: number | null;
-        serve_errors: number | null;
-        reception_total: number | null;
-        reception_errors: number | null;
-        reception_positive_pct: number | null;
-        reception_excellent_pct: number | null;
-        attack_total: number | null;
-        attack_errors: number | null;
-        attack_blocked: number | null;
-        attack_kills: number | null;
-        attack_kill_pct: number | null;
-        attack_efficiency: number | null;
-        break_points: number | null;
-        stats_version: string | null;
-        set1_position: string | null;
-        set2_position: string | null;
-        set3_position: string | null;
-        set4_position: string | null;
-        set5_position: string | null;
-      }
-    | Array<{
-        points: number | null;
-        block_points: number | null;
-        plus_minus: number | null;
-        serve_total: number | null;
-        serve_aces: number | null;
-        serve_errors: number | null;
-        reception_total: number | null;
-        reception_errors: number | null;
-        reception_positive_pct: number | null;
-        reception_excellent_pct: number | null;
-        attack_total: number | null;
-        attack_errors: number | null;
-        attack_blocked: number | null;
-        attack_kills: number | null;
-        attack_kill_pct: number | null;
-        attack_efficiency: number | null;
-        break_points: number | null;
-        stats_version: string | null;
-        set1_position: string | null;
-        set2_position: string | null;
-        set3_position: string | null;
-        set4_position: string | null;
-        set5_position: string | null;
-      }>
-    | null;
+  | {
+    points: number | null;
+    block_points: number | null;
+    plus_minus: number | null;
+    serve_total: number | null;
+    serve_aces: number | null;
+    serve_errors: number | null;
+    reception_total: number | null;
+    reception_errors: number | null;
+    reception_positive_pct: number | null;
+    reception_excellent_pct: number | null;
+    attack_total: number | null;
+    attack_errors: number | null;
+    attack_blocked: number | null;
+    attack_kills: number | null;
+    attack_kill_pct: number | null;
+    attack_efficiency: number | null;
+    break_points: number | null;
+    stats_version: string | null;
+    set1_position: string | null;
+    set2_position: string | null;
+    set3_position: string | null;
+    set4_position: string | null;
+    set5_position: string | null;
+  }
+  | Array<{
+    points: number | null;
+    block_points: number | null;
+    plus_minus: number | null;
+    serve_total: number | null;
+    serve_aces: number | null;
+    serve_errors: number | null;
+    reception_total: number | null;
+    reception_errors: number | null;
+    reception_positive_pct: number | null;
+    reception_excellent_pct: number | null;
+    attack_total: number | null;
+    attack_errors: number | null;
+    attack_blocked: number | null;
+    attack_kills: number | null;
+    attack_kill_pct: number | null;
+    attack_efficiency: number | null;
+    break_points: number | null;
+    stats_version: string | null;
+    set1_position: string | null;
+    set2_position: string | null;
+    set3_position: string | null;
+    set4_position: string | null;
+    set5_position: string | null;
+  }>
+  | null;
 };
 
 type PlayerMatchStatsRow = {
@@ -235,8 +240,11 @@ function pickStatsRowForMode(
 function createTotals(): PlayerTotals {
   return {
     appearances: 0,
+    matchesNotPlayed: 0,
     games: 0,
     sets: 0,
+    setsStarted: 0,
+    setsBench: 0,
     bench: 0,
     points: 0,
     blockPoints: 0,
@@ -361,7 +369,7 @@ async function fetchTotalTop(): Promise<TotalTopRow[]> {
   const appearancesResponse = await supabase
     .from("appearances")
     .select(
-      `appearance_id, player_id, match_id, sets_played, on_the_bench, matches(match_id, match_date, opponent, opponent_en, competition, competition_en, estonia_sets, opponent_sets, vm, am, mam), player_match_stats!inner(points, block_points, plus_minus, serve_total, serve_aces, serve_errors, reception_total, reception_errors, reception_positive_pct, reception_excellent_pct, attack_total, attack_errors, attack_blocked, attack_kills, attack_kill_pct, attack_efficiency, break_points, stats_version, set1_position, set2_position, set3_position, set4_position, set5_position)`,
+      `appearance_id, player_id, match_id, sets_played, sets_started, on_the_bench, matches(match_id, match_date, opponent, opponent_en, competition, competition_en, estonia_sets, opponent_sets, vm, am, mam), player_match_stats!inner(points, block_points, plus_minus, serve_total, serve_aces, serve_errors, reception_total, reception_errors, reception_positive_pct, reception_excellent_pct, attack_total, attack_errors, attack_blocked, attack_kills, attack_kill_pct, attack_efficiency, break_points, stats_version, set1_position, set2_position, set3_position, set4_position, set5_position)`,
     );
 
   if (appearancesResponse.error) throw appearancesResponse.error;
@@ -415,6 +423,7 @@ async function fetchTotalTop(): Promise<TotalTopRow[]> {
     playerAppearances.push({
       appearanceId: appearance.appearance_id,
       matchId: appearance.match_id,
+      setsStarted: appearance.sets_started,
       matchDate: match.match_date,
       opponent: match.opponent,
       opponentEn: match.opponent_en,

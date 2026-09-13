@@ -181,7 +181,7 @@ function StatisticsPage() {
 
         return values.sort(
             (left, right) =>
-                new Date(left.matchDate).getTime() - new Date(right.matchDate).getTime()
+                new Date(right.matchDate).getTime() - new Date(left.matchDate).getTime()
         );
     }, [modeFilteredAppearances, selectedYear, selectedCompetition, selectedOpponent, currentLanguage]);
 
