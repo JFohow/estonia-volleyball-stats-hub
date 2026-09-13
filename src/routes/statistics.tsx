@@ -18,7 +18,7 @@ import {
 } from "@/lib/statistics.queries";
 import { useTranslation } from "react-i18next";
 
-type SortField = StatisticsField | "name" | "sets";
+type SortField = StatisticsField | "name" | "sets" | "setsStarted";
 
 const columns: Array<{ field: StatisticsField; label: string }> = [
     { field: "points", label: "PTS" },
@@ -110,7 +110,7 @@ function StatisticsPage() {
 
             values.add(new Date(match.match_date).getFullYear().toString());
         });
-        return [...values].sort();
+        return [...values].sort((a, b) => Number.parseInt(b, 10) - Number.parseInt(a, 10));
     }, [modeFilteredAppearances, selectedCompetition, selectedOpponent, currentLanguage]);
 
     const competitionOptions = useMemo(() => {
@@ -245,6 +245,11 @@ function StatisticsPage() {
             if (!row) return;
 
             row[mode].appearances += 1;
+            const appearanceSetsStarted =
+                typeof appearance.sets_started === "number" && appearance.sets_started >= 0
+                    ? Math.min(appearance.sets_started, 6)
+                    : 0;
+            row[mode].setsStarted += appearanceSetsStarted;
 
             const stats = pickAppearanceStats(appearance.player_match_stats, mode);
             if (!stats) return;
@@ -272,6 +277,12 @@ function StatisticsPage() {
             if (sortField === "sets") {
                 const aValue = a[mode].sets;
                 const bValue = b[mode].sets;
+                return sortDirection === "asc" ? aValue - bValue : bValue - aValue;
+            }
+
+            if (sortField === "setsStarted") {
+                const aValue = a[mode].setsStarted;
+                const bValue = b[mode].setsStarted;
                 return sortDirection === "asc" ? aValue - bValue : bValue - aValue;
             }
 
@@ -318,7 +329,7 @@ function StatisticsPage() {
                                     key={currentMode}
                                     type="button"
                                     onClick={() => setMode(currentMode)}
-                                    className={`w-full rounded-md border px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] transition ${mode === currentMode
+                                    className={`h-10 w-full rounded-md border px-3 text-xs font-semibold uppercase tracking-[0.16em] transition ${mode === currentMode
                                         ? "border-estonia-blue bg-estonia-blue text-white"
                                         : "border-white/30 bg-white/10 text-white/90 hover:bg-white/20"
                                         }`}
@@ -339,7 +350,7 @@ function StatisticsPage() {
                                     key={position}
                                     type="button"
                                     onClick={() => setSelectedPosition(position)}
-                                    className={`w-full rounded-md border px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] transition ${selectedPosition === position
+                                    className={`h-10 w-full rounded-md border px-3 text-xs font-semibold uppercase tracking-[0.16em] transition ${selectedPosition === position
                                         ? "border-estonia-blue bg-estonia-blue text-white"
                                         : "border-white/30 bg-white/10 text-white/90 hover:bg-white/20"
                                         }`}
@@ -436,6 +447,17 @@ function StatisticsPage() {
                                 </button>
                             </th>
 
+                            <th rowSpan={2} className="border-r-2 border-slate-300 px-2 py-3 text-center text-[10px] font-bold uppercase tracking-[0.2em] text-slate-600">
+                                <button
+                                    type="button"
+                                    onClick={() => handleSort("setsStarted")}
+                                    className="inline-flex items-center gap-1"
+                                >
+                                    {t("statistics.table.setsStarted")}
+                                    <span>{sortField === "setsStarted" ? (sortDirection === "asc" ? "↑" : "↓") : "⇅"}</span>
+                                </button>
+                            </th>
+
                             <th colSpan={3} className="border-r-2 border-slate-300 px-2 py-3 text-center text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500"></th>
 
                             <th colSpan={3} className="border-r-2 border-slate-300 px-2 py-3 text-center text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">
@@ -518,6 +540,10 @@ function PlayerStatisticsTableRow({
 
             <td className="border-r-2 border-slate-300 px-2 py-3 text-center text-sm text-slate-700">
                 {group.sets}
+            </td>
+
+            <td className="border-r-2 border-slate-300 px-2 py-3 text-center text-sm text-slate-700">
+                {group.setsStarted}
             </td>
 
             {columns.map((column) => (

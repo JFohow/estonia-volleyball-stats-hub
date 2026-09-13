@@ -330,6 +330,7 @@
             "player": "Player",
             "appearances": "Apps",
             "sets": "Sets",
+            "setsStarted": "Sets started",
             "points": "Points",
             "serve": "Serve",
             "reception": "Reception",

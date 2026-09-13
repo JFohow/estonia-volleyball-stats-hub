@@ -37,6 +37,7 @@ type CountsRecord = Record<StatisticsField, number>;
 export type StatisticsGroup = {
     appearances: number;
     sets: number;
+    setsStarted: number;
     totals: TotalsRecord;
     counts: CountsRecord;
     receptionPositiveCount: number;
@@ -88,6 +89,7 @@ export type AppearanceStatsRow = {
 export type StatisticsAppearanceRow = {
     player_id: number;
     sets_played: number | null;
+    sets_started: number | null;
     matches: StatisticsMatchRow | StatisticsMatchRow[] | null;
     player_match_stats: AppearanceStatsRow | AppearanceStatsRow[] | null;
 };
@@ -116,6 +118,7 @@ export function createGroup(): StatisticsGroup {
     return {
         appearances: 0,
         sets: 0,
+        setsStarted: 0,
         totals,
         counts,
         receptionPositiveCount: 0,
@@ -181,7 +184,7 @@ async function fetchStatisticsData(): Promise<StatisticsDataset> {
     const appearancesResponse = await supabase
         .from("appearances")
         .select(
-            `player_id, sets_played, matches(match_id, match_date, opponent, opponent_en, competition, competition_en, estonia_sets, opponent_sets, vm, am, mam), player_match_stats!inner(points, block_points, plus_minus, serve_total, serve_aces, serve_errors, reception_total, reception_errors, reception_positive_pct, reception_excellent_pct, attack_total, attack_errors, attack_blocked, attack_kills, attack_kill_pct, attack_efficiency, break_points, stats_version, set1_position, set2_position, set3_position, set4_position, set5_position)`
+            `player_id, sets_played, sets_started, matches(match_id, match_date, opponent, opponent_en, competition, competition_en, estonia_sets, opponent_sets, vm, am, mam), player_match_stats!inner(points, block_points, plus_minus, serve_total, serve_aces, serve_errors, reception_total, reception_errors, reception_positive_pct, reception_excellent_pct, attack_total, attack_errors, attack_blocked, attack_kills, attack_kill_pct, attack_efficiency, break_points, stats_version, set1_position, set2_position, set3_position, set4_position, set5_position)`
         );
 
     if (appearancesResponse.error) throw appearancesResponse.error;

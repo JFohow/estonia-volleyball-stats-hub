@@ -330,6 +330,7 @@
             "player": "Mängija",
             "appearances": "Mänge",
             "sets": "Geime",
+            "setsStarted": "Alustatud geime",
             "points": "Punktid",
             "serve": "Serv",
             "reception": "Vastuvõtt",
