@@ -11,41 +11,24 @@ export const Route = createFileRoute("/coaches")({
     component: CoachesPage,
 });
 
-
-
 function CoachesPage() {
     const { t } = useTranslation();
     const location = useLocation();
 
-    const isListRoute =
-        location.pathname === "/coaches" ||
-        location.pathname === "/coaches/";
+    const isListRoute = location.pathname === "/coaches" || location.pathname === "/coaches/";
 
-    if (!isListRoute) {
-        return <Outlet />;
-    }
-
-    const { data: coaches } = useSuspenseQuery(
-        coachesOptions()
-    );
+    const { data: coaches } = useSuspenseQuery(coachesOptions());
 
     function SortIcon(field: string) {
         if (sortField !== field) {
             return " ⇅";
         }
 
-        return sortDirection === "asc"
-            ? " ↑"
-            : " ↓";
+        return sortDirection === "asc" ? " ↑" : " ↓";
     }
 
     const [sortField, setSortField] = useState<
-        | "amMatches"
-        | "amWinPct"
-        | "vmMatches"
-        | "vmWinPct"
-        | "allMatches"
-        | "allWinPct"
+        "amMatches" | "amWinPct" | "vmMatches" | "vmWinPct" | "allMatches" | "allWinPct"
     >("amMatches");
 
     const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
@@ -61,61 +44,29 @@ function CoachesPage() {
         return bValue - aValue;
     });
 
-
-
     function handleSort(
-        field:
-            | "amMatches"
-            | "amWinPct"
-            | "vmMatches"
-            | "vmWinPct"
-            | "allMatches"
-            | "allWinPct"
+        field: "amMatches" | "amWinPct" | "vmMatches" | "vmWinPct" | "allMatches" | "allWinPct",
     ) {
         if (sortField === field) {
-            setSortDirection(
-                sortDirection === "asc" ? "desc" : "asc"
-            );
+            setSortDirection(sortDirection === "asc" ? "desc" : "asc");
         } else {
             setSortField(field);
             setSortDirection("desc");
         }
     }
 
+    if (!isListRoute) {
+        return <Outlet />;
+    }
+
     return (
         <>
             <div className="text-slate-900">
-                <header className="bg-estonia-dark px-4 py-10 text-white sm:px-6 sm:py-12">
-                    <div className="mx-auto max-w-7xl">
-                        <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
-                            <div>
-                                <h1 className="font-display text-4xl uppercase italic leading-tight sm:text-5xl md:text-6xl">
-                                    {t("coaches.title")}
-                                </h1>
-
-                                <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/70 sm:text-base">
-                                    {t("coaches.subtitle")}
-                                </p>
-                            </div>
-
-                            <div className="w-full max-w-xl">
-                                <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
-                                    <p className="text-xs leading-relaxed text-white/75">
-                                        {t("common.databaseExplanation")}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </header>
-
                 <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10">
                     <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
                         <div className="min-w-[1120px]">
-
                             {/* Group Header */}
                             <div className="border-b border-slate-200 bg-slate-50">
-
                                 <div className="grid grid-cols-16 px-6 pt-4 text-[10px] font-bold uppercase tracking-widest">
                                     <div className="col-span-4" />
 
@@ -133,15 +84,11 @@ function CoachesPage() {
                                 </div>
 
                                 <div className="grid grid-cols-16 gap-3 px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                                    <div className="col-span-4">
-
-                                    </div>
+                                    <div className="col-span-4"></div>
 
                                     <button
                                         onClick={() => handleSort("amMatches")}
-                                        className={`col-span-2 text-center uppercase tracking-widest transition-colors hover:text-estonia-blue ${sortField === "amMatches"
-                                            ? "text-estonia-blue"
-                                            : ""
+                                        className={`col-span-2 text-center uppercase tracking-widest transition-colors hover:text-estonia-blue ${sortField === "amMatches" ? "text-estonia-blue" : ""
                                             }`}
                                     >
                                         {t("common.matches")}
@@ -150,9 +97,7 @@ function CoachesPage() {
 
                                     <button
                                         onClick={() => handleSort("amWinPct")}
-                                        className={`col-span-2 text-center uppercase tracking-widest transition-colors hover:text-estonia-blue ${sortField === "amWinPct"
-                                            ? "text-estonia-blue"
-                                            : ""
+                                        className={`col-span-2 text-center uppercase tracking-widest transition-colors hover:text-estonia-blue ${sortField === "amWinPct" ? "text-estonia-blue" : ""
                                             }`}
                                     >
                                         {t("common.winPct")}
@@ -161,9 +106,7 @@ function CoachesPage() {
 
                                     <button
                                         onClick={() => handleSort("vmMatches")}
-                                        className={`col-span-2 text-center uppercase tracking-widest transition-colors hover:text-estonia-blue ${sortField === "vmMatches"
-                                            ? "text-estonia-blue"
-                                            : ""
+                                        className={`col-span-2 text-center uppercase tracking-widest transition-colors hover:text-estonia-blue ${sortField === "vmMatches" ? "text-estonia-blue" : ""
                                             }`}
                                     >
                                         {t("common.matches")}
@@ -172,9 +115,7 @@ function CoachesPage() {
 
                                     <button
                                         onClick={() => handleSort("vmWinPct")}
-                                        className={`col-span-2 text-center uppercase tracking-widest transition-colors hover:text-estonia-blue ${sortField === "vmWinPct"
-                                            ? "text-estonia-blue"
-                                            : ""
+                                        className={`col-span-2 text-center uppercase tracking-widest transition-colors hover:text-estonia-blue ${sortField === "vmWinPct" ? "text-estonia-blue" : ""
                                             }`}
                                     >
                                         {t("common.winPct")}
@@ -183,9 +124,7 @@ function CoachesPage() {
 
                                     <button
                                         onClick={() => handleSort("allMatches")}
-                                        className={`col-span-2 text-center uppercase tracking-widest transition-colors hover:text-estonia-blue ${sortField === "allMatches"
-                                            ? "text-estonia-blue"
-                                            : ""
+                                        className={`col-span-2 text-center uppercase tracking-widest transition-colors hover:text-estonia-blue ${sortField === "allMatches" ? "text-estonia-blue" : ""
                                             }`}
                                     >
                                         {t("common.matches")}
@@ -194,9 +133,7 @@ function CoachesPage() {
 
                                     <button
                                         onClick={() => handleSort("allWinPct")}
-                                        className={`col-span-2 text-center uppercase tracking-widest transition-colors hover:text-estonia-blue ${sortField === "allWinPct"
-                                            ? "text-estonia-blue"
-                                            : ""
+                                        className={`col-span-2 text-center uppercase tracking-widest transition-colors hover:text-estonia-blue ${sortField === "allWinPct" ? "text-estonia-blue" : ""
                                             }`}
                                     >
                                         {t("common.winPct")}
@@ -230,34 +167,22 @@ function CoachesPage() {
                                     </div>
 
                                     <div className="col-span-2 text-center">
-                                        <span className="font-semibold text-estonia-dark">
-                                            {coach.amMatches}
-                                        </span>
+                                        <span className="font-semibold text-estonia-dark">{coach.amMatches}</span>
                                     </div>
 
-                                    <div className="col-span-2 text-center text-slate-500">
-                                        {coach.amWinPct}%
-                                    </div>
+                                    <div className="col-span-2 text-center text-slate-500">{coach.amWinPct}%</div>
 
                                     <div className="col-span-2 text-center">
-                                        <span className="font-semibold text-estonia-dark">
-                                            {coach.vmMatches}
-                                        </span>
+                                        <span className="font-semibold text-estonia-dark">{coach.vmMatches}</span>
                                     </div>
 
-                                    <div className="col-span-2 text-center text-slate-500">
-                                        {coach.vmWinPct}%
-                                    </div>
+                                    <div className="col-span-2 text-center text-slate-500">{coach.vmWinPct}%</div>
 
                                     <div className="col-span-2 text-center">
-                                        <span className="font-semibold text-estonia-dark">
-                                            {coach.allMatches}
-                                        </span>
+                                        <span className="font-semibold text-estonia-dark">{coach.allMatches}</span>
                                     </div>
 
-                                    <div className="col-span-2 text-center text-slate-500">
-                                        {coach.allWinPct}%
-                                    </div>
+                                    <div className="col-span-2 text-center text-slate-500">{coach.allWinPct}%</div>
                                 </div>
                             ))}
                         </div>

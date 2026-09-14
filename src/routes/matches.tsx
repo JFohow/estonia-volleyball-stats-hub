@@ -4,11 +4,7 @@ import { allMatchesOptions, type MatchListItem } from "@/lib/matches.queries";
 import { useTranslation } from "react-i18next";
 import { FileText } from "lucide-react";
 import MultiSelect from "@/components/ui/multi-select";
-import {
-  createFileRoute,
-  useRouter,
-  Outlet,
-} from "@tanstack/react-router";
+import { createFileRoute, useRouter, Outlet } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/matches")({
   head: () => ({
@@ -36,6 +32,14 @@ export const Route = createFileRoute("/matches")({
   ),
 });
 
+function getLocalizedOpponent(match: MatchListItem, currentLanguage: "et" | "en") {
+  return currentLanguage === "et" ? match.opponent : (match.opponent_en ?? match.opponent);
+}
+
+function getLocalizedCompetition(match: MatchListItem, currentLanguage: "et" | "en") {
+  return currentLanguage === "et" ? match.competition : (match.competition_en ?? match.competition);
+}
+
 function MatchesError({ error, reset }: { error: Error; reset: () => void }) {
   const router = useRouter();
   const { reset: qReset } = useQueryErrorResetBoundary();
@@ -61,17 +65,13 @@ function MatchesError({ error, reset }: { error: Error; reset: () => void }) {
 function MatchesPage() {
   const { data: matches } = useSuspenseQuery(allMatchesOptions());
   const { t, i18n } = useTranslation();
-  const [matchType, setMatchType] = useState<"ALL" | "OFFICIAL" | "COMPETITIVE" | "NON_OFFICIAL">("OFFICIAL");
+  const [matchType, setMatchType] = useState<"ALL" | "OFFICIAL" | "COMPETITIVE" | "NON_OFFICIAL">(
+    "OFFICIAL",
+  );
   const [selectedYear, setSelectedYear] = useState<string[]>(["all"]);
   const [selectedCompetition, setSelectedCompetition] = useState<string[]>(["all"]);
   const [selectedOpponent, setSelectedOpponent] = useState<string[]>(["all"]);
   const currentLanguage = i18n.language?.startsWith("et") ? "et" : "en";
-
-  const getLocalizedOpponent = (match: MatchListItem) =>
-    currentLanguage === "et" ? match.opponent : match.opponent_en ?? match.opponent;
-
-  const getLocalizedCompetition = (match: MatchListItem) =>
-    currentLanguage === "et" ? match.competition : match.competition_en ?? match.competition;
 
   const matchTypeFilteredRows = useMemo(() => {
     return matches.filter((m) => {
@@ -86,11 +86,21 @@ function MatchesPage() {
     const values = new Set<string>();
 
     matchTypeFilteredRows.forEach((m) => {
-      const localizedCompetition = getLocalizedCompetition(m);
-      const localizedOpponent = getLocalizedOpponent(m);
+      const localizedCompetition = getLocalizedCompetition(m, currentLanguage);
+      const localizedOpponent = getLocalizedOpponent(m, currentLanguage);
 
-      if (!selectedCompetition.includes("all") && localizedCompetition && !selectedCompetition.includes(localizedCompetition)) return;
-      if (!selectedOpponent.includes("all") && localizedOpponent && !selectedOpponent.includes(localizedOpponent)) return;
+      if (
+        !selectedCompetition.includes("all") &&
+        localizedCompetition &&
+        !selectedCompetition.includes(localizedCompetition)
+      )
+        return;
+      if (
+        !selectedOpponent.includes("all") &&
+        localizedOpponent &&
+        !selectedOpponent.includes(localizedOpponent)
+      )
+        return;
 
       values.add(new Date(m.match_date).getFullYear().toString());
     });
@@ -102,14 +112,19 @@ function MatchesPage() {
     const values = new Set<string>();
 
     matchTypeFilteredRows.forEach((m) => {
-      const localizedCompetition = getLocalizedCompetition(m);
-      const localizedOpponent = getLocalizedOpponent(m);
+      const localizedCompetition = getLocalizedCompetition(m, currentLanguage);
+      const localizedOpponent = getLocalizedOpponent(m, currentLanguage);
 
       if (!selectedYear.includes("all")) {
         const year = new Date(m.match_date).getFullYear().toString();
         if (!selectedYear.includes(year)) return;
       }
-      if (!selectedOpponent.includes("all") && localizedOpponent && !selectedOpponent.includes(localizedOpponent)) return;
+      if (
+        !selectedOpponent.includes("all") &&
+        localizedOpponent &&
+        !selectedOpponent.includes(localizedOpponent)
+      )
+        return;
 
       if (localizedCompetition) values.add(localizedCompetition);
     });
@@ -121,14 +136,19 @@ function MatchesPage() {
     const values = new Set<string>();
 
     matchTypeFilteredRows.forEach((m) => {
-      const localizedCompetition = getLocalizedCompetition(m);
-      const localizedOpponent = getLocalizedOpponent(m);
+      const localizedCompetition = getLocalizedCompetition(m, currentLanguage);
+      const localizedOpponent = getLocalizedOpponent(m, currentLanguage);
 
       if (!selectedYear.includes("all")) {
         const year = new Date(m.match_date).getFullYear().toString();
         if (!selectedYear.includes(year)) return;
       }
-      if (!selectedCompetition.includes("all") && localizedCompetition && !selectedCompetition.includes(localizedCompetition)) return;
+      if (
+        !selectedCompetition.includes("all") &&
+        localizedCompetition &&
+        !selectedCompetition.includes(localizedCompetition)
+      )
+        return;
 
       if (localizedOpponent) values.add(localizedOpponent);
     });
@@ -165,8 +185,8 @@ function MatchesPage() {
 
   const filtered = useMemo(() => {
     return matchTypeFilteredRows.filter((m) => {
-      const opponent = getLocalizedOpponent(m);
-      const competition = getLocalizedCompetition(m);
+      const opponent = getLocalizedOpponent(m, currentLanguage);
+      const competition = getLocalizedCompetition(m, currentLanguage);
 
       if (!selectedYear.includes("all") && selectedYear.length > 0) {
         const year = new Date(m.match_date).getFullYear().toString();
@@ -183,7 +203,7 @@ function MatchesPage() {
 
       return true;
     });
-  }, [matchTypeFilteredRows, selectedYear, selectedCompetition, selectedOpponent]);
+  }, [matchTypeFilteredRows, selectedYear, selectedCompetition, selectedOpponent, currentLanguage]);
 
   const selectedOpponentRecord = useMemo(() => {
     if (selectedOpponent.includes("all") || selectedOpponent.length === 0) {
@@ -191,8 +211,8 @@ function MatchesPage() {
     }
 
     const rows = matchTypeFilteredRows.filter((m) => {
-      const opponent = getLocalizedOpponent(m);
-      const competition = getLocalizedCompetition(m);
+      const opponent = getLocalizedOpponent(m, currentLanguage);
+      const competition = getLocalizedCompetition(m, currentLanguage);
 
       if (!selectedYear.includes("all") && selectedYear.length > 0) {
         const year = new Date(m.match_date).getFullYear().toString();
@@ -220,26 +240,25 @@ function MatchesPage() {
           ? selectedOpponent[0]
           : t("matches.selectedOpponents", { count: selectedOpponent.length }),
     };
-  }, [matchTypeFilteredRows, selectedYear, selectedCompetition, selectedOpponent, currentLanguage, t]);
+  }, [
+    matchTypeFilteredRows,
+    selectedYear,
+    selectedCompetition,
+    selectedOpponent,
+    currentLanguage,
+    t,
+  ]);
 
   const vmMatches = matches.filter((m) => m.vm);
-  const vmWins = vmMatches.filter(
-    (m) => m.estonia_sets > m.opponent_sets
-  ).length;
+  const vmWins = vmMatches.filter((m) => m.estonia_sets > m.opponent_sets).length;
   const vmLosses = vmMatches.length - vmWins;
 
   const amMatches = matches.filter((m) => m.am);
-  const amWins = amMatches.filter(
-    (m) => m.estonia_sets > m.opponent_sets
-  ).length;
+  const amWins = amMatches.filter((m) => m.estonia_sets > m.opponent_sets).length;
   const amLosses = amMatches.length - amWins;
 
-  const allMatches = matches.filter(
-    (m) => m.am || m.mam
-  );
-  const allWins = allMatches.filter(
-    (m) => m.estonia_sets > m.opponent_sets
-  ).length;
+  const allMatches = matches.filter((m) => m.am || m.mam);
+  const allWins = allMatches.filter((m) => m.estonia_sets > m.opponent_sets).length;
   const allLosses = allMatches.length - allWins;
 
   return (
@@ -309,7 +328,9 @@ function MatchesPage() {
               <MultiSelect
                 options={yearOptions.map((y) => ({ value: y, label: y }))}
                 value={selectedYear}
-                onChange={(v) => setSelectedYear(v.length === 0 ? ["all"] : v.includes("all") ? ["all"] : v)}
+                onChange={(v) =>
+                  setSelectedYear(v.length === 0 ? ["all"] : v.includes("all") ? ["all"] : v)
+                }
                 placeholder={t("matches.filters.allYears")}
                 className="w-full"
               />
@@ -317,7 +338,9 @@ function MatchesPage() {
               <MultiSelect
                 options={competitionOptions.map((c) => ({ value: c, label: c }))}
                 value={selectedCompetition}
-                onChange={(v) => setSelectedCompetition(v.length === 0 ? ["all"] : v.includes("all") ? ["all"] : v)}
+                onChange={(v) =>
+                  setSelectedCompetition(v.length === 0 ? ["all"] : v.includes("all") ? ["all"] : v)
+                }
                 placeholder={t("matches.filters.allCompetitions")}
                 className="w-full"
               />
@@ -325,7 +348,9 @@ function MatchesPage() {
               <MultiSelect
                 options={opponentOptions.map((o) => ({ value: o, label: o }))}
                 value={selectedOpponent}
-                onChange={(v) => setSelectedOpponent(v.length === 0 ? ["all"] : v.includes("all") ? ["all"] : v)}
+                onChange={(v) =>
+                  setSelectedOpponent(v.length === 0 ? ["all"] : v.includes("all") ? ["all"] : v)
+                }
                 placeholder={t("matches.filters.allOpponents")}
                 className="w-full"
               />
@@ -348,35 +373,23 @@ function MatchesPage() {
 
           <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
             <div className="hidden grid-cols-13 gap-3 border-b border-slate-200 bg-slate-50 px-6 py-4 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500 md:grid">
+              <div className="col-span-2 text-center">{t("matches.date")}</div>
 
-              <div className="col-span-2 text-center">
-                {t("matches.date")}
-              </div>
+              <div className="col-span-3 text-center">{t("matches.opponent")}</div>
 
-              <div className="col-span-3 text-center">
-                {t("matches.opponent")}
-              </div>
+              <div className="col-span-3 text-center">{t("matches.score")}</div>
 
-              <div className="col-span-3 text-center">
-                {t("matches.score")}
-              </div>
+              <div className="col-span-2 text-center">{t("matches.competition")}</div>
 
-              <div className="col-span-2 text-center">
-                {t("matches.competition")}
-              </div>
+              <div className="col-span-2 text-center">{t("matches.city")}</div>
 
-              <div className="col-span-2 text-center">
-                {t("matches.city")}
-              </div>
-
-              <div className="col-span-1 text-center">
-                {t("matches.statistics")}
-              </div>
-
+              <div className="col-span-1 text-center">{t("matches.statistics")}</div>
             </div>
             {filtered.length === 0 ? (
               <div className="p-12 text-center">
-                <p className="font-display text-xl uppercase italic text-slate-400">{t("common.noResults")}</p>
+                <p className="font-display text-xl uppercase italic text-slate-400">
+                  {t("common.noResults")}
+                </p>
                 <p className="mt-2 text-sm text-slate-500">Adjust filters or clear the search.</p>
               </div>
             ) : (
@@ -428,7 +441,7 @@ function StatGroup({
 
   return (
     <div className="rounded-lg border border-white/20 bg-white/5 p-4">
-      <div className="mb-4 border-b border-white/10 pb-2 text-center text-[10px] font-bold uppercase tracking-[0.2em] text-white">
+      <div className="mb-4 border-b border-white/10 pb-2 text-center text-xs font-bold uppercase tracking-[0.22em] text-white sm:text-sm">
         {title}
       </div>
 
@@ -451,7 +464,7 @@ function Segmented({
   options: { value: string; label: string }[];
 }) {
   return (
-    <div className="inline-flex overflow-hidden rounded-md border border-slate-200 bg-white text-xs font-semibold uppercase tracking-wide">
+    <div className="inline-flex overflow-hidden rounded-md border border-slate-200 bg-white text-xs font-semibold uppercase tracking-[0.14em]">
       {options.map((o) => {
         const active = o.value === value;
         return (
@@ -460,8 +473,8 @@ function Segmented({
             onClick={() => onChange(o.value)}
             className={
               active
-                ? "bg-estonia-dark px-3 py-2 text-white"
-                : "px-3 py-2 text-slate-500 hover:bg-slate-50"
+                ? "bg-estonia-dark px-4 py-2.5 text-white"
+                : "px-4 py-2.5 text-slate-500 hover:bg-slate-50"
             }
           >
             {o.label}
@@ -472,7 +485,13 @@ function Segmented({
   );
 }
 
-function MatchRow({ match, matchType }: { match: MatchListItem; matchType: "ALL" | "OFFICIAL" | "COMPETITIVE" | "NON_OFFICIAL"; }) {
+function MatchRow({
+  match,
+  matchType,
+}: {
+  match: MatchListItem;
+  matchType: "ALL" | "OFFICIAL" | "COMPETITIVE" | "NON_OFFICIAL";
+}) {
   const { t, i18n } = useTranslation();
   const currentLanguage = i18n.language?.startsWith("et") ? "et" : "en";
   const resultStyle =
@@ -482,10 +501,10 @@ function MatchRow({ match, matchType }: { match: MatchListItem; matchType: "ALL"
         ? "text-green-700"
         : "text-red-700";
   const opponent =
-    currentLanguage === "et" ? match.opponent : match.opponent_en ?? match.opponent;
+    currentLanguage === "et" ? match.opponent : (match.opponent_en ?? match.opponent);
   const competition =
-    currentLanguage === "et" ? match.competition : match.competition_en ?? match.competition;
-  const city = currentLanguage === "et" ? match.city : match.city_en ?? match.city;
+    currentLanguage === "et" ? match.competition : (match.competition_en ?? match.competition);
+  const city = currentLanguage === "et" ? match.city : (match.city_en ?? match.city);
   const officialSetsPlayed = match.estonia_sets + match.opponent_sets;
   const officialSetScores = (match.match_sets ?? [])
     .filter((set) => set.set_number <= 5)
@@ -495,14 +514,12 @@ function MatchRow({ match, matchType }: { match: MatchListItem; matchType: "ALL"
     .filter((set) => set.set_number > 5)
     .map((set) => `${set.estonia_points}:${set.opponent_points}`)
     .join(" • ");
-  const hasAdditionalSets =
-    match.has_additional_sets &&
-    additionalSetScores !== "";
-  const scoreTarget = matchType === "ALL" && hasAdditionalSets
-    ? `/match/${match.match_id}/all`
-    : `/match/${match.match_id}`;
+  const hasAdditionalSets = match.has_additional_sets && additionalSetScores !== "";
+  const scoreTarget =
+    matchType === "ALL" && hasAdditionalSets
+      ? `/match/${match.match_id}/all`
+      : `/match/${match.match_id}`;
   const detailLine = match.notes;
-
 
   return (
     <li
@@ -518,16 +535,11 @@ function MatchRow({ match, matchType }: { match: MatchListItem; matchType: "ALL"
       </div>
 
       <div className="col-span-3 flex items-center justify-center gap-2 text-center">
-
-        <span className="font-display text-2xl uppercase text-slate-900">
-          {opponent || "—"}
-        </span>
+        <span className="font-display text-2xl uppercase text-slate-900">{opponent || "—"}</span>
       </div>
 
       <div className="col-span-3 flex items-center justify-center">
-        <div
-          className={`min-w-[110px] rounded-lg px-3 py-1 text-center ${resultStyle}`}
-        >
+        <div className={`min-w-[110px] rounded-lg px-3 py-1 text-center ${resultStyle}`}>
           <a
             href={scoreTarget}
             className="font-display text-2xl leading-none underline-offset-2 hover:underline"
@@ -536,9 +548,7 @@ function MatchRow({ match, matchType }: { match: MatchListItem; matchType: "ALL"
           </a>
 
           {officialSetScores ? (
-            <div className="mt-1 text-xs font-medium text-slate-700">
-              {officialSetScores}
-            </div>
+            <div className="mt-1 text-xs font-medium text-slate-700">{officialSetScores}</div>
           ) : null}
 
           {matchType === "ALL" && hasAdditionalSets && (
@@ -552,7 +562,6 @@ function MatchRow({ match, matchType }: { match: MatchListItem; matchType: "ALL"
               <span>{additionalSetScores}</span>
             </div>
           )}
-
         </div>
       </div>
 
@@ -560,9 +569,7 @@ function MatchRow({ match, matchType }: { match: MatchListItem; matchType: "ALL"
         {competition ?? "—"}
       </div>
 
-      <div className="col-span-2 text-center text-sm text-slate-500">
-        {city ?? "—"}
-      </div>
+      <div className="col-span-2 text-center text-sm text-slate-500">{city ?? "—"}</div>
 
       <div className="col-span-1 flex justify-center gap-1">
         <a
@@ -574,16 +581,13 @@ function MatchRow({ match, matchType }: { match: MatchListItem; matchType: "ALL"
         </a>
 
         {/* additional sets link removed: match page now supports toggling official/all stats */}
-      </div >
+      </div>
 
-      {
-        detailLine ? (
-          <div className="col-span-13 border-l-4 border-estonia-blue bg-blue-50 px-3 py-1 text-sm text-slate-600" >
-            {detailLine}
-          </div>
-        ) : null
-      }
-
-    </li >
+      {detailLine ? (
+        <div className="col-span-13 border-l-4 border-estonia-blue bg-blue-50 px-3 py-1 text-sm text-slate-600">
+          {detailLine}
+        </div>
+      ) : null}
+    </li>
   );
 }

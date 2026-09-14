@@ -1,6 +1,7 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useSuspenseQuery, useQueryErrorResetBoundary } from "@tanstack/react-query";
 import { homeSummaryOptions, type RecentMatch } from "@/lib/home.queries";
+import { gameHighsOptions, type GameHighRow } from "@/lib/game-highs.queries";
 import { totalTopOptions, type TotalTopRow } from "@/lib/total-top.queries";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -11,11 +12,11 @@ const ADMIN_EMAILS = new Set(["karl_juhkami@hotmail.com", "mjuhkami@gmail.com"])
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Eesti Võrkpall DB — Estonia Men's National Volleyball Archive" },
+      { title: "Estonian Men's National Team Database" },
       {
         name: "description",
         content:
-          "Every match, player, and statistic from the Estonia Men's National Volleyball Team, in one browsable archive.",
+          "Every match. Every set. Every appearance. The searchable historical archive of the Estonia Men's National Volleyball Team.",
       },
     ],
   }),
@@ -23,6 +24,7 @@ export const Route = createFileRoute("/")({
     Promise.all([
       context.queryClient.ensureQueryData(homeSummaryOptions()),
       context.queryClient.ensureQueryData(totalTopOptions()),
+      context.queryClient.ensureQueryData(gameHighsOptions()),
     ]),
   component: HomePage,
   errorComponent: HomeError,
@@ -56,6 +58,52 @@ type TopLeaderCard = {
   value: number;
 };
 
+type GameHighStatKey =
+  | "pointsPerGame"
+  | "plusMinusBest"
+  | "plusMinusWorst"
+  | "serveTotal"
+  | "serveAces"
+  | "serveErrorsMost"
+  | "serveErrorsLeast"
+  | "receptionTotal"
+  | "receptionErrors"
+  | "receptionPositivePctBest"
+  | "receptionPositivePctWorst"
+  | "receptionExcellentPctBest"
+  | "receptionExcellentPctWorst"
+  | "attackTotal"
+  | "attackErrors"
+  | "attackBlocked"
+  | "attackKills"
+  | "attackKillPctBest"
+  | "attackKillPctWorst"
+  | "attackEfficiencyBest"
+  | "attackEfficiencyWorst"
+  | "blockPoints";
+
+type RotatingLeaderCard =
+  | {
+    kind: "totalTop";
+    title: string;
+    row: TotalTopRow;
+    value: number;
+    isPercent: boolean;
+  }
+  | {
+    kind: "gameHigh";
+    title: string;
+    row: GameHighRow;
+    value: number;
+    isPercent: boolean;
+    opponent: string;
+    competition: string;
+    matchDate: string;
+    matchHref: string;
+  };
+
+type GameHighRotatingCard = Extract<RotatingLeaderCard, { kind: "gameHigh" }>;
+
 const topStatFields: Array<{ key: TotalTopStatKey; labelKey: string }> = [
   { key: "appearances", labelKey: "totalTop.metrics.mostAppearances" },
   { key: "sets", labelKey: "totalTop.metrics.mostSets" },
@@ -77,6 +125,229 @@ const topStatFields: Array<{ key: TotalTopStatKey; labelKey: string }> = [
   { key: "attackEfficiency", labelKey: "totalTop.metrics.bestAttackEffPct" },
   { key: "blockPoints", labelKey: "totalTop.metrics.mostBlockPoints" },
 ];
+
+const gameHighFields: Array<{
+  key: GameHighStatKey;
+  labelKey: string;
+  sortDirection: "asc" | "desc";
+  isPercent?: boolean;
+  minAttemptsField?: "serveTotal" | "receptionTotal" | "attackTotal";
+  minAttempts?: number;
+}> = [
+    {
+      key: "pointsPerGame",
+      labelKey: "gameHighs.categoryDescriptions.pointsInMatch",
+      sortDirection: "desc",
+    },
+    {
+      key: "plusMinusBest",
+      labelKey: "gameHighs.categoryDescriptions.plusMinusBestInMatch",
+      sortDirection: "desc",
+    },
+    {
+      key: "plusMinusWorst",
+      labelKey: "gameHighs.categoryDescriptions.plusMinusWorstInMatch",
+      sortDirection: "asc",
+    },
+    {
+      key: "serveTotal",
+      labelKey: "gameHighs.categoryDescriptions.servesInMatch",
+      sortDirection: "desc",
+    },
+    {
+      key: "serveAces",
+      labelKey: "gameHighs.categoryDescriptions.acesInMatch",
+      sortDirection: "desc",
+    },
+    {
+      key: "serveErrorsMost",
+      labelKey: "gameHighs.categoryDescriptions.serveMistakesMostInMatch",
+      sortDirection: "desc",
+    },
+    {
+      key: "serveErrorsLeast",
+      labelKey: "gameHighs.categoryDescriptions.serveMistakesLeastInMatch",
+      sortDirection: "asc",
+      minAttemptsField: "serveTotal",
+      minAttempts: 10,
+    },
+    {
+      key: "receptionTotal",
+      labelKey: "gameHighs.categoryDescriptions.receptionsInMatch",
+      sortDirection: "desc",
+    },
+    {
+      key: "receptionErrors",
+      labelKey: "gameHighs.categoryDescriptions.receptionMistakesInMatch",
+      sortDirection: "desc",
+    },
+    {
+      key: "receptionPositivePctBest",
+      labelKey: "gameHighs.categoryDescriptions.receptionPctBestInMatch",
+      sortDirection: "desc",
+      isPercent: true,
+      minAttemptsField: "receptionTotal",
+      minAttempts: 10,
+    },
+    {
+      key: "receptionPositivePctWorst",
+      labelKey: "gameHighs.categoryDescriptions.receptionPctWorstInMatch",
+      sortDirection: "asc",
+      isPercent: true,
+      minAttemptsField: "receptionTotal",
+      minAttempts: 10,
+    },
+    {
+      key: "receptionExcellentPctBest",
+      labelKey: "gameHighs.categoryDescriptions.receptionIdealPctBestInMatch",
+      sortDirection: "desc",
+      isPercent: true,
+      minAttemptsField: "receptionTotal",
+      minAttempts: 10,
+    },
+    {
+      key: "receptionExcellentPctWorst",
+      labelKey: "gameHighs.categoryDescriptions.receptionIdealPctWorstInMatch",
+      sortDirection: "asc",
+      isPercent: true,
+      minAttemptsField: "receptionTotal",
+      minAttempts: 10,
+    },
+    {
+      key: "attackTotal",
+      labelKey: "gameHighs.categoryDescriptions.attacksInMatch",
+      sortDirection: "desc",
+    },
+    {
+      key: "attackErrors",
+      labelKey: "gameHighs.categoryDescriptions.attackOutInMatch",
+      sortDirection: "desc",
+    },
+    {
+      key: "attackBlocked",
+      labelKey: "gameHighs.categoryDescriptions.attackBlockedInMatch",
+      sortDirection: "desc",
+    },
+    {
+      key: "attackKills",
+      labelKey: "gameHighs.categoryDescriptions.attackSuccessfulInMatch",
+      sortDirection: "desc",
+    },
+    {
+      key: "attackKillPctBest",
+      labelKey: "gameHighs.categoryDescriptions.attackPctBestInMatch",
+      sortDirection: "desc",
+      isPercent: true,
+      minAttemptsField: "attackTotal",
+      minAttempts: 10,
+    },
+    {
+      key: "attackKillPctWorst",
+      labelKey: "gameHighs.categoryDescriptions.attackPctWorstInMatch",
+      sortDirection: "asc",
+      isPercent: true,
+      minAttemptsField: "attackTotal",
+      minAttempts: 10,
+    },
+    {
+      key: "attackEfficiencyBest",
+      labelKey: "gameHighs.categoryDescriptions.attackEfficiencyBestInMatch",
+      sortDirection: "desc",
+      isPercent: true,
+      minAttemptsField: "attackTotal",
+      minAttempts: 10,
+    },
+    {
+      key: "attackEfficiencyWorst",
+      labelKey: "gameHighs.categoryDescriptions.attackEfficiencyWorstInMatch",
+      sortDirection: "asc",
+      isPercent: true,
+      minAttemptsField: "attackTotal",
+      minAttempts: 10,
+    },
+    {
+      key: "blockPoints",
+      labelKey: "gameHighs.categoryDescriptions.blocksInMatch",
+      sortDirection: "desc",
+    },
+  ];
+
+function getGameHighValue(row: GameHighRow, key: GameHighStatKey): number | null {
+  switch (key) {
+    case "pointsPerGame":
+      return row.points;
+    case "plusMinusBest":
+    case "plusMinusWorst":
+      return row.plusMinus;
+    case "serveTotal":
+      return row.serveTotal;
+    case "serveAces":
+      return row.serveAces;
+    case "serveErrorsMost":
+    case "serveErrorsLeast":
+      return row.serveErrors;
+    case "receptionTotal":
+      return row.receptionTotal;
+    case "receptionErrors":
+      return row.receptionErrors;
+    case "receptionPositivePctBest":
+    case "receptionPositivePctWorst":
+      return row.receptionPositivePct;
+    case "receptionExcellentPctBest":
+    case "receptionExcellentPctWorst":
+      return row.receptionExcellentPct;
+    case "attackTotal":
+      return row.attackTotal;
+    case "attackErrors":
+      return row.attackErrors;
+    case "attackBlocked":
+      return row.attackBlocked;
+    case "attackKills":
+      return row.attackKills;
+    case "attackKillPctBest":
+    case "attackKillPctWorst":
+      return row.attackKillPct;
+    case "attackEfficiencyBest":
+    case "attackEfficiencyWorst":
+      return row.attackEfficiency;
+    case "blockPoints":
+      return row.blockPoints;
+  }
+}
+
+function formatLeaderValue(value: number, isPercent: boolean) {
+  if (isPercent) {
+    return `${Math.round(value)}%`;
+  }
+
+  return Number.isInteger(value) ? fmt(value) : value.toFixed(1);
+}
+
+function pickGameHighLeader(rows: GameHighRow[], field: (typeof gameHighFields)[number]) {
+  const filteredRows = rows.filter((row) => {
+    if (field.minAttemptsField && field.minAttempts != null) {
+      const attempts = row[field.minAttemptsField] ?? 0;
+      if (attempts < field.minAttempts) {
+        return false;
+      }
+    }
+
+    return getGameHighValue(row, field.key) != null;
+  });
+
+  const sortedRows = [...filteredRows].sort((left, right) => {
+    const leftValue = getGameHighValue(left, field.key) ?? 0;
+    const rightValue = getGameHighValue(right, field.key) ?? 0;
+
+    if (leftValue !== rightValue) {
+      return field.sortDirection === "asc" ? leftValue - rightValue : rightValue - leftValue;
+    }
+
+    return new Date(right.matchDate).getTime() - new Date(left.matchDate).getTime();
+  });
+
+  return sortedRows[0] ?? null;
+}
 
 function HomeError({ error, reset }: { error: Error; reset: () => void }) {
   const router = useRouter();
@@ -117,9 +388,10 @@ function toNumberOrDefault(value: unknown, fallback = 0): number {
 }
 
 function HomePage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { data } = useSuspenseQuery(homeSummaryOptions());
   const { data: totalTopRows } = useSuspenseQuery(totalTopOptions());
+  const { data: gameHighRows } = useSuspenseQuery(gameHighsOptions());
   const [activeLeaderIndex, setActiveLeaderIndex] = useState(0);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isSavingImport, setIsSavingImport] = useState(false);
@@ -127,13 +399,13 @@ function HomePage() {
   const [createdMatchId, setCreatedMatchId] = useState<number | null>(null);
   const [targetMatchId, setTargetMatchId] = useState("");
   const [setsPayloadText, setSetsPayloadText] = useState(
-    '[\n  { "set_number": 1, "estonia_points": 25, "opponent_points": 19 }\n]'
+    '[\n  { "set_number": 1, "estonia_points": 25, "opponent_points": 19 }\n]',
   );
   const [appearancesPayloadText, setAppearancesPayloadText] = useState(
-    '[\n  { "player_id": 1, "sets_played": 3, "sets_started": 3, "on_the_bench": false, "captain": false, "player_position_in_match": "OH", "shirt_number": 7 }\n]'
+    '[\n  { "player_id": 1, "sets_played": 3, "sets_started": 3, "on_the_bench": false, "captain": false, "player_position_in_match": "OH", "shirt_number": 7 }\n]',
   );
   const [statsPayloadText, setStatsPayloadText] = useState(
-    '[\n  { "player_id": 1, "stats_version": "AM", "points": 12, "plus_minus": 8, "break_points": 4, "serve_total": 20, "serve_aces": 2, "serve_errors": 1, "reception_total": 15, "reception_errors": 1, "reception_positive_pct": 60, "reception_excellent_pct": 33, "attack_total": 18, "attack_kills": 9, "attack_errors": 2, "attack_blocked": 1, "attack_kill_pct": 50, "attack_efficiency": 33, "block_points": 1 }\n]'
+    '[\n  { "player_id": 1, "stats_version": "AM", "points": 12, "plus_minus": 8, "break_points": 4, "serve_total": 20, "serve_aces": 2, "serve_errors": 1, "reception_total": 15, "reception_errors": 1, "reception_positive_pct": 60, "reception_excellent_pct": 33, "attack_total": 18, "attack_kills": 9, "attack_errors": 2, "attack_blocked": 1, "attack_kill_pct": 50, "attack_efficiency": 33, "block_points": 1 }\n]',
   );
   const [setsStatus, setSetsStatus] = useState("");
   const [appearancesStatus, setAppearancesStatus] = useState("");
@@ -163,10 +435,11 @@ function HomePage() {
   const playerCoveragePct =
     data.playerCoverage.totalMatches > 0
       ? Math.round(
-        (data.playerCoverage.matchesWithPlayers /
-          data.playerCoverage.totalMatches) * 100
+        (data.playerCoverage.matchesWithPlayers / data.playerCoverage.totalMatches) * 100,
       )
       : 0;
+
+  const currentLanguage = i18n.language?.startsWith("et") ? "et" : "en";
 
   const topLeaders = useMemo<TopLeaderCard[]>(() => {
     return topStatFields
@@ -193,16 +466,70 @@ function HomePage() {
       .filter((leader): leader is TopLeaderCard => leader !== null);
   }, [t, totalTopRows]);
 
+  const gameHighLeaders = useMemo<GameHighRotatingCard[]>(() => {
+    const competitiveRows = gameHighRows.filter((row) => row.vm === true);
+
+    return gameHighFields
+      .map((field) => {
+        const leader = pickGameHighLeader(competitiveRows, field);
+        if (!leader) {
+          return null;
+        }
+
+        const opponent =
+          currentLanguage === "et" ? leader.opponent : (leader.opponentEn ?? leader.opponent);
+        const competition =
+          currentLanguage === "et"
+            ? leader.competition
+            : (leader.competitionEn ?? leader.competition);
+
+        return {
+          kind: "gameHigh" as const,
+          title: t(field.labelKey),
+          row: leader,
+          value: getGameHighValue(leader, field.key) ?? 0,
+          isPercent: field.isPercent === true,
+          opponent,
+          competition: competition ?? "—",
+          matchDate: new Date(leader.matchDate).toLocaleDateString("en-GB", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+          }),
+          matchHref:
+            leader.mam === true ? `/match/${leader.matchId}/all` : `/match/${leader.matchId}`,
+        };
+      })
+      .filter((leader): leader is GameHighRotatingCard => leader !== null);
+  }, [gameHighRows, currentLanguage, t]);
+
+  const rotatingLeaders = useMemo<RotatingLeaderCard[]>(() => {
+    return [
+      ...topLeaders.map((leader) => ({
+        kind: "totalTop" as const,
+        title: leader.statLabel,
+        row: leader.row,
+        value: leader.value,
+        isPercent:
+          leader.stat === "receptionPositivePct" ||
+          leader.stat === "receptionExcellentPct" ||
+          leader.stat === "attackKillPct" ||
+          leader.stat === "attackEfficiency",
+      })),
+      ...gameHighLeaders,
+    ];
+  }, [gameHighLeaders, topLeaders]);
+
   useEffect(() => {
-    if (topLeaders.length === 0) {
+    if (rotatingLeaders.length === 0) {
       setActiveLeaderIndex(0);
       return;
     }
-    setActiveLeaderIndex((current) => current % topLeaders.length);
-  }, [topLeaders.length]);
+    setActiveLeaderIndex((current) => current % rotatingLeaders.length);
+  }, [rotatingLeaders.length]);
 
   useEffect(() => {
-    if (topLeaders.length <= 1) {
+    if (rotatingLeaders.length <= 1) {
       return;
     }
 
@@ -210,23 +537,18 @@ function HomePage() {
       setActiveLeaderIndex((current) => {
         let next = current;
         while (next === current) {
-          next = Math.floor(Math.random() * topLeaders.length);
+          next = Math.floor(Math.random() * rotatingLeaders.length);
         }
         return next;
       });
     }, 10000);
 
     return () => clearInterval(interval);
-  }, [topLeaders.length]);
+  }, [rotatingLeaders.length]);
 
-  const activeLeader = topLeaders.length > 0 ? topLeaders[activeLeaderIndex % topLeaders.length] : null;
-  const leaderIsPercent = activeLeader
-    ? activeLeader.stat === "receptionPositivePct" ||
-    activeLeader.stat === "receptionExcellentPct" ||
-    activeLeader.stat === "attackKillPct" ||
-    activeLeader.stat === "attackEfficiency"
-    : false;
-  const canManuallyCycleLeaders = topLeaders.length > 1;
+  const activeLeader =
+    rotatingLeaders.length > 0 ? rotatingLeaders[activeLeaderIndex % rotatingLeaders.length] : null;
+  const canManuallyCycleLeaders = rotatingLeaders.length > 1;
 
   useEffect(() => {
     let isMounted = true;
@@ -268,7 +590,12 @@ function HomePage() {
     const estoniaSets = Number(importDraft.estoniaSets);
     const opponentSets = Number(importDraft.opponentSets);
 
-    if (!Number.isFinite(estoniaSets) || estoniaSets < 0 || !Number.isFinite(opponentSets) || opponentSets < 0) {
+    if (
+      !Number.isFinite(estoniaSets) ||
+      estoniaSets < 0 ||
+      !Number.isFinite(opponentSets) ||
+      opponentSets < 0
+    ) {
       setImportStatus("Set scores must be non-negative numbers.");
       return;
     }
@@ -346,7 +673,12 @@ function HomePage() {
       return;
     }
 
-    let rows: Array<{ match_id: number; set_number: number; estonia_points: number; opponent_points: number }>;
+    let rows: Array<{
+      match_id: number;
+      set_number: number;
+      estonia_points: number;
+      opponent_points: number;
+    }>;
     try {
       rows = parsed.map((item, index) => {
         const row = item as Record<string, unknown>;
@@ -357,8 +689,15 @@ function HomePage() {
         if (!Number.isInteger(setNumber) || setNumber <= 0) {
           throw new Error(`Row ${index + 1}: set_number must be a positive integer.`);
         }
-        if (!Number.isFinite(estoniaPoints) || estoniaPoints < 0 || !Number.isFinite(opponentPoints) || opponentPoints < 0) {
-          throw new Error(`Row ${index + 1}: estonia_points and opponent_points must be non-negative numbers.`);
+        if (
+          !Number.isFinite(estoniaPoints) ||
+          estoniaPoints < 0 ||
+          !Number.isFinite(opponentPoints) ||
+          opponentPoints < 0
+        ) {
+          throw new Error(
+            `Row ${index + 1}: estonia_points and opponent_points must be non-negative numbers.`,
+          );
         }
 
         return {
@@ -396,7 +735,9 @@ function HomePage() {
         .select("set_number")
         .eq("match_id", matchId);
 
-      const additionalCount = (allSets ?? []).filter((setRow) => setRow.set_number > officialSetCount).length;
+      const additionalCount = (allSets ?? []).filter(
+        (setRow) => setRow.set_number > officialSetCount,
+      ).length;
       await supabase
         .from("matches")
         .update({
@@ -460,9 +801,10 @@ function HomePage() {
           sets_started: toNumberOrDefault(row.sets_started, 0),
           on_the_bench: row.on_the_bench === true,
           captain: row.captain === true,
-          player_position_in_match: typeof row.player_position_in_match === "string" && row.player_position_in_match.trim()
-            ? row.player_position_in_match.trim()
-            : null,
+          player_position_in_match:
+            typeof row.player_position_in_match === "string" && row.player_position_in_match.trim()
+              ? row.player_position_in_match.trim()
+              : null,
           shirt_number: toNullableNumber(row.shirt_number),
         };
       });
@@ -543,7 +885,7 @@ function HomePage() {
 
         if (appearanceId == null) {
           throw new Error(
-            `Row ${index + 1}: appearance_id missing and player_id could not be mapped to an appearance for match ${matchId}.`
+            `Row ${index + 1}: appearance_id missing and player_id could not be mapped to an appearance for match ${matchId}.`,
           );
         }
 
@@ -577,7 +919,7 @@ function HomePage() {
       return;
     }
 
-    const { error } = await supabase.from("player_match_stats").insert(rows);
+    const { error } = await supabase.from("player_match_stats").insert(rows as never);
     if (error) {
       setStatsStatus(error.message);
       setIsSavingStats(false);
@@ -590,12 +932,14 @@ function HomePage() {
 
   function showPreviousLeader() {
     if (!canManuallyCycleLeaders) return;
-    setActiveLeaderIndex((current) => (current - 1 + topLeaders.length) % topLeaders.length);
+    setActiveLeaderIndex(
+      (current) => (current - 1 + rotatingLeaders.length) % rotatingLeaders.length,
+    );
   }
 
   function showNextLeader() {
     if (!canManuallyCycleLeaders) return;
-    setActiveLeaderIndex((current) => (current + 1) % topLeaders.length);
+    setActiveLeaderIndex((current) => (current + 1) % rotatingLeaders.length);
   }
 
   return (
@@ -603,20 +947,17 @@ function HomePage() {
       {/* Hero Metrics */}
       <header className="bg-estonia-dark px-4 pt-10 pb-16 text-white sm:px-6 sm:pt-12 sm:pb-24">
         <div className="mx-auto max-w-7xl">
-          <div className="grid gap-6 md:grid-cols-[1fr_auto] md:items-start md:gap-10">
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start lg:gap-8">
             <div>
               <h1 className="mb-3 font-display text-4xl uppercase italic leading-tight sm:text-5xl md:text-6xl">
-                {t("home.title")}{" "}
-                <span className="text-estonia-blue">
-                  {t("home.titleAccent")}
-                </span>
+                {t("home.title")} <span className="text-estonia-blue">{t("home.titleAccent")}</span>
               </h1>
-              <p className="max-w-2xl text-sm leading-relaxed text-white/70 sm:text-base">
+              <p className="max-w-2xl whitespace-pre-line text-sm leading-relaxed text-white/70 sm:text-base">
                 {t("home.subtitle")}
               </p>
             </div>
 
-            <div className="w-full max-w-[1020px] rounded-xl border border-white/20 bg-white/10 p-5 backdrop-blur-sm md:justify-self-center lg:justify-self-start">
+            <div className="w-full rounded-2xl border border-white/10 bg-white/10 p-5 backdrop-blur-sm lg:justify-self-end">
               <div className="space-y-2 text-sm">
                 <div className="flex items-center justify-between gap-3 border-b border-white/15 pb-2">
                   <span className="font-semibold text-white/80">{t("common.matches")}</span>
@@ -635,58 +976,80 @@ function HomePage() {
       {/* Main */}
       <main className="mx-auto -mt-8 max-w-7xl px-4 sm:-mt-12 sm:px-6">
         {isAdmin && (
-          <section id="admin-import" className="mb-6 rounded-2xl border border-estonia-blue/30 bg-white p-4 shadow-sm sm:p-6">
-            <div className="mb-1 text-[11px] font-bold uppercase tracking-[0.2em] text-estonia-blue">Admin Import</div>
+          <section
+            id="admin-import"
+            className="mb-6 rounded-2xl border border-estonia-blue/30 bg-white p-4 shadow-sm sm:p-6"
+          >
+            <div className="mb-1 text-[11px] font-bold uppercase tracking-[0.2em] text-estonia-blue">
+              Admin Import
+            </div>
             <h2 className="font-display text-2xl uppercase italic text-slate-900">Add New Match</h2>
-            <p className="mt-1 text-sm text-slate-500">Create a match first, then use the selected Match ID to import sets, appearances, and player stats.</p>
+            <p className="mt-1 text-sm text-slate-500">
+              Create a match first, then use the selected Match ID to import sets, appearances, and
+              player stats.
+            </p>
 
             <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <input
                 type="date"
                 value={importDraft.matchDate}
-                onChange={(event) => setImportDraft((current) => ({ ...current, matchDate: event.target.value }))}
+                onChange={(event) =>
+                  setImportDraft((current) => ({ ...current, matchDate: event.target.value }))
+                }
                 className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-estonia-blue"
               />
               <input
                 type="text"
                 placeholder="Opponent (ET)"
                 value={importDraft.opponent}
-                onChange={(event) => setImportDraft((current) => ({ ...current, opponent: event.target.value }))}
+                onChange={(event) =>
+                  setImportDraft((current) => ({ ...current, opponent: event.target.value }))
+                }
                 className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-estonia-blue"
               />
               <input
                 type="text"
                 placeholder="Opponent (EN)"
                 value={importDraft.opponentEn}
-                onChange={(event) => setImportDraft((current) => ({ ...current, opponentEn: event.target.value }))}
+                onChange={(event) =>
+                  setImportDraft((current) => ({ ...current, opponentEn: event.target.value }))
+                }
                 className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-estonia-blue"
               />
               <input
                 type="text"
                 placeholder="Competition (ET)"
                 value={importDraft.competition}
-                onChange={(event) => setImportDraft((current) => ({ ...current, competition: event.target.value }))}
+                onChange={(event) =>
+                  setImportDraft((current) => ({ ...current, competition: event.target.value }))
+                }
                 className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-estonia-blue"
               />
               <input
                 type="text"
                 placeholder="Competition (EN)"
                 value={importDraft.competitionEn}
-                onChange={(event) => setImportDraft((current) => ({ ...current, competitionEn: event.target.value }))}
+                onChange={(event) =>
+                  setImportDraft((current) => ({ ...current, competitionEn: event.target.value }))
+                }
                 className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-estonia-blue"
               />
               <input
                 type="text"
                 placeholder="City (ET)"
                 value={importDraft.city}
-                onChange={(event) => setImportDraft((current) => ({ ...current, city: event.target.value }))}
+                onChange={(event) =>
+                  setImportDraft((current) => ({ ...current, city: event.target.value }))
+                }
                 className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-estonia-blue"
               />
               <input
                 type="text"
                 placeholder="City (EN)"
                 value={importDraft.cityEn}
-                onChange={(event) => setImportDraft((current) => ({ ...current, cityEn: event.target.value }))}
+                onChange={(event) =>
+                  setImportDraft((current) => ({ ...current, cityEn: event.target.value }))
+                }
                 className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-estonia-blue"
               />
               <input
@@ -694,7 +1057,9 @@ function HomePage() {
                 min={0}
                 placeholder="Estonia sets"
                 value={importDraft.estoniaSets}
-                onChange={(event) => setImportDraft((current) => ({ ...current, estoniaSets: event.target.value }))}
+                onChange={(event) =>
+                  setImportDraft((current) => ({ ...current, estoniaSets: event.target.value }))
+                }
                 className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-estonia-blue"
               />
               <input
@@ -702,7 +1067,9 @@ function HomePage() {
                 min={0}
                 placeholder="Opponent sets"
                 value={importDraft.opponentSets}
-                onChange={(event) => setImportDraft((current) => ({ ...current, opponentSets: event.target.value }))}
+                onChange={(event) =>
+                  setImportDraft((current) => ({ ...current, opponentSets: event.target.value }))
+                }
                 className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-estonia-blue"
               />
             </div>
@@ -712,7 +1079,9 @@ function HomePage() {
                 <input
                   type="checkbox"
                   checked={importDraft.am}
-                  onChange={() => setImportDraft((current) => ({ ...current, am: true, vm: false, mam: false }))}
+                  onChange={() =>
+                    setImportDraft((current) => ({ ...current, am: true, vm: false, mam: false }))
+                  }
                 />
                 AM
               </label>
@@ -720,7 +1089,9 @@ function HomePage() {
                 <input
                   type="checkbox"
                   checked={importDraft.vm}
-                  onChange={() => setImportDraft((current) => ({ ...current, am: false, vm: true, mam: false }))}
+                  onChange={() =>
+                    setImportDraft((current) => ({ ...current, am: false, vm: true, mam: false }))
+                  }
                 />
                 VM
               </label>
@@ -728,7 +1099,9 @@ function HomePage() {
                 <input
                   type="checkbox"
                   checked={importDraft.mam}
-                  onChange={() => setImportDraft((current) => ({ ...current, am: false, vm: false, mam: true }))}
+                  onChange={() =>
+                    setImportDraft((current) => ({ ...current, am: false, vm: false, mam: true }))
+                  }
                 />
                 MAM
               </label>
@@ -743,9 +1116,7 @@ function HomePage() {
               {isSavingImport ? "Saving..." : "Save match"}
             </button>
 
-            {importStatus && (
-              <p className="mt-3 text-sm text-slate-600">{importStatus}</p>
-            )}
+            {importStatus && <p className="mt-3 text-sm text-slate-600">{importStatus}</p>}
 
             {createdMatchId != null && (
               <a
@@ -757,9 +1128,13 @@ function HomePage() {
             )}
 
             <div className="mt-6 border-t border-slate-200 pt-5">
-              <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500">Next steps</div>
+              <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500">
+                Next steps
+              </div>
               <div className="mt-3 grid gap-3 sm:max-w-xs">
-                <label className="text-xs font-semibold uppercase tracking-wide text-slate-600">Target Match ID</label>
+                <label className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                  Target Match ID
+                </label>
                 <input
                   type="number"
                   min={1}
@@ -772,8 +1147,12 @@ function HomePage() {
 
               <div className="mt-5 grid gap-5 lg:grid-cols-3">
                 <section className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                  <h3 className="text-sm font-bold uppercase tracking-wide text-slate-800">Step 2: Match sets</h3>
-                  <p className="mt-1 text-xs text-slate-500">JSON array with set_number, estonia_points, opponent_points.</p>
+                  <h3 className="text-sm font-bold uppercase tracking-wide text-slate-800">
+                    Step 2: Match sets
+                  </h3>
+                  <p className="mt-1 text-xs text-slate-500">
+                    JSON array with set_number, estonia_points, opponent_points.
+                  </p>
                   <textarea
                     value={setsPayloadText}
                     onChange={(event) => setSetsPayloadText(event.target.value)}
@@ -792,8 +1171,12 @@ function HomePage() {
                 </section>
 
                 <section className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                  <h3 className="text-sm font-bold uppercase tracking-wide text-slate-800">Step 3: Appearances</h3>
-                  <p className="mt-1 text-xs text-slate-500">JSON array with player_id and appearance fields.</p>
+                  <h3 className="text-sm font-bold uppercase tracking-wide text-slate-800">
+                    Step 3: Appearances
+                  </h3>
+                  <p className="mt-1 text-xs text-slate-500">
+                    JSON array with player_id and appearance fields.
+                  </p>
                   <textarea
                     value={appearancesPayloadText}
                     onChange={(event) => setAppearancesPayloadText(event.target.value)}
@@ -808,12 +1191,18 @@ function HomePage() {
                   >
                     {isSavingAppearances ? "Saving..." : "Save appearances"}
                   </button>
-                  {appearancesStatus && <p className="mt-2 text-xs text-slate-600">{appearancesStatus}</p>}
+                  {appearancesStatus && (
+                    <p className="mt-2 text-xs text-slate-600">{appearancesStatus}</p>
+                  )}
                 </section>
 
                 <section className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                  <h3 className="text-sm font-bold uppercase tracking-wide text-slate-800">Step 4: Player stats</h3>
-                  <p className="mt-1 text-xs text-slate-500">JSON array with stats fields and either appearance_id or player_id.</p>
+                  <h3 className="text-sm font-bold uppercase tracking-wide text-slate-800">
+                    Step 4: Player stats
+                  </h3>
+                  <p className="mt-1 text-xs text-slate-500">
+                    JSON array with stats fields and either appearance_id or player_id.
+                  </p>
                   <textarea
                     value={statsPayloadText}
                     onChange={(event) => setStatsPayloadText(event.target.value)}
@@ -840,9 +1229,7 @@ function HomePage() {
           <div className="space-y-6 lg:col-span-2">
             <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
               <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 sm:px-6 sm:py-4">
-                <h2 className="font-display text-xl uppercase italic">
-                  {t("home.recentMatches")}
-                </h2>
+                <h2 className="font-display text-xl uppercase italic">{t("home.recentMatches")}</h2>
               </div>
               <div className="divide-y divide-slate-100">
                 {data.recentMatches.length === 0 ? (
@@ -869,7 +1256,9 @@ function HomePage() {
                     >
                       &lt;
                     </button>
-                    <div className="px-2 text-center text-sm font-bold uppercase text-estonia-dark sm:text-base">{activeLeader.statLabel}</div>
+                    <div className="px-2 text-center text-sm font-bold uppercase text-estonia-dark sm:text-base">
+                      {activeLeader.title}
+                    </div>
                     <button
                       type="button"
                       onClick={showNextLeader}
@@ -880,43 +1269,52 @@ function HomePage() {
                       &gt;
                     </button>
                   </div>
-                  <div className="flex items-center justify-center gap-4 px-4 py-4 text-center">
-                    {activeLeader.row.photoUrl ? (
-                      <img
-                        src={activeLeader.row.photoUrl}
-                        alt={activeLeader.row.name}
-                        className="h-14 w-14 shrink-0 rounded-full border-2 border-estonia-blue/20 object-cover sm:h-16 sm:w-16"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-estonia-dark font-display text-lg text-white sm:h-16 sm:w-16 sm:text-xl">
-                        {activeLeader.row.name.split(" ")[0]?.[0] ?? "?"}
-                        {activeLeader.row.name.split(" ").slice(-1)[0]?.[0] ?? "?"}
+                  <div className="space-y-4 px-4 py-4 text-center">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+                      {activeLeader.title}
+                    </div>
+                    <div className="flex items-center justify-center gap-4 text-center">
+                      {activeLeader.kind === "totalTop" && activeLeader.row.photoUrl ? (
+                        <img
+                          src={activeLeader.row.photoUrl}
+                          alt={activeLeader.row.name}
+                          className="h-14 w-14 shrink-0 rounded-full border-2 border-estonia-blue/20 object-cover sm:h-16 sm:w-16"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-estonia-dark font-display text-lg text-white sm:h-16 sm:w-16 sm:text-xl">
+                          {activeLeader.row.name.split(" ")[0]?.[0] ?? "?"}
+                          {activeLeader.row.name.split(" ").slice(-1)[0]?.[0] ?? "?"}
+                        </div>
+                      )}
+                      <div className="min-w-0 text-center">
+                        <h3 className="truncate text-base font-bold uppercase leading-tight text-slate-900 sm:text-lg">
+                          {activeLeader.row.name}
+                        </h3>
+                        <p className="mt-1 text-sm font-semibold text-estonia-blue">
+                          {activeLeader.row.position ?? "—"}
+                        </p>
+                        {activeLeader.kind === "gameHigh" && (
+                          <p className="mt-1 text-[11px] uppercase tracking-[0.18em] text-slate-500">
+                            {activeLeader.opponent} · {activeLeader.matchDate}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    {activeLeader.kind === "gameHigh" && (
+                      <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-slate-400">
+                        {activeLeader.competition}
                       </div>
                     )}
-                    <div className="min-w-0 text-center">
-                      <h3 className="truncate text-base font-bold uppercase leading-tight text-slate-900 sm:text-lg">
-                        {activeLeader.row.name}
-                      </h3>
-                      <p className="mt-1 text-sm font-semibold text-estonia-blue">
-                        {activeLeader.row.position ?? "—"}
-                      </p>
-                    </div>
                   </div>
                   <div className="border-t border-slate-200 bg-slate-50 px-4 py-4 text-center">
                     <div className="font-display text-3xl text-estonia-dark sm:text-4xl">
-                      {leaderIsPercent
-                        ? `${Math.round(activeLeader.value)}%`
-                        : Number.isInteger(activeLeader.value)
-                          ? fmt(activeLeader.value)
-                          : activeLeader.value.toFixed(1)}
+                      {formatLeaderValue(activeLeader.value, activeLeader.isPercent)}
                     </div>
                   </div>
                 </div>
               ) : (
-                <p className="text-sm text-slate-400">
-                  {t("home.noTopStatData")}
-                </p>
+                <p className="text-sm text-slate-400">{t("home.noTopStatData")}</p>
               )}
             </section>
 
@@ -959,9 +1357,11 @@ function MatchRow({ match }: { match: RecentMatch }) {
   const { t, i18n } = useTranslation();
   const won = match.estonia_sets > match.opponent_sets;
   const currentLanguage = i18n.language?.startsWith("et") ? "et" : "en";
-  const opponent = currentLanguage === "et" ? match.opponent : match.opponent_en ?? match.opponent;
-  const competition = currentLanguage === "et" ? match.competition : match.competition_en ?? match.competition;
-  const city = currentLanguage === "et" ? match.city : match.city_en ?? match.city;
+  const opponent =
+    currentLanguage === "et" ? match.opponent : (match.opponent_en ?? match.opponent);
+  const competition =
+    currentLanguage === "et" ? match.competition : (match.competition_en ?? match.competition);
+  const city = currentLanguage === "et" ? match.city : (match.city_en ?? match.city);
   const typeStyles: Record<string, string> = {
     VM: "bg-green-100 text-green-700",
     AM: "bg-slate-100 text-slate-600",
@@ -987,21 +1387,20 @@ function MatchRow({ match }: { match: RecentMatch }) {
     .map((s) => `${s.estonia_points}:${s.opponent_points}`)
     .join(" · ");
   const additionalSetCount = additionalSets.length;
-  const additionalSetsLabel = currentLanguage === "et"
-    ? t("matches.additional_set", { count: additionalSetCount })
-    : `${additionalSetCount} Additional Set${additionalSetCount === 1 ? "" : "s"}`;
-  const matchType =
-    match.vm ? "VM" :
-      match.am ? "AM" :
-        match.mam ? "MAM" :
-          "—";
-  const scoreTarget = matchType === "MAM" ? `/match/${match.match_id}/all` : `/match/${match.match_id}`;
+  const additionalSetsLabel =
+    currentLanguage === "et"
+      ? t("matches.additional_set", { count: additionalSetCount })
+      : `${additionalSetCount} Additional Set${additionalSetCount === 1 ? "" : "s"}`;
+  const matchType = match.vm ? "VM" : match.am ? "AM" : match.mam ? "MAM" : "—";
+  const scoreTarget =
+    matchType === "MAM" ? `/match/${match.match_id}/all` : `/match/${match.match_id}`;
   return (
     <div className="p-4 transition-colors hover:bg-slate-50 sm:p-6">
       <div className="mb-3 flex flex-col gap-3 sm:mb-4 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <div className="min-w-0">
           <div className="text-xs font-bold uppercase text-slate-400">
-            {competition ?? "—"} • {new Date(match.match_date).toLocaleDateString("en-GB", {
+            {competition ?? "—"} •{" "}
+            {new Date(match.match_date).toLocaleDateString("en-GB", {
               day: "numeric",
               month: "short",
               year: "numeric",
@@ -1032,13 +1431,15 @@ function MatchRow({ match }: { match: RecentMatch }) {
         {match.has_additional_sets && additionalSetCount > 0 && (
           <div className="flex flex-col border-l border-slate-200 pl-3">
             <span className="text-base font-semibold text-slate-700">
-              <span className="mr-2 text-[11px] font-bold uppercase tracking-[0.08em] text-estonia-blue">{additionalSetsLabel}:</span>
+              <span className="mr-2 text-[11px] font-bold uppercase tracking-[0.08em] text-estonia-blue">
+                {additionalSetsLabel}:
+              </span>
               {additionalSetScores}
             </span>
           </div>
         )}
       </div>
-    </div >
+    </div>
   );
 }
 

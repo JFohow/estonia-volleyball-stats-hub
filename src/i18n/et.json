@@ -192,9 +192,9 @@
         "Unknown": "Määramata"
     },
     "home": {
-        "title": "Koondise",
-        "titleAccent": "Ajalooline Andmebaas",
-        "subtitle": "Iga mäng, iga geim ja iga koondiseesinemine Eesti meeste võrkpallikoondise ajaloost.",
+        "title": "Eesti meeste võrkpallikoondise",
+        "titleAccent": "andmebaas",
+        "subtitle": "Iga mäng. Iga geim. Iga esitus.\nEesti meeste võrkpallikoondise otsitav ajalooline arhiiv.",
         "totalMatches": "Mänge Kokku",
         "totalPlayers": "Mängijaid Kokku",
         "appearances": "Mänge",

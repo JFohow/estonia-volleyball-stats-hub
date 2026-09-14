@@ -14,11 +14,10 @@ import { useTranslation } from "react-i18next";
 export const Route = createFileRoute("/trivia")({
     head: () => ({
         meta: [
-            { title: "TRIVIA — Eesti Vorkpall DB" },
+            { title: "Trivia — Estonian Men's National Team Database" },
             {
                 name: "description",
-                content:
-                    "Top 10 trivia lists from Estonia Men's National Volleyball match data.",
+                content: "Top 10 trivia lists from Estonia Men's National Volleyball match data.",
             },
         ],
     }),
@@ -66,6 +65,7 @@ function TriviaPage() {
     const { data } = useSuspenseQuery(triviaOptions());
     const { i18n, t } = useTranslation();
     const [mode, setMode] = useState<TriviaMode>("official");
+    const [expandedSection, setExpandedSection] = useState<string | null>("topCities");
 
     const isEstonian = i18n.language?.startsWith("et") ?? false;
 
@@ -100,7 +100,8 @@ function TriviaPage() {
             },
         }
         : {
-            intro: "Here one can find trivial statistical slices about Estonian Men's National Volleyball Team.",
+            intro:
+                "Here one can find trivial statistical slices about Estonian Men's National Volleyball Team.",
             rank: "#",
             city: "City",
             matches: "Matches",
@@ -203,70 +204,118 @@ function TriviaPage() {
         {
             key: "shortestSetDuration",
             title: text.sections.shortestSetDuration,
-            content: <SetsTable rows={modeData.shortestSets} isEstonian={isEstonian} text={text} showDuration />,
+            content: (
+                <SetsTable rows={modeData.shortestSets} isEstonian={isEstonian} text={text} showDuration />
+            ),
         },
         {
             key: "longestSetDuration",
             title: text.sections.longestSetDuration,
-            content: <SetsTable rows={modeData.longestSets} isEstonian={isEstonian} text={text} showDuration />,
+            content: (
+                <SetsTable rows={modeData.longestSets} isEstonian={isEstonian} text={text} showDuration />
+            ),
         },
         {
             key: "shortestMatchDuration",
             title: text.sections.shortestMatchDuration,
-            content: <MatchDurationTable rows={modeData.shortestMatches} isEstonian={isEstonian} text={text} />,
+            content: (
+                <MatchDurationTable rows={modeData.shortestMatches} isEstonian={isEstonian} text={text} />
+            ),
         },
         {
             key: "longestMatchDuration",
             title: text.sections.longestMatchDuration,
-            content: <MatchDurationTable rows={modeData.longestMatches} isEstonian={isEstonian} text={text} />,
+            content: (
+                <MatchDurationTable rows={modeData.longestMatches} isEstonian={isEstonian} text={text} />
+            ),
         },
     ];
 
     return (
         <main className="mx-auto max-w-[1500px] px-4 py-8 sm:px-6 sm:py-10 lg:px-14">
-            <header className="relative overflow-hidden rounded-3xl border border-sky-100 bg-[radial-gradient(circle_at_top_left,_#dbeafe_0%,_#f8fafc_42%,_#e2e8f0_100%)] px-6 py-8 shadow-sm md:px-10 md:py-10">
-                <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-estonia-blue/20 blur-2xl" />
-                <div className="pointer-events-none absolute -bottom-24 -left-10 h-52 w-52 rounded-full bg-slate-300/35 blur-2xl" />
-
-                <p className="relative max-w-3xl text-base text-slate-700 sm:text-lg">{text.intro}</p>
-                <div className="relative mt-5">
-                    <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
-                        {text.matchType}
+            <header className="rounded-2xl bg-estonia-dark p-6 text-white shadow-sm md:p-8">
+                <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="max-w-3xl">
+                        <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/55">
+                            {t("nav.trivia")}
+                        </div>
+                        <h1 className="mt-2 font-display text-4xl uppercase italic leading-tight sm:text-5xl md:text-6xl">
+                            {t("nav.trivia")}
+                        </h1>
+                        <p className="mt-3 text-sm leading-relaxed text-white/70 sm:text-base">{text.intro}</p>
                     </div>
-                    <div className="grid w-full max-w-[640px] grid-cols-2 gap-2 sm:grid-cols-4">
-                        {(["official", "competitive", "nonCompetitive", "all"] as TriviaMode[]).map((currentMode) => (
-                            <button
-                                key={currentMode}
-                                type="button"
-                                onClick={() => setMode(currentMode)}
-                                className={`w-full rounded-md border px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] transition ${mode === currentMode
-                                    ? "border-estonia-blue bg-estonia-blue text-white"
-                                    : "border-slate-300 bg-white/70 text-slate-700 hover:bg-white"
-                                    }`}
-                            >
-                                {t(`statistics.filters.${currentMode}`)}
-                            </button>
-                        ))}
+
+                    <div className="w-full max-w-[520px] rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur-sm">
+                        <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/60">
+                            {text.matchType}
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                            {(["official", "competitive", "nonCompetitive", "all"] as TriviaMode[]).map(
+                                (currentMode) => (
+                                    <button
+                                        key={currentMode}
+                                        type="button"
+                                        onClick={() => setMode(currentMode)}
+                                        className={`rounded-md border px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] transition ${mode === currentMode
+                                                ? "border-estonia-blue bg-estonia-blue text-white"
+                                                : "border-white/20 bg-white/10 text-white/90 hover:bg-white/20"
+                                            }`}
+                                    >
+                                        {t(`statistics.filters.${currentMode}`)}
+                                    </button>
+                                ),
+                            )}
+                        </div>
                     </div>
                 </div>
             </header>
 
             <section className="mt-8 grid gap-5 lg:grid-cols-2">
-                {sections.map((section) => (
-                    <article
-                        key={section.key}
-                        className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"
-                    >
-                        <h2 className="mb-3 font-display text-2xl uppercase italic text-slate-900">{section.title}</h2>
-                        {section.content}
-                    </article>
-                ))}
+                {sections.map((section) => {
+                    const isExpanded = expandedSection === section.key;
+
+                    return (
+                        <article
+                            key={section.key}
+                            className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+                        >
+                            <button
+                                type="button"
+                                onClick={() =>
+                                    setExpandedSection((current) => (current === section.key ? null : section.key))
+                                }
+                                className="flex w-full items-center justify-between gap-4 border-b border-slate-100 px-4 py-4 text-left sm:px-5"
+                            >
+                                <div>
+                                    <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">
+                                        #1
+                                    </div>
+                                    <h2 className="mt-1 font-display text-2xl uppercase italic text-slate-900">
+                                        {section.title}
+                                    </h2>
+                                </div>
+                                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-slate-300 bg-slate-50 text-lg font-bold text-slate-700 transition group-hover:border-estonia-blue group-hover:text-estonia-blue">
+                                    {isExpanded ? "▴" : "▾"}
+                                </div>
+                            </button>
+                            {isExpanded && <div className="p-4 sm:p-5">{section.content}</div>}
+                        </article>
+                    );
+                })}
             </section>
         </main>
     );
 }
 
-function CitiesTable({ rows, isEstonian, text }: { rows: TriviaCityRow[]; isEstonian: boolean; text: TriviaText }) {
+function CitiesTable({
+    rows,
+    isEstonian,
+    text,
+}: {
+    rows: TriviaCityRow[];
+    isEstonian: boolean;
+    text: TriviaText;
+}) {
     return (
         <div className="overflow-x-auto">
             <table className="w-full border-collapse text-sm">
@@ -279,12 +328,17 @@ function CitiesTable({ rows, isEstonian, text }: { rows: TriviaCityRow[]; isEsto
                 </thead>
                 <tbody>
                     {rows.map((row, index) => {
-                        const city = isEstonian ? row.city : row.cityEn ?? row.city;
+                        const city = isEstonian ? row.city : (row.cityEn ?? row.city);
                         return (
-                            <tr key={`${row.city}-${index}`} className="border-b border-slate-100 last:border-b-0">
+                            <tr
+                                key={`${row.city}-${index}`}
+                                className="border-b border-slate-100 last:border-b-0"
+                            >
                                 <td className="px-2 py-2 font-semibold text-slate-500">{index + 1}</td>
                                 <td className="px-2 py-2 font-medium text-slate-800">{city}</td>
-                                <td className="px-2 py-2 text-right font-semibold text-estonia-dark">{row.count}</td>
+                                <td className="px-2 py-2 text-right font-semibold text-estonia-dark">
+                                    {row.count}
+                                </td>
                             </tr>
                         );
                     })}
@@ -322,14 +376,19 @@ function MatchPointsTable({
                 </thead>
                 <tbody>
                     {rows.map((row, index) => {
-                        const opponent = isEstonian ? row.opponent : row.opponentEn ?? row.opponent;
+                        const opponent = isEstonian ? row.opponent : (row.opponentEn ?? row.opponent);
                         const competition = isEstonian
                             ? row.competition
-                            : row.competitionEn ?? row.competition;
-                        const scoreTarget = row.hasAdditionalSets ? `/match/${row.matchId}/all` : `/match/${row.matchId}`;
+                            : (row.competitionEn ?? row.competition);
+                        const scoreTarget = row.hasAdditionalSets
+                            ? `/match/${row.matchId}/all`
+                            : `/match/${row.matchId}`;
 
                         return (
-                            <tr key={`${row.matchId}-${index}`} className="border-b border-slate-100 last:border-b-0">
+                            <tr
+                                key={`${row.matchId}-${index}`}
+                                className="border-b border-slate-100 last:border-b-0"
+                            >
                                 <td className="px-2 py-2 font-semibold text-slate-500">{index + 1}</td>
                                 <td className="px-2 py-2">{new Date(row.matchDate).toLocaleDateString("en-GB")}</td>
                                 <td className="px-2 py-2 font-medium text-slate-800">{opponent}</td>
@@ -378,24 +437,31 @@ function SetsTable({
                 </thead>
                 <tbody>
                     {rows.map((row, index) => {
-                        const opponent = isEstonian ? row.opponent : row.opponentEn ?? row.opponent;
+                        const opponent = isEstonian ? row.opponent : (row.opponentEn ?? row.opponent);
                         const competition = isEstonian
                             ? row.competition
-                            : row.competitionEn ?? row.competition;
+                            : (row.competitionEn ?? row.competition);
                         const setResultStyle =
                             row.estoniaPoints > row.opponentPoints
                                 ? "text-estonia-blue"
                                 : row.estoniaPoints === row.opponentPoints
                                     ? "text-green-700"
                                     : "text-red-700";
-                        const scoreTarget = row.hasAdditionalSets ? `/match/${row.matchId}/all` : `/match/${row.matchId}`;
+                        const scoreTarget = row.hasAdditionalSets
+                            ? `/match/${row.matchId}/all`
+                            : `/match/${row.matchId}`;
 
                         return (
-                            <tr key={`${row.matchId}-${row.setNumber}-${index}`} className="border-b border-slate-100 last:border-b-0">
+                            <tr
+                                key={`${row.matchId}-${row.setNumber}-${index}`}
+                                className="border-b border-slate-100 last:border-b-0"
+                            >
                                 <td className="px-2 py-2 font-semibold text-slate-500">{index + 1}</td>
                                 <td className="px-2 py-2">{new Date(row.matchDate).toLocaleDateString("en-GB")}</td>
                                 <td className="px-2 py-2 font-medium text-slate-800">{opponent}</td>
-                                <td className="px-2 py-2 text-center font-semibold">{row.estoniaSets}-{row.opponentSets}</td>
+                                <td className="px-2 py-2 text-center font-semibold">
+                                    {row.estoniaSets}-{row.opponentSets}
+                                </td>
                                 <td className="px-2 py-2 text-center font-semibold">
                                     <a href={scoreTarget} className={`${setResultStyle} hover:underline`}>
                                         {row.estoniaPoints}-{row.opponentPoints}
@@ -440,14 +506,19 @@ function MatchDurationTable({
                 </thead>
                 <tbody>
                     {rows.map((row, index) => {
-                        const opponent = isEstonian ? row.opponent : row.opponentEn ?? row.opponent;
+                        const opponent = isEstonian ? row.opponent : (row.opponentEn ?? row.opponent);
                         const competition = isEstonian
                             ? row.competition
-                            : row.competitionEn ?? row.competition;
-                        const scoreTarget = row.hasAdditionalSets ? `/match/${row.matchId}/all` : `/match/${row.matchId}`;
+                            : (row.competitionEn ?? row.competition);
+                        const scoreTarget = row.hasAdditionalSets
+                            ? `/match/${row.matchId}/all`
+                            : `/match/${row.matchId}`;
 
                         return (
-                            <tr key={`${row.matchId}-${index}`} className="border-b border-slate-100 last:border-b-0">
+                            <tr
+                                key={`${row.matchId}-${index}`}
+                                className="border-b border-slate-100 last:border-b-0"
+                            >
                                 <td className="px-2 py-2 font-semibold text-slate-500">{index + 1}</td>
                                 <td className="px-2 py-2">{new Date(row.matchDate).toLocaleDateString("en-GB")}</td>
                                 <td className="px-2 py-2 font-medium text-slate-800">{opponent}</td>
@@ -456,7 +527,9 @@ function MatchDurationTable({
                                         {row.estoniaSets}-{row.opponentSets}
                                     </a>
                                 </td>
-                                <td className="px-2 py-2 text-right font-semibold text-estonia-dark">{row.durationMinutes}</td>
+                                <td className="px-2 py-2 text-right font-semibold text-estonia-dark">
+                                    {row.durationMinutes}
+                                </td>
                                 <td className="px-2 py-2 text-slate-600">{competition ?? "-"}</td>
                             </tr>
                         );
