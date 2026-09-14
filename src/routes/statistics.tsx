@@ -245,17 +245,28 @@ function StatisticsPage() {
             if (!row) return;
 
             row[mode].appearances += 1;
+            const stats = pickAppearanceStats(appearance.player_match_stats, mode);
+            const setsFromPositions = stats
+                ? countSetsFromPositions(stats as Record<string, unknown>)
+                : 0;
+
+            // Some imported rows have sets_started and sets_played as 0 even when
+            // per-set positions are present. Use positions as a fallback for that case.
+            const usePositionFallback =
+                appearance.sets_started === 0 &&
+                (appearance.sets_played ?? 0) === 0 &&
+                setsFromPositions > 0;
+
             const appearanceSetsStarted =
                 typeof appearance.sets_started === "number" && appearance.sets_started >= 0
-                    ? Math.min(appearance.sets_started, 6)
-                    : 0;
+                    ? Math.min(usePositionFallback ? setsFromPositions : appearance.sets_started, 6)
+                    : Math.min(setsFromPositions, 6);
             row[mode].setsStarted += appearanceSetsStarted;
 
-            const stats = pickAppearanceStats(appearance.player_match_stats, mode);
             if (!stats) return;
 
             addStats(row[mode], stats);
-            row[mode].sets += countSetsFromPositions(stats as Record<string, unknown>);
+            row[mode].sets += setsFromPositions;
         });
 
         const copy = Array.from(rowMap.values()).filter((row) =>
