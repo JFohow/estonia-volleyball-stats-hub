@@ -47,6 +47,18 @@ export type HomeSummary = {
   };
 };
 
+function extractMatchIdFromAppearanceRelation(value: unknown): number | null {
+  if (!value) return null;
+
+  if (Array.isArray(value)) {
+    const first = value[0] as { match_id?: unknown } | undefined;
+    return typeof first?.match_id === "number" ? first.match_id : null;
+  }
+
+  const row = value as { match_id?: unknown };
+  return typeof row.match_id === "number" ? row.match_id : null;
+}
+
 async function fetchHomeSummary(): Promise<HomeSummary> {
   const { data: matchList } = await supabase.from("matches").select("match_id");
   const filteredMatchIds = (matchList ?? []).map((m) => m.match_id);
@@ -84,17 +96,20 @@ async function fetchHomeSummary(): Promise<HomeSummary> {
   const totalSets = (sets as any).count ?? 0;
 
   const appsDataRaw = (apps as any).data ?? [];
-
-  const matchesWithPlayers = new Set(
-    appsDataRaw
-      .filter((a: any) => a.player_id != null)
-      .map((a: any) => a.match_id)
-  ).size;
-
   const statsData = (statCoverage as any).data ?? [];
 
+  const appearanceMatchIds = appsDataRaw
+    .map((a: any) => (typeof a.match_id === "number" ? a.match_id : null))
+    .filter((matchId: number | null): matchId is number => matchId != null);
+
+  const statsMatchIds = statsData
+    .map((s: any) => extractMatchIdFromAppearanceRelation(s.appearances))
+    .filter((matchId: number | null): matchId is number => matchId != null);
+
+  const matchesWithPlayers = new Set([...appearanceMatchIds, ...statsMatchIds]).size;
+
   const matchesWithStats = new Set(
-    statsData.map((s: any) => s.appearances.match_id)
+    statsMatchIds
   ).size;
 
   let topAppearance: HomeSummary["topAppearance"] = null;

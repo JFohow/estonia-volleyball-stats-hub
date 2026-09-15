@@ -1,6 +1,6 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import MultiSelect from "@/components/ui/multi-select";
 import { fetchPlayer } from "@/lib/players.queries";
 import { useTranslation } from "react-i18next";
@@ -29,6 +29,7 @@ type PlayerAppearance = {
     match_id: number;
     sets_played: number;
     on_the_bench: boolean;
+    player_position_in_match: string | null;
     shirt_number: number | null;
     matches: RawMatchRecord | RawMatchRecord[] | null;
     player_match_stats: Array<{
@@ -126,6 +127,7 @@ function PlayerPage() {
     const [selectedCompetition, setSelectedCompetition] = useState<string[]>(["all"]);
     const [selectedOpponent, setSelectedOpponent] = useState<string[]>(["all"]);
     const [selectedMatches, setSelectedMatches] = useState<string[]>([]);
+    const [expandedGameHighMetric, setExpandedGameHighMetric] = useState<string | null>(null);
 
     const statColumns = [
         { field: "points", label: "PTS" },
@@ -588,6 +590,7 @@ function PlayerPage() {
     const matchHistoryOpponentLabel = currentLanguage === "et" ? "Vastane" : "Opponent";
     const matchHistoryScoreLabel = currentLanguage === "et" ? "Tulemus" : "Score";
     const matchHistoryCompetitionLabel = currentLanguage === "et" ? "Võistlus" : "Competition";
+    const matchHistoryPositionLabel = currentLanguage === "et" ? "Positsioon" : "Position";
     const matchHistorySetsLabel = currentLanguage === "et" ? "Geime" : "Sets";
     const minReceptionsLabel =
         currentLanguage === "et" ? "(min 10 vastuvõttu)" : "(min 10 receptions)";
@@ -617,19 +620,24 @@ function PlayerPage() {
         Array<{
             field: (typeof statColumns)[number]["field"];
             label: string;
-            result: {
+            best: {
                 value: number;
                 appearance: PlayerAppearance;
                 match: MatchRecord;
             } | null;
-        }>
-    >(() => {
-        return statColumns.map((column) => {
-            let best: {
+            topTen: Array<{
                 value: number;
                 appearance: PlayerAppearance;
                 match: MatchRecord;
-            } | null = null;
+            }>;
+        }>
+    >(() => {
+        return statColumns.map((column) => {
+            const ranked: Array<{
+                value: number;
+                appearance: PlayerAppearance;
+                match: MatchRecord;
+            }> = [];
 
             filteredAppearances.forEach((appearance) => {
                 const match = getMatch(appearance);
@@ -677,24 +685,27 @@ function PlayerPage() {
 
                 if (value == null) return;
 
-                if (!best || value > best.value) {
-                    best = { value, appearance, match };
-                    return;
+                ranked.push({ value, appearance, match });
+            });
+
+            ranked.sort((left, right) => {
+                if (right.value !== left.value) {
+                    return right.value - left.value;
                 }
 
-                if (best && value === best.value) {
-                    const currentTime = new Date(match.match_date).getTime();
-                    const bestTime = new Date(best.match.match_date).getTime();
-                    if (currentTime > bestTime) {
-                        best = { value, appearance, match };
-                    }
-                }
+                return (
+                    new Date(right.match.match_date).getTime() -
+                    new Date(left.match.match_date).getTime()
+                );
             });
+
+            const topTen = ranked.slice(0, 10);
 
             return {
                 field: column.field,
                 label: statFieldLabels[column.field] ?? column.field,
-                result: best,
+                best: topTen[0] ?? null,
+                topTen,
             };
         });
     }, [filteredAppearances, statColumns, currentLanguage]);
@@ -703,21 +714,21 @@ function PlayerPage() {
         <div>
             <header className="bg-estonia-dark px-4 py-10 text-white sm:px-6 sm:py-12 lg:px-14">
                 <div className="mx-auto max-w-[1480px]">
-                    <div className="grid gap-8 lg:grid-cols-[220px_260px_260px_340px]">
+                    <div className="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)_320px] xl:grid-cols-[240px_minmax(0,1fr)_360px] xl:gap-8">
                         <img
                             src={
                                 player.photo_url ??
                                 `https://lrdblxldprvfylcyoxvb.supabase.co/storage/v1/object/public/player-photos/${player.player_id}.jpg`
                             }
                             alt={`${player.first_name} ${player.last_name}`}
-                            className="h-63 w-48 rounded-2xl border-2 border-white/20 object-cover"
+                            className="mx-auto h-56 w-44 rounded-2xl border-2 border-white/20 object-cover sm:h-64 sm:w-48 lg:mx-0"
                         />
-                        <div className="col-span-2">
-                            <h1 className="font-display text-5xl uppercase italic">
+                        <div>
+                            <h1 className="text-center font-display text-4xl uppercase italic sm:text-5xl lg:text-left">
                                 {player.first_name} {player.last_name}
                             </h1>
 
-                            <div className="mt-8 grid gap-x-16 gap-y-4 text-white/80 md:grid-cols-2">
+                            <div className="mt-6 grid gap-x-10 gap-y-4 text-white/80 md:grid-cols-2">
                                 <div className="space-y-5">
                                     <div>
                                         <div className="text-xs uppercase tracking-widest text-white/50">
@@ -779,7 +790,7 @@ function PlayerPage() {
                             </div>
                         </div>
 
-                        <div className="space-y-4">
+                        <div className="space-y-4 lg:justify-self-end lg:w-full lg:max-w-[360px]">
                             <InfoCard
                                 title={t("players.national_team_debut")}
                                 date={debutMatchRecord?.match_date}
@@ -926,8 +937,8 @@ function PlayerPage() {
                             </thead>
 
                             <tbody className="divide-y divide-slate-100">
-                                <tr className="bg-slate-50 font-semibold uppercase tracking-[0.16em] text-slate-600">
-                                    <td className="sticky left-0 z-10 border-r-2 border-slate-300 bg-inherit px-3 py-2 text-xs">
+                                <tr className="bg-slate-50 font-semibold text-slate-700">
+                                    <td className="sticky left-0 z-10 border-r-2 border-slate-300 bg-inherit px-3 py-2 text-center text-[11px] font-bold uppercase tracking-[0.16em] text-slate-700">
                                         AVG
                                     </td>
                                     {statColumns.map((column) => (
@@ -940,8 +951,8 @@ function PlayerPage() {
                                     ))}
                                 </tr>
 
-                                <tr className="bg-white font-semibold text-slate-900">
-                                    <td className="sticky left-0 z-10 border-r-2 border-slate-300 bg-inherit px-3 py-2 text-xs">
+                                <tr className="bg-white font-semibold text-slate-700">
+                                    <td className="sticky left-0 z-10 border-r-2 border-slate-300 bg-inherit px-3 py-2 text-center text-[11px] font-bold uppercase tracking-[0.16em] text-slate-700">
                                         TOT
                                     </td>
                                     {statColumns.map((column) => (
@@ -964,7 +975,7 @@ function PlayerPage() {
                         </table>
                     </div>
 
-                    <h3 className="mt-4 mb-2 font-display text-2xl uppercase italic text-slate-900">
+                    <h3 className="mt-4 mb-2 text-center font-display text-2xl uppercase italic text-slate-900">
                         {currentLanguage === "et" ? "Ühe mängu parimad" : "Game Highs"}
                     </h3>
 
@@ -990,11 +1001,14 @@ function PlayerPage() {
                                     <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-slate-600">
                                         {t("gameHighs.table.competition")}
                                     </th>
+                                    <th className="px-3 py-2 text-center text-[10px] font-bold uppercase tracking-[0.16em] text-slate-600">
+                                        TOP 10
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {gameHighRows.map((item) => {
-                                    const best = item.result;
+                                    const best = item.best;
                                     const match = best?.match;
                                     const appearance = best?.appearance;
                                     const scoreTarget =
@@ -1007,36 +1021,135 @@ function PlayerPage() {
                                                 : "text-red-700";
 
                                     return (
-                                        <tr key={item.field} className="border-t border-slate-100">
-                                            <td className="px-3 py-2 text-sm text-slate-700">{item.label}</td>
-                                            <td className="px-3 py-2 text-center text-sm font-semibold text-estonia-dark">
-                                                {best ? formatStatValue(item.field, best.value) : "—"}
-                                            </td>
-                                            <td className="px-3 py-2 text-sm text-slate-700">
-                                                {match ? getLocalizedOpponent(match) : "—"}
-                                            </td>
-                                            <td className="px-3 py-2 text-center text-sm">
-                                                {match && appearance ? (
-                                                    <Link
-                                                        to={scoreTarget}
-                                                        params={{
-                                                            matchId: String(appearance.match_id),
-                                                        }}
-                                                        className={`font-semibold hover:underline ${resultStyle}`}
-                                                    >
-                                                        {match.estonia_sets}-{match.opponent_sets}
-                                                    </Link>
-                                                ) : (
-                                                    "—"
-                                                )}
-                                            </td>
-                                            <td className="px-3 py-2 text-center text-sm text-slate-700">
-                                                {match ? new Date(match.match_date).toLocaleDateString("en-GB") : "—"}
-                                            </td>
-                                            <td className="px-3 py-2 text-sm text-slate-700">
-                                                {match ? (getLocalizedCompetition(match) ?? "—") : "—"}
-                                            </td>
-                                        </tr>
+                                        <Fragment key={item.field}>
+                                            <tr className="border-t border-slate-100">
+                                                <td className="px-3 py-2 text-sm text-slate-700">{item.label}</td>
+                                                <td className="px-3 py-2 text-center text-sm font-semibold text-estonia-dark">
+                                                    {best ? formatStatValue(item.field, best.value) : "—"}
+                                                </td>
+                                                <td className="px-3 py-2 text-sm text-slate-700">
+                                                    {match ? getLocalizedOpponent(match) : "—"}
+                                                </td>
+                                                <td className="px-3 py-2 text-center text-sm">
+                                                    {match && appearance ? (
+                                                        <Link
+                                                            to={scoreTarget}
+                                                            params={{
+                                                                matchId: String(appearance.match_id),
+                                                            }}
+                                                            className={`font-semibold hover:underline ${resultStyle}`}
+                                                        >
+                                                            {match.estonia_sets}-{match.opponent_sets}
+                                                        </Link>
+                                                    ) : (
+                                                        "—"
+                                                    )}
+                                                </td>
+                                                <td className="px-3 py-2 text-center text-sm text-slate-700">
+                                                    {match ? new Date(match.match_date).toLocaleDateString("en-GB") : "—"}
+                                                </td>
+                                                <td className="px-3 py-2 text-sm text-slate-700">
+                                                    {match ? (getLocalizedCompetition(match) ?? "—") : "—"}
+                                                </td>
+                                                <td className="px-3 py-2 text-center">
+                                                    {item.topTen.length > 0 ? (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                setExpandedGameHighMetric((current) =>
+                                                                    current === item.field ? null : item.field,
+                                                                )
+                                                            }
+                                                            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 bg-white text-base font-bold text-slate-800 transition hover:border-estonia-blue hover:text-estonia-blue"
+                                                            aria-label="Toggle top 10"
+                                                            title="Toggle top 10"
+                                                        >
+                                                            {expandedGameHighMetric === item.field ? "▴" : "▾"}
+                                                        </button>
+                                                    ) : (
+                                                        <span className="text-slate-300">—</span>
+                                                    )}
+                                                </td>
+                                            </tr>
+
+                                            {expandedGameHighMetric === item.field && (
+                                                <tr className="border-t border-slate-100 bg-slate-50/50">
+                                                    <td colSpan={7} className="p-3">
+                                                        <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+                                                            <table className="min-w-[760px] w-full border-collapse">
+                                                                <thead className="bg-slate-50">
+                                                                    <tr>
+                                                                        <th className="px-2 py-2 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
+                                                                            #
+                                                                        </th>
+                                                                        <th className="px-2 py-2 text-center text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
+                                                                            {t("gameHighs.table.value")}
+                                                                        </th>
+                                                                        <th className="px-2 py-2 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
+                                                                            {t("gameHighs.table.opponent")}
+                                                                        </th>
+                                                                        <th className="px-2 py-2 text-center text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
+                                                                            {t("gameHighs.table.score")}
+                                                                        </th>
+                                                                        <th className="px-2 py-2 text-center text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
+                                                                            {t("gameHighs.table.date")}
+                                                                        </th>
+                                                                        <th className="px-2 py-2 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
+                                                                            {t("gameHighs.table.competition")}
+                                                                        </th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    {item.topTen.map((entry, index) => {
+                                                                        const topMatch = entry.match;
+                                                                        const topAppearance = entry.appearance;
+                                                                        const topScoreTarget =
+                                                                            topMatch.match_type === "MAM"
+                                                                                ? "/match/$matchId/all"
+                                                                                : "/match/$matchId";
+                                                                        const topResultStyle =
+                                                                            topMatch.estonia_sets > topMatch.opponent_sets
+                                                                                ? "text-estonia-blue"
+                                                                                : topMatch.estonia_sets === topMatch.opponent_sets
+                                                                                    ? "text-green-700"
+                                                                                    : "text-red-700";
+
+                                                                        return (
+                                                                            <tr key={`${item.field}-${topAppearance.appearance_id}-${index}`} className="border-t border-slate-100">
+                                                                                <td className="px-2 py-2 text-sm text-slate-600">
+                                                                                    #{index + 1}
+                                                                                </td>
+                                                                                <td className="px-2 py-2 text-center text-sm font-semibold text-estonia-dark">
+                                                                                    {formatStatValue(item.field, entry.value)}
+                                                                                </td>
+                                                                                <td className="px-2 py-2 text-sm text-slate-700">
+                                                                                    {getLocalizedOpponent(topMatch)}
+                                                                                </td>
+                                                                                <td className="px-2 py-2 text-center text-sm">
+                                                                                    <Link
+                                                                                        to={topScoreTarget}
+                                                                                        params={{ matchId: String(topAppearance.match_id) }}
+                                                                                        className={`font-semibold hover:underline ${topResultStyle}`}
+                                                                                    >
+                                                                                        {topMatch.estonia_sets}-{topMatch.opponent_sets}
+                                                                                    </Link>
+                                                                                </td>
+                                                                                <td className="px-2 py-2 text-center text-sm text-slate-700">
+                                                                                    {new Date(topMatch.match_date).toLocaleDateString("en-GB")}
+                                                                                </td>
+                                                                                <td className="px-2 py-2 text-sm text-slate-700">
+                                                                                    {getLocalizedCompetition(topMatch) ?? "—"}
+                                                                                </td>
+                                                                            </tr>
+                                                                        );
+                                                                    })}
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </Fragment>
                                     );
                                 })}
                             </tbody>
@@ -1044,64 +1157,61 @@ function PlayerPage() {
                     </div>
                 </section>
 
-                <h2 className="mb-6 font-display text-3xl uppercase italic">{matchHistoryTitle}</h2>
+                <h2 className="mb-6 text-center font-display text-3xl uppercase italic">{matchHistoryTitle}</h2>
 
                 <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-                    <div className="min-w-[920px]">
-                        <div className="grid grid-cols-13 gap-3 border-b border-slate-100 bg-slate-50 px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                            <div className="col-span-1 text-center">#</div>
-                            <div className="col-span-2">{matchHistoryDateLabel}</div>
-                            <div className="col-span-3">{matchHistoryOpponentLabel}</div>
-                            <div className="col-span-2 text-center">{matchHistoryScoreLabel}</div>
-                            <div className="col-span-4">{matchHistoryCompetitionLabel}</div>
-                            <div className="col-span-1 text-center">{matchHistorySetsLabel}</div>
-                        </div>
+                    <table className="w-full min-w-[980px] border-collapse">
+                        <thead className="bg-slate-50">
+                            <tr className="border-b border-slate-200">
+                                <th className="px-3 py-2 text-center text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">#</th>
+                                <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">{matchHistoryDateLabel}</th>
+                                <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">{matchHistoryOpponentLabel}</th>
+                                <th className="px-3 py-2 text-center text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">{matchHistoryScoreLabel}</th>
+                                <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">{matchHistoryCompetitionLabel}</th>
+                                <th className="px-3 py-2 text-center text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">{matchHistoryPositionLabel}</th>
+                                <th className="px-3 py-2 text-center text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">{matchHistorySetsLabel}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {sortedAppearances.map((a, index) => {
+                                const match = getMatch(a);
+                                if (!match) return null;
 
-                        {sortedAppearances.map((a, index) => {
-                            const match = getMatch(a);
-                            if (!match) return null;
+                                const scoreTarget =
+                                    match.match_type === "MAM" ? "/match/$matchId/all" : "/match/$matchId";
+                                const resultStyle =
+                                    match.estonia_sets > match.opponent_sets
+                                        ? "text-estonia-blue"
+                                        : match.estonia_sets === match.opponent_sets
+                                            ? "text-green-700"
+                                            : "text-red-700";
 
-                            const scoreTarget =
-                                match.match_type === "MAM" ? "/match/$matchId/all" : "/match/$matchId";
-                            const resultStyle =
-                                match.estonia_sets > match.opponent_sets
-                                    ? "text-estonia-blue"
-                                    : match.estonia_sets === match.opponent_sets
-                                        ? "text-green-700"
-                                        : "text-red-700";
-
-                            return (
-                                <div
-                                    key={a.appearance_id}
-                                    className="grid grid-cols-13 gap-3 border-t border-slate-100 px-6 py-4"
-                                >
-                                    <div className="col-span-1 text-center text-slate-500">{index + 1}</div>
-
-                                    <div className="col-span-2">
-                                        {new Date(match.match_date).toLocaleDateString("en-GB")}
-                                    </div>
-
-                                    <div className="col-span-3">{getLocalizedOpponent(match)}</div>
-
-                                    <div className="col-span-2 text-center">
-                                        <Link
-                                            to={scoreTarget}
-                                            params={{
-                                                matchId: String(a.match_id),
-                                            }}
-                                            className={`font-semibold hover:underline ${resultStyle}`}
-                                        >
-                                            {match.estonia_sets}–{match.opponent_sets}
-                                        </Link>
-                                    </div>
-
-                                    <div className="col-span-4">{getLocalizedCompetition(match)}</div>
-
-                                    <div className="col-span-1 text-center">{getSetCountFromPositions(a)}</div>
-                                </div>
-                            );
-                        })}
-                    </div>
+                                return (
+                                    <tr key={a.appearance_id} className="border-t border-slate-100">
+                                        <td className="px-3 py-2.5 text-center text-sm text-slate-500">{index + 1}</td>
+                                        <td className="px-3 py-2.5 text-sm text-slate-700">
+                                            {new Date(match.match_date).toLocaleDateString("en-GB")}
+                                        </td>
+                                        <td className="px-3 py-2.5 text-sm text-slate-700">{getLocalizedOpponent(match)}</td>
+                                        <td className="px-3 py-2.5 text-center text-sm">
+                                            <Link
+                                                to={scoreTarget}
+                                                params={{
+                                                    matchId: String(a.match_id),
+                                                }}
+                                                className={`font-semibold hover:underline ${resultStyle}`}
+                                            >
+                                                {match.estonia_sets}–{match.opponent_sets}
+                                            </Link>
+                                        </td>
+                                        <td className="px-3 py-2.5 text-sm text-slate-700">{getLocalizedCompetition(match) ?? "—"}</td>
+                                        <td className="px-3 py-2.5 text-center text-sm text-slate-700">{a.player_position_in_match ?? "—"}</td>
+                                        <td className="px-3 py-2.5 text-center text-sm text-slate-700">{getSetCountFromPositions(a)}</td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
                 </div>
             </main>
         </div>

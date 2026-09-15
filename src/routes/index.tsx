@@ -323,6 +323,10 @@ function formatLeaderValue(value: number, isPercent: boolean) {
   return Number.isInteger(value) ? fmt(value) : value.toFixed(1);
 }
 
+function stripTrailingPeriod(value: string) {
+  return value.replace(/\.$/, "");
+}
+
 function pickGameHighLeader(rows: GameHighRow[], field: (typeof gameHighFields)[number]) {
   const filteredRows = rows.filter((row) => {
     if (field.minAttemptsField && field.minAttempts != null) {
@@ -947,9 +951,9 @@ function HomePage() {
       {/* Hero Metrics */}
       <header className="bg-estonia-dark px-4 pt-10 pb-16 text-white sm:px-6 sm:pt-12 sm:pb-24">
         <div className="mx-auto max-w-7xl">
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start lg:gap-8">
-            <div>
-              <h1 className="mb-3 font-display text-4xl uppercase italic leading-tight sm:text-5xl md:text-6xl">
+          <div className="grid gap-6 lg:grid-cols-3 lg:items-start lg:gap-8">
+            <div className="lg:col-span-2">
+              <h1 className="mb-3 font-display text-3xl uppercase italic leading-tight sm:text-4xl sm:whitespace-nowrap md:text-5xl">
                 {t("home.title")} <span className="text-estonia-blue">{t("home.titleAccent")}</span>
               </h1>
               <p className="max-w-2xl whitespace-pre-line text-sm leading-relaxed text-white/70 sm:text-base">
@@ -957,7 +961,7 @@ function HomePage() {
               </p>
             </div>
 
-            <div className="w-full rounded-2xl border border-white/10 bg-white/10 p-5 backdrop-blur-sm lg:justify-self-end">
+            <div className="mx-auto w-full max-w-[34rem] rounded-2xl border border-white/10 bg-white/10 p-5 backdrop-blur-sm lg:mx-0 lg:max-w-none">
               <div className="space-y-2 text-sm">
                 <div className="flex items-center justify-between gap-3 border-b border-white/15 pb-2">
                   <span className="font-semibold text-white/80">{t("common.matches")}</span>
@@ -1257,7 +1261,7 @@ function HomePage() {
                       &lt;
                     </button>
                     <div className="px-2 text-center text-sm font-bold uppercase text-estonia-dark sm:text-base">
-                      {activeLeader.title}
+                      {stripTrailingPeriod(activeLeader.title)}
                     </div>
                     <button
                       type="button"
@@ -1269,20 +1273,17 @@ function HomePage() {
                       &gt;
                     </button>
                   </div>
-                  <div className="space-y-4 px-4 py-4 text-center">
-                    <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
-                      {activeLeader.title}
-                    </div>
+                  <div className="min-h-[188px] space-y-3 px-4 py-4 text-center">
                     <div className="flex items-center justify-center gap-4 text-center">
                       {activeLeader.kind === "totalTop" && activeLeader.row.photoUrl ? (
                         <img
                           src={activeLeader.row.photoUrl}
                           alt={activeLeader.row.name}
-                          className="h-14 w-14 shrink-0 rounded-full border-2 border-estonia-blue/20 object-cover sm:h-16 sm:w-16"
+                          className="h-24 w-20 shrink-0 rounded-lg border-2 border-estonia-blue/20 object-cover sm:h-28 sm:w-24"
                           loading="lazy"
                         />
                       ) : (
-                        <div className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-estonia-dark font-display text-lg text-white sm:h-16 sm:w-16 sm:text-xl">
+                        <div className="grid h-24 w-20 shrink-0 place-items-center rounded-lg bg-estonia-dark font-display text-xl text-white sm:h-28 sm:w-24 sm:text-2xl">
                           {activeLeader.row.name.split(" ")[0]?.[0] ?? "?"}
                           {activeLeader.row.name.split(" ").slice(-1)[0]?.[0] ?? "?"}
                         </div>
@@ -1301,11 +1302,9 @@ function HomePage() {
                         )}
                       </div>
                     </div>
-                    {activeLeader.kind === "gameHigh" && (
-                      <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-slate-400">
-                        {activeLeader.competition}
-                      </div>
-                    )}
+                    <div className="min-h-[16px] text-[11px] font-medium uppercase tracking-[0.18em] text-slate-400">
+                      {activeLeader.kind === "gameHigh" ? activeLeader.competition : "\u00A0"}
+                    </div>
                   </div>
                   <div className="border-t border-slate-200 bg-slate-50 px-4 py-4 text-center">
                     <div className="font-display text-3xl text-estonia-dark sm:text-4xl">
