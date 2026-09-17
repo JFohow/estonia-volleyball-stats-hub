@@ -163,7 +163,9 @@ async function fetchGameHighs(): Promise<GameHighRow[]> {
     .from("appearances")
     .select(
       `appearance_id, player_position_in_match, match_id, players(player_id, first_name, last_name, position), player_match_stats!inner(stats_version, points, plus_minus, break_points, serve_total, serve_aces, serve_errors, reception_total, reception_errors, reception_positive_pct, reception_excellent_pct, attack_total, attack_errors, attack_blocked, attack_kills, attack_kill_pct, attack_efficiency, block_points)`,
-    );
+    )
+    .order("appearance_id", { ascending: true })
+    .range(0, 50000);
 
   if (error) throw error;
 
