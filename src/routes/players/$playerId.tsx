@@ -191,18 +191,11 @@ function PlayerPage() {
     const pickStatsRowForMode = (rows: PlayerAppearance["player_match_stats"]) => {
         if (!rows || rows.length === 0) return null;
 
-        if (statsMode === "all") {
-            return (
-                rows.find((row) => row?.stats_version === "ALL") ??
-                rows.find((row) => row?.stats_version === "AM") ??
-                rows[0] ??
-                null
-            );
-        }
+        const preferredStatsVersion = statsMode === "official" ? "AM" : "ALL";
 
         return (
-            rows.find((row) => row?.stats_version === "AM") ??
-            rows.find((row) => row?.stats_version === "ALL") ??
+            rows.find((row) => row?.stats_version === preferredStatsVersion) ??
+            rows.find((row) => row?.stats_version === (preferredStatsVersion === "AM" ? "ALL" : "AM")) ??
             rows[0] ??
             null
         );
@@ -217,11 +210,11 @@ function PlayerPage() {
             if (!match) return false;
 
             if (statsMode === "official") {
-                return match.match_type === "AM" || match.match_type === "MAM" || match.match_type === "VM";
+                return match.am === true;
             }
 
             if (statsMode === "competitive") {
-                return match.match_type === "VM";
+                return match.vm === true;
             }
 
             return true;

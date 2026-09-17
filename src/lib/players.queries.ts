@@ -322,10 +322,20 @@ export async function fetchPlayer(playerId: number) {
 
     const rawStats = (appearances ?? [])
         .map((a: any) => {
-            const stats = Array.isArray(a.player_match_stats)
-                ? a.player_match_stats[0]
-                : a.player_match_stats;
-            return stats ?? null;
+            const rows = Array.isArray(a.player_match_stats)
+                ? a.player_match_stats
+                : a.player_match_stats
+                    ? [a.player_match_stats]
+                    : [];
+
+            if (rows.length === 0) return null;
+
+            return (
+                rows.find((row: any) => row?.stats_version === "ALL") ??
+                rows.find((row: any) => row?.stats_version === "AM") ??
+                rows[0] ??
+                null
+            );
         })
         .filter(Boolean) as MatchStatRow[];
 

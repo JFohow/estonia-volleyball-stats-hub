@@ -169,18 +169,59 @@ function GameHighsPage() {
     isEstonian ? row.competition : (row.competitionEn ?? row.competition);
 
   const matchTypeFilteredRows = useMemo(() => {
-    return data.filter((row) => {
-      switch (matchType) {
-        case "OFFICIAL":
-          return row.am === true;
-        case "COMPETITIVE":
-          return row.vm === true;
-        case "NON_OFFICIAL":
-          return row.am !== true;
-        default:
+    const preferredStatsVersion = matchType === "OFFICIAL" ? "AM" : "ALL";
+    const byAppearance = new Map<number, GameHighRow>();
+
+    data.forEach((row) => {
+      const matchesType = (() => {
+        switch (matchType) {
+          case "OFFICIAL":
+            return row.am === true;
+          case "COMPETITIVE":
+            return row.vm === true;
+          case "NON_OFFICIAL":
+            return row.mam === true;
+          default:
+            return true;
+        }
+      })();
+
+      if (!matchesType) {
+        return;
+      }
+
+      const existing = byAppearance.get(row.appearanceId);
+      if (!existing) {
+        byAppearance.set(row.appearanceId, row);
+        return;
+      }
+
+      const choosePreferred = () => {
+        if (row.statsVersion === preferredStatsVersion && existing.statsVersion !== preferredStatsVersion) {
           return true;
+        }
+
+        if (existing.statsVersion === preferredStatsVersion) {
+          return false;
+        }
+
+        if (preferredStatsVersion === "ALL") {
+          return row.statsVersion === "ALL" && existing.statsVersion === "AM";
+        }
+
+        if (preferredStatsVersion === "AM") {
+          return row.statsVersion === "AM" && existing.statsVersion === "ALL";
+        }
+
+        return false;
+      };
+
+      if (choosePreferred()) {
+        byAppearance.set(row.appearanceId, row);
       }
     });
+
+    return Array.from(byAppearance.values());
   }, [data, matchType]);
 
   const viewFilteredRows = useMemo(() => {
@@ -719,7 +760,7 @@ function GameHighsPage() {
       const attackEfficiency =
         match.attackTotal > 0
           ? ((match.attackKills - match.attackBlocked - match.attackErrors) / match.attackTotal) *
-            100
+          100
           : null;
 
       return {
@@ -916,7 +957,7 @@ function GameHighsPage() {
           index === 0
             ? 1
             : previousComparableValue != null &&
-                Math.abs(currentComparableValue - previousComparableValue) < 0.0001
+              Math.abs(currentComparableValue - previousComparableValue) < 0.0001
               ? previousRank
               : index + 1;
 
@@ -929,9 +970,9 @@ function GameHighsPage() {
             metric.key === "bestAceErrorRatio"
               ? `${match.serveAces} - ${match.serveErrors}`
               : formatTeamValue(
-                  (match[metric.key as keyof typeof match] as number | null) ?? null,
-                  metric.key,
-                ),
+                (match[metric.key as keyof typeof match] as number | null) ?? null,
+                metric.key,
+              ),
           opponent: isEstonian ? match.opponent : (match.opponentEn ?? match.opponent),
           score: match.score,
           date: new Date(match.matchDate).toLocaleDateString("en-GB", {
@@ -955,17 +996,17 @@ function GameHighsPage() {
               ? `${best.serveAces} - ${best.serveErrors}`
               : "—"
             : formatTeamValue(
-                best ? ((best[metric.key as keyof typeof best] as number | null) ?? null) : null,
-                metric.key,
-              ),
+              best ? ((best[metric.key as keyof typeof best] as number | null) ?? null) : null,
+              metric.key,
+            ),
         opponent: best ? (isEstonian ? best.opponent : (best.opponentEn ?? best.opponent)) : "—",
         score: best?.score ?? "—",
         date: best
           ? new Date(best.matchDate).toLocaleDateString("en-GB", {
-              day: "numeric",
-              month: "short",
-              year: "numeric",
-            })
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+          })
           : "—",
         competition: best
           ? isEstonian
@@ -1035,11 +1076,10 @@ function GameHighsPage() {
               key={option.value}
               type="button"
               onClick={() => setViewMode(option.value as typeof viewMode)}
-              className={`h-10 w-full rounded-md border px-3 text-xs font-semibold uppercase tracking-[0.14em] transition ${
-                viewMode === option.value
-                  ? "border-estonia-blue bg-estonia-blue text-white"
-                  : "border-white/30 bg-white/10 text-white/90 hover:bg-white/20"
-              }`}
+              className={`h-10 w-full rounded-md border px-3 text-xs font-semibold uppercase tracking-[0.14em] transition ${viewMode === option.value
+                ? "border-estonia-blue bg-estonia-blue text-white"
+                : "border-white/30 bg-white/10 text-white/90 hover:bg-white/20"
+                }`}
             >
               {option.label}
             </button>
@@ -1062,11 +1102,10 @@ function GameHighsPage() {
                   key={option.value}
                   type="button"
                   onClick={() => setMatchType(option.value as typeof matchType)}
-                  className={`h-10 w-full rounded-md border px-3 text-xs font-semibold uppercase tracking-[0.16em] transition ${
-                    matchType === option.value
-                      ? "border-estonia-blue bg-estonia-blue text-white"
-                      : "border-white/30 bg-white/10 text-white/90 hover:bg-white/20"
-                  }`}
+                  className={`h-10 w-full rounded-md border px-3 text-xs font-semibold uppercase tracking-[0.16em] transition ${matchType === option.value
+                    ? "border-estonia-blue bg-estonia-blue text-white"
+                    : "border-white/30 bg-white/10 text-white/90 hover:bg-white/20"
+                    }`}
                 >
                   {option.label}
                 </button>
@@ -1087,11 +1126,10 @@ function GameHighsPage() {
                   type="button"
                   disabled={positionButtonsDisabled}
                   onClick={() => setSelectedPosition(position)}
-                  className={`h-10 w-full rounded-md border px-3 text-xs font-semibold uppercase tracking-[0.16em] transition ${
-                    selectedPosition === position
-                      ? "border-estonia-blue bg-estonia-blue text-white"
-                      : "border-white/30 bg-white/10 text-white/90 hover:bg-white/20"
-                  }`}
+                  className={`h-10 w-full rounded-md border px-3 text-xs font-semibold uppercase tracking-[0.16em] transition ${selectedPosition === position
+                    ? "border-estonia-blue bg-estonia-blue text-white"
+                    : "border-white/30 bg-white/10 text-white/90 hover:bg-white/20"
+                    }`}
                 >
                   {position === "ALL" ? "ALL" : position}
                 </button>
@@ -1184,19 +1222,19 @@ function GameHighsPage() {
                       {(row.key === "serveTotal" ||
                         row.key === "receptionTotal" ||
                         row.key === "attackTotal") && (
-                        <TableRow className="bg-slate-100">
-                          <TableCell
-                            colSpan={8}
-                            className="py-2 text-center text-[11px] font-bold uppercase tracking-[0.2em] text-slate-600"
-                          >
-                            {row.key === "serveTotal"
-                              ? playerSectionHeaders.serveTotal
-                              : row.key === "receptionTotal"
-                                ? playerSectionHeaders.receptionTotal
-                                : playerSectionHeaders.attackTotal}
-                          </TableCell>
-                        </TableRow>
-                      )}
+                          <TableRow className="bg-slate-100">
+                            <TableCell
+                              colSpan={8}
+                              className="py-2 text-center text-[11px] font-bold uppercase tracking-[0.2em] text-slate-600"
+                            >
+                              {row.key === "serveTotal"
+                                ? playerSectionHeaders.serveTotal
+                                : row.key === "receptionTotal"
+                                  ? playerSectionHeaders.receptionTotal
+                                  : playerSectionHeaders.attackTotal}
+                            </TableCell>
+                          </TableRow>
+                        )}
 
                       <TableRow className={playerSectionToneClass[row.key]}>
                         <TableCell className="p-3 text-sm text-slate-700">{row.metric}</TableCell>
@@ -1411,19 +1449,19 @@ function GameHighsPage() {
                       {(row.key === "serveTotal" ||
                         row.key === "receptionTotal" ||
                         row.key === "attackTotal") && (
-                        <TableRow className="bg-slate-100">
-                          <TableCell
-                            colSpan={7}
-                            className="py-2 text-center text-[11px] font-bold uppercase tracking-[0.2em] text-slate-600"
-                          >
-                            {row.key === "serveTotal"
-                              ? teamSectionHeaders.serveTotal
-                              : row.key === "receptionTotal"
-                                ? teamSectionHeaders.receptionTotal
-                                : teamSectionHeaders.attackTotal}
-                          </TableCell>
-                        </TableRow>
-                      )}
+                          <TableRow className="bg-slate-100">
+                            <TableCell
+                              colSpan={7}
+                              className="py-2 text-center text-[11px] font-bold uppercase tracking-[0.2em] text-slate-600"
+                            >
+                              {row.key === "serveTotal"
+                                ? teamSectionHeaders.serveTotal
+                                : row.key === "receptionTotal"
+                                  ? teamSectionHeaders.receptionTotal
+                                  : teamSectionHeaders.attackTotal}
+                            </TableCell>
+                          </TableRow>
+                        )}
 
                       <TableRow className={teamSectionToneClass[row.key] ?? "bg-white"}>
                         <TableCell className="p-3 text-sm text-slate-700">{row.metric}</TableCell>
@@ -1434,25 +1472,25 @@ function GameHighsPage() {
                         <TableCell className="p-3 text-center">
                           {row.matchHref
                             ? (() => {
-                                const parts = row.score.split("-");
-                                const estonia = Number.parseInt(parts[0] ?? "0", 10);
-                                const opponent = Number.parseInt(parts[1] ?? "0", 10);
-                                const resultStyle =
-                                  estonia > opponent
-                                    ? "text-estonia-blue"
-                                    : estonia === opponent
-                                      ? "text-green-700"
-                                      : "text-red-700";
+                              const parts = row.score.split("-");
+                              const estonia = Number.parseInt(parts[0] ?? "0", 10);
+                              const opponent = Number.parseInt(parts[1] ?? "0", 10);
+                              const resultStyle =
+                                estonia > opponent
+                                  ? "text-estonia-blue"
+                                  : estonia === opponent
+                                    ? "text-green-700"
+                                    : "text-red-700";
 
-                                return (
-                                  <a
-                                    href={row.matchHref}
-                                    className={`font-semibold hover:underline ${resultStyle}`}
-                                  >
-                                    {row.score}
-                                  </a>
-                                );
-                              })()
+                              return (
+                                <a
+                                  href={row.matchHref}
+                                  className={`font-semibold hover:underline ${resultStyle}`}
+                                >
+                                  {row.score}
+                                </a>
+                              );
+                            })()
                             : "—"}
                         </TableCell>
                         <TableCell className="p-3 text-center text-sm text-slate-700">

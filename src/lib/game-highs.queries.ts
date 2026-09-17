@@ -8,6 +8,7 @@ export type GameHighRow = {
   playerId: number;
   name: string;
   position: string | null;
+  statsVersion: "ALL" | "AM" | null;
   points: number;
   plusMinus: number | null;
   breakPoints: number | null;
@@ -57,6 +58,7 @@ type GameHighAppearanceRow = {
   | null;
   player_match_stats:
   | {
+    stats_version: "ALL" | "AM" | null;
     points: number | null;
     plus_minus: number | null;
     break_points: number | null;
@@ -76,6 +78,7 @@ type GameHighAppearanceRow = {
     block_points: number | null;
   }
   | Array<{
+    stats_version: "ALL" | "AM" | null;
     points: number | null;
     plus_minus: number | null;
     break_points: number | null;
@@ -159,7 +162,7 @@ async function fetchGameHighs(): Promise<GameHighRow[]> {
   const { data, error } = await supabase
     .from("appearances")
     .select(
-      `appearance_id, player_position_in_match, match_id, players(player_id, first_name, last_name, position), player_match_stats!inner(points, plus_minus, break_points, serve_total, serve_aces, serve_errors, reception_total, reception_errors, reception_positive_pct, reception_excellent_pct, attack_total, attack_errors, attack_blocked, attack_kills, attack_kill_pct, attack_efficiency, block_points)`,
+      `appearance_id, player_position_in_match, match_id, players(player_id, first_name, last_name, position), player_match_stats!inner(stats_version, points, plus_minus, break_points, serve_total, serve_aces, serve_errors, reception_total, reception_errors, reception_positive_pct, reception_excellent_pct, attack_total, attack_errors, attack_blocked, attack_kills, attack_kill_pct, attack_efficiency, block_points)`,
     );
 
   if (error) throw error;
@@ -200,46 +203,57 @@ async function fetchGameHighs(): Promise<GameHighRow[]> {
   for (const item of appearanceRows) {
     const player = normalizeRelation(item.players);
     const match = matchesById.get(item.match_id);
-    const stats = normalizeRelation(item.player_match_stats);
+    const statsRows = Array.isArray(item.player_match_stats)
+      ? item.player_match_stats
+      : item.player_match_stats
+        ? [item.player_match_stats]
+        : [];
 
-    if (!player || !match || !stats || stats.points == null) {
+    if (!player || !match || statsRows.length === 0) {
       continue;
     }
 
-    rows.push({
-      appearanceId: item.appearance_id,
-      matchId: item.match_id,
-      playerId: player.player_id,
-      name: `${player.first_name} ${player.last_name}`,
-      position: item.player_position_in_match ?? player.position ?? "Unknown",
-      points: stats.points,
-      plusMinus: stats.plus_minus,
-      breakPoints: stats.break_points,
-      serveTotal: stats.serve_total,
-      serveAces: stats.serve_aces,
-      serveErrors: stats.serve_errors,
-      receptionTotal: stats.reception_total,
-      receptionErrors: stats.reception_errors,
-      receptionPositivePct: stats.reception_positive_pct,
-      receptionExcellentPct: stats.reception_excellent_pct,
-      attackTotal: stats.attack_total,
-      attackErrors: stats.attack_errors,
-      attackBlocked: stats.attack_blocked,
-      attackKills: stats.attack_kills,
-      attackKillPct: deriveAttackKillPct(stats),
-      attackEfficiency: deriveAttackEfficiency(stats),
-      blockPoints: stats.block_points,
-      opponent: match.opponent,
-      opponentEn: match.opponent_en,
-      competition: match.competition,
-      competitionEn: match.competition_en,
-      maxEstoniaSetPoints: maxSetPointsByMatch.get(item.match_id) ?? null,
-      matchDate: match.match_date,
-      score: `${match.estonia_sets}-${match.opponent_sets}`,
-      vm: match.vm,
-      am: match.am,
-      mam: match.mam,
-    });
+    for (const stats of statsRows) {
+      if (stats.points == null) {
+        continue;
+      }
+
+      rows.push({
+        appearanceId: item.appearance_id,
+        matchId: item.match_id,
+        playerId: player.player_id,
+        name: `${player.first_name} ${player.last_name}`,
+        position: item.player_position_in_match ?? player.position ?? "Unknown",
+        statsVersion: stats.stats_version,
+        points: stats.points,
+        plusMinus: stats.plus_minus,
+        breakPoints: stats.break_points,
+        serveTotal: stats.serve_total,
+        serveAces: stats.serve_aces,
+        serveErrors: stats.serve_errors,
+        receptionTotal: stats.reception_total,
+        receptionErrors: stats.reception_errors,
+        receptionPositivePct: stats.reception_positive_pct,
+        receptionExcellentPct: stats.reception_excellent_pct,
+        attackTotal: stats.attack_total,
+        attackErrors: stats.attack_errors,
+        attackBlocked: stats.attack_blocked,
+        attackKills: stats.attack_kills,
+        attackKillPct: deriveAttackKillPct(stats),
+        attackEfficiency: deriveAttackEfficiency(stats),
+        blockPoints: stats.block_points,
+        opponent: match.opponent,
+        opponentEn: match.opponent_en,
+        competition: match.competition,
+        competitionEn: match.competition_en,
+        maxEstoniaSetPoints: maxSetPointsByMatch.get(item.match_id) ?? null,
+        matchDate: match.match_date,
+        score: `${match.estonia_sets}-${match.opponent_sets}`,
+        vm: match.vm,
+        am: match.am,
+        mam: match.mam,
+      });
+    }
   }
 
   return rows.sort((a, b) => b.points - a.points);
