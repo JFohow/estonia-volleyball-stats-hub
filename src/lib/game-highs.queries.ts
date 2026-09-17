@@ -159,17 +159,38 @@ function deriveAttackEfficiency(stats: {
 }
 
 async function fetchGameHighs(): Promise<GameHighRow[]> {
-  const { data, error } = await supabase
-    .from("appearances")
-    .select(
-      `appearance_id, player_position_in_match, match_id, players(player_id, first_name, last_name, position), player_match_stats!inner(stats_version, points, plus_minus, break_points, serve_total, serve_aces, serve_errors, reception_total, reception_errors, reception_positive_pct, reception_excellent_pct, attack_total, attack_errors, attack_blocked, attack_kills, attack_kill_pct, attack_efficiency, block_points)`,
-    )
-    .order("appearance_id", { ascending: true })
-    .range(0, 50000);
+  const pageSize = 1000;
+  let lastAppearanceId = 0;
+  const allAppearanceRows: GameHighAppearanceRow[] = [];
 
-  if (error) throw error;
+  while (true) {
+    const { data, error } = await supabase
+      .from("appearances")
+      .select(
+        `appearance_id, player_position_in_match, match_id, players(player_id, first_name, last_name, position), player_match_stats!inner(stats_version, points, plus_minus, break_points, serve_total, serve_aces, serve_errors, reception_total, reception_errors, reception_positive_pct, reception_excellent_pct, attack_total, attack_errors, attack_blocked, attack_kills, attack_kill_pct, attack_efficiency, block_points)`,
+      )
+      .gt("appearance_id", lastAppearanceId)
+      .order("appearance_id", { ascending: true })
+      .limit(pageSize);
 
-  const appearanceRows = (data ?? []) as GameHighAppearanceRow[];
+    if (error) throw error;
+
+    const chunk = (data ?? []) as GameHighAppearanceRow[];
+    if (chunk.length === 0) {
+      break;
+    }
+
+    allAppearanceRows.push(...chunk);
+
+    const maxId = Math.max(...chunk.map((row) => row.appearance_id));
+    if (maxId <= lastAppearanceId) {
+      break;
+    }
+
+    lastAppearanceId = maxId;
+  }
+
+  const appearanceRows = allAppearanceRows;
   const matchIds = [...new Set(appearanceRows.map((item) => item.match_id))];
 
   const { data: matchesData, error: matchError } = await supabase
