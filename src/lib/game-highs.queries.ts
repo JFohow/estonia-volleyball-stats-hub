@@ -163,6 +163,14 @@ async function fetchGameHighs(): Promise<GameHighRow[]> {
   let lastAppearanceId = 0;
   const allAppearanceRows: GameHighAppearanceRow[] = [];
 
+  const { count: totalAppearanceCount, error: totalAppearanceCountError } = await supabase
+    .from("appearances")
+    .select("appearance_id, player_match_stats!inner(stats_version)", { count: "exact", head: true });
+
+  if (totalAppearanceCountError) {
+    throw totalAppearanceCountError;
+  }
+
   while (true) {
     const { data, error } = await supabase
       .from("appearances")
@@ -188,6 +196,12 @@ async function fetchGameHighs(): Promise<GameHighRow[]> {
     }
 
     lastAppearanceId = maxId;
+  }
+
+  if (totalAppearanceCount != null && allAppearanceRows.length !== totalAppearanceCount) {
+    throw new Error(
+      `Game Highs fetch is incomplete: expected ${totalAppearanceCount} appearance rows with stats, got ${allAppearanceRows.length}. This can happen when the query silently truncates after the default PostgREST limit.`,
+    );
   }
 
   const appearanceRows = allAppearanceRows;

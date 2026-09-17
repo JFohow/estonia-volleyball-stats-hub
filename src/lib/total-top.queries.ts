@@ -366,13 +366,44 @@ async function fetchTotalTop(): Promise<TotalTopRow[]> {
 
   if (playersResponse.error) throw playersResponse.error;
 
-  const appearancesResponse = await supabase
+  const { count: totalAppearanceCount, error: totalAppearanceCountError } = await supabase
     .from("appearances")
-    .select(
-      `appearance_id, player_id, match_id, sets_played, sets_started, on_the_bench, matches(match_id, match_date, opponent, opponent_en, competition, competition_en, estonia_sets, opponent_sets, vm, am, mam), player_match_stats!inner(points, block_points, plus_minus, serve_total, serve_aces, serve_errors, reception_total, reception_errors, reception_positive_pct, reception_excellent_pct, attack_total, attack_errors, attack_blocked, attack_kills, attack_kill_pct, attack_efficiency, break_points, stats_version, set1_position, set2_position, set3_position, set4_position, set5_position)`,
-    );
+    .select("appearance_id, player_match_stats!inner(stats_version)", { count: "exact", head: true });
 
-  if (appearancesResponse.error) throw appearancesResponse.error;
+  if (totalAppearanceCountError) throw totalAppearanceCountError;
+
+  const pageSize = 1000;
+  let lastAppearanceId = 0;
+  const allAppearanceRows: AppearanceRow[] = [];
+
+  while (true) {
+    const { data, error } = await supabase
+      .from("appearances")
+      .select(
+        `appearance_id, player_id, match_id, sets_played, sets_started, on_the_bench, matches(match_id, match_date, opponent, opponent_en, competition, competition_en, estonia_sets, opponent_sets, vm, am, mam), player_match_stats!inner(points, block_points, plus_minus, serve_total, serve_aces, serve_errors, reception_total, reception_errors, reception_positive_pct, reception_excellent_pct, attack_total, attack_errors, attack_blocked, attack_kills, attack_kill_pct, attack_efficiency, break_points, stats_version, set1_position, set2_position, set3_position, set4_position, set5_position)`,
+      )
+      .gt("appearance_id", lastAppearanceId)
+      .order("appearance_id", { ascending: true })
+      .limit(pageSize);
+
+    if (error) throw error;
+
+    const chunk = (data ?? []) as AppearanceRow[];
+    if (chunk.length === 0) break;
+
+    allAppearanceRows.push(...chunk);
+
+    const maxId = Math.max(...chunk.map((row) => row.appearance_id));
+    if (maxId <= lastAppearanceId) break;
+
+    lastAppearanceId = maxId;
+  }
+
+  if (totalAppearanceCount != null && allAppearanceRows.length !== totalAppearanceCount) {
+    throw new Error(
+      `Total Top fetch is incomplete: expected ${totalAppearanceCount} appearance rows with stats, got ${allAppearanceRows.length}. This can happen when the query silently truncates after the default PostgREST limit.`,
+    );
+  }
 
   const totalsByPlayer = new Map<
     number,
@@ -384,7 +415,7 @@ async function fetchTotalTop(): Promise<TotalTopRow[]> {
     }
   >();
   const appearancesByPlayer = new Map<number, TotalTopAppearance[]>();
-  const appearances = (appearancesResponse.data ?? []) as AppearanceRow[];
+  const appearances = allAppearanceRows;
 
   for (const appearance of appearances) {
     const match = normalizeRelation(appearance.matches);
