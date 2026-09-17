@@ -404,8 +404,8 @@ function GameHighsPage() {
       serveErrorsMost: categoryLabel.serveErrorsMost,
       serveErrorsLeast: categoryLabel.serveErrorsLeast,
       bestAceErrorRatio: isEstonian
-        ? "Ässa - vea suhe (viga/äss, min. 5 S Tot)"
-        : "Ace - Error Ratio (Err/Ace, min. 5 S Tot)",
+        ? "Ässade-vigade suhe (min 5 servi)"
+        : "Ace to Error Ratio (min 5 serves)",
       receptionTotal: categoryLabel.receptionTotal,
       receptionErrors: categoryLabel.receptionErrors,
       receptionPositivePctBest: categoryLabel.receptionPositivePctBest,
@@ -444,8 +444,10 @@ function GameHighsPage() {
       previous: GameHighRow,
     ) => {
       if (metric === "bestAceErrorRatio") {
-        const currentRatio = (current.serveErrors ?? 0) / (current.serveAces ?? 1);
-        const previousRatio = (previous.serveErrors ?? 0) / (previous.serveAces ?? 1);
+        const currentRatio =
+          (current.serveAces ?? 0) / Math.max(current.serveErrors ?? 0, 1);
+        const previousRatio =
+          (previous.serveAces ?? 0) / Math.max(previous.serveErrors ?? 0, 1);
         return Math.abs(currentRatio - previousRatio) < 0.0001;
       }
 
@@ -504,11 +506,13 @@ function GameHighsPage() {
         })
         .sort((left, right) => {
           if (metric === "bestAceErrorRatio") {
-            const leftRatio = (left.serveErrors ?? 0) / (left.serveAces ?? 1);
-            const rightRatio = (right.serveErrors ?? 0) / (right.serveAces ?? 1);
+            const leftRatio =
+              (left.serveAces ?? 0) / Math.max(left.serveErrors ?? 0, 1);
+            const rightRatio =
+              (right.serveAces ?? 0) / Math.max(right.serveErrors ?? 0, 1);
 
             if (leftRatio !== rightRatio) {
-              return leftRatio - rightRatio;
+              return rightRatio - leftRatio;
             }
 
             return new Date(right.matchDate).getTime() - new Date(left.matchDate).getTime();
@@ -570,7 +574,7 @@ function GameHighsPage() {
           position: row.position ?? t("positions.Unknown"),
           value:
             metric === "bestAceErrorRatio"
-              ? `${row.serveAces ?? 0} - ${row.serveErrors ?? 0}`
+              ? `${row.serveAces ?? 0} : ${row.serveErrors ?? 0}`
               : formatCategoryValue(getCategoryValue(row, metric), metric),
           opponent: getLocalizedOpponent(row),
           score: row.score,
@@ -817,9 +821,9 @@ function GameHighsPage() {
       {
         key: "bestAceErrorRatio",
         label: isEstonian
-          ? "Ässa - vea suhe (viga/äss, min. 5 S Tot)"
-          : "Ace - Error Ratio (Err/Ace, min. 5 S Tot)",
-        direction: "asc" as const,
+          ? "Ässade-vigade suhe (min 5 servi)"
+          : "Ace to Error Ratio (min 5 serves)",
+        direction: "desc" as const,
       },
       {
         key: "receptionTotal",
@@ -920,11 +924,11 @@ function GameHighsPage() {
         })
         .sort((left, right) => {
           if (metric.key === "bestAceErrorRatio") {
-            const leftRatio = left.serveErrors / left.serveAces;
-            const rightRatio = right.serveErrors / right.serveAces;
+            const leftRatio = left.serveAces / Math.max(left.serveErrors, 1);
+            const rightRatio = right.serveAces / Math.max(right.serveErrors, 1);
 
             if (leftRatio !== rightRatio) {
-              return leftRatio - rightRatio;
+              return rightRatio - leftRatio;
             }
 
             return new Date(right.matchDate).getTime() - new Date(left.matchDate).getTime();
@@ -950,7 +954,7 @@ function GameHighsPage() {
       const topTenWithRanks = topTen.map((match, index) => {
         const currentComparableValue =
           metric.key === "bestAceErrorRatio"
-            ? match.serveErrors / match.serveAces
+            ? match.serveAces / Math.max(match.serveErrors, 1)
             : ((match[metric.key as keyof typeof match] as number | null | undefined) ?? 0);
 
         const rank =
@@ -968,7 +972,7 @@ function GameHighsPage() {
           rankLabel: `#${rank}`,
           value:
             metric.key === "bestAceErrorRatio"
-              ? `${match.serveAces} - ${match.serveErrors}`
+              ? `${match.serveAces} : ${match.serveErrors}`
               : formatTeamValue(
                 (match[metric.key as keyof typeof match] as number | null) ?? null,
                 metric.key,
@@ -993,7 +997,7 @@ function GameHighsPage() {
         value:
           metric.key === "bestAceErrorRatio"
             ? best
-              ? `${best.serveAces} - ${best.serveErrors}`
+              ? `${best.serveAces} : ${best.serveErrors}`
               : "—"
             : formatTeamValue(
               best ? ((best[metric.key as keyof typeof best] as number | null) ?? null) : null,

@@ -26,8 +26,11 @@ type TotalTopStatKey =
     | "plusMinus"
     | "serveTotal"
     | "serveAces"
+    | "serveAcePct"
     | "serveErrors"
+    | "serveErrorPct"
     | "serveErrorsLeast"
+    | "serveErrorPctLeast"
     | "serveAceErrorRatio"
     | "receptionTotal"
     | "receptionErrors"
@@ -83,9 +86,22 @@ function TotalTopError({ error, reset }: { error: Error; reset: () => void }) {
 
 function getStatValue(group: PlayerTotals, stat: TotalTopStatKey) {
     if (stat === "serveErrorsLeast") return group.serveErrors;
+    if (stat === "serveErrorPct") {
+        if (group.serveTotal <= 0) return null;
+        return (group.serveErrors / group.serveTotal) * 100;
+    }
+    if (stat === "serveErrorPctLeast") {
+        if (group.serveTotal <= 0) return null;
+        return (group.serveErrors / group.serveTotal) * 100;
+    }
+    if (stat === "serveAcePct") {
+        if (group.serveTotal <= 0) return null;
+        return (group.serveAces / group.serveTotal) * 100;
+    }
     if (stat === "serveAceErrorRatio") {
-        if (group.serveAces <= 0) return null;
-        return group.serveErrors / group.serveAces;
+        if (group.serveTotal < 5 || group.serveAces <= 0) return null;
+        if (group.serveErrors <= 0) return Number.POSITIVE_INFINITY;
+        return group.serveAces / group.serveErrors;
     }
     if (stat === "receptionPositivePctWorst") return group.receptionPositivePct;
     if (stat === "receptionExcellentPctWorst") return group.receptionExcellentPct;
@@ -101,6 +117,9 @@ function getPerGameValue(group: PlayerTotals, stat: TotalTopStatKey) {
     }
 
     if (
+        stat === "serveAcePct" ||
+        stat === "serveErrorPct" ||
+        stat === "serveErrorPctLeast" ||
         stat === "attackKillPct" ||
         stat === "attackKillPctWorst" ||
         stat === "attackEfficiency" ||
@@ -123,6 +142,9 @@ function getPerGameValue(group: PlayerTotals, stat: TotalTopStatKey) {
 
 function isPercentageMetric(stat: TotalTopStatKey): boolean {
     return (
+        stat === "serveAcePct" ||
+        stat === "serveErrorPct" ||
+        stat === "serveErrorPctLeast" ||
         stat === "receptionPositivePct" ||
         stat === "receptionPositivePctWorst" ||
         stat === "receptionExcellentPct" ||
@@ -274,9 +296,12 @@ function TotalTopPage() {
         blockPoints: t("totalTop.metrics.mostBlockPoints"),
         serveTotal: t("totalTop.metrics.mostServes"),
         serveAces: t("totalTop.metrics.mostServeAces"),
+        serveAcePct: t("totalTop.metrics.bestServeAcePct"),
         serveErrors: t("totalTop.metrics.mostServeErrors"),
+        serveErrorPct: t("totalTop.metrics.biggestServeErrorPct"),
         serveErrorsLeast: t("totalTop.metrics.leastServeErrors"),
-        serveAceErrorRatio: t("totalTop.metrics.aceErrorRatio"),
+        serveErrorPctLeast: t("totalTop.metrics.smallestServeErrorPct"),
+        serveAceErrorRatio: t("totalTop.metrics.aceToErrorRatio"),
         receptionTotal: t("totalTop.metrics.mostReceptions"),
         receptionErrors: t("totalTop.metrics.mostReceptionErrors"),
         receptionPositivePct: `${t("totalTop.metrics.bestReceptionPct")} ${minReceptionsLabel}`,
@@ -313,8 +338,11 @@ function TotalTopPage() {
             categories: [
                 "serveTotal",
                 "serveAces",
+                "serveAcePct",
                 "serveErrors",
+                "serveErrorPct",
                 "serveErrorsLeast",
+                "serveErrorPctLeast",
                 "serveAceErrorRatio",
             ],
         },
@@ -643,7 +671,7 @@ function TotalTopPage() {
             .filter((metric) => !(displayMode === "perGame" && perGameHiddenMetrics.has(metric)));
         const ascendingMetrics = new Set<TotalTopStatKey>([
             "serveErrorsLeast",
-            "serveAceErrorRatio",
+            "serveErrorPctLeast",
             "receptionPositivePctWorst",
             "receptionExcellentPctWorst",
             "attackKillPctWorst",
@@ -662,8 +690,22 @@ function TotalTopPage() {
                     : getStatValue(totals, "serveErrors");
             }
 
+            if (metric === "serveErrorPct") {
+                if (totals.serveTotal <= 0) return null;
+                return getStatValue(totals, "serveErrorPct");
+            }
+
+            if (metric === "serveErrorPctLeast") {
+                if (totals.serveTotal <= 0) return null;
+                return getStatValue(totals, "serveErrorPctLeast");
+            }
+
+            if (metric === "serveAcePct") {
+                if (totals.serveTotal <= 0) return null;
+                return getStatValue(totals, "serveAcePct");
+            }
+
             if (metric === "serveAceErrorRatio") {
-                if (totals.serveTotal < 5 || totals.serveAces <= 0) return null;
                 return getStatValue(totals, "serveAceErrorRatio");
             }
 
@@ -675,14 +717,19 @@ function TotalTopPage() {
         return orderedMetrics.map((metric) => {
             const ranked = rankableRows
                 .map((row) => {
-                    const value = getMetricValue(row.filteredTotals, metric, displayMode);
+                    const totals = row.filteredTotals;
+                    const value = getMetricValue(totals, metric, displayMode);
+                    const valueLabel =
+                        metric === "serveAceErrorRatio"
+                            ? `${totals.serveAces} : ${totals.serveErrors}`
+                            : formatMetricValue(metric, value, displayMode);
 
                     return {
                         playerId: row.playerId,
                         name: row.name,
                         position: row.position ?? t("positions.Unknown"),
                         rawValue: value,
-                        valueLabel: formatMetricValue(metric, value, displayMode),
+                        valueLabel,
                         playerHref: `/players/${row.playerId}`,
                     };
                 })
@@ -740,8 +787,11 @@ function TotalTopPage() {
         breakPoints: "bg-emerald-50/60",
         serveTotal: "bg-amber-50/60",
         serveAces: "bg-amber-50/60",
+        serveAcePct: "bg-amber-50/60",
         serveErrors: "bg-amber-50/60",
+        serveErrorPct: "bg-amber-50/60",
         serveErrorsLeast: "bg-amber-50/60",
+        serveErrorPctLeast: "bg-amber-50/60",
         serveAceErrorRatio: "bg-amber-50/60",
         receptionTotal: "bg-sky-50/60",
         receptionErrors: "bg-sky-50/60",
