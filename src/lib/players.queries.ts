@@ -40,11 +40,103 @@ type AppearanceRow = {
     player_id: number;
     sets_played: number | null;
     on_the_bench: boolean | null;
+    player_match_stats:
+    | {
+        points: number | null;
+        block_points: number | null;
+        plus_minus: number | null;
+        serve_total: number | null;
+        serve_aces: number | null;
+        serve_errors: number | null;
+        reception_total: number | null;
+        reception_errors: number | null;
+        reception_positive_pct: number | null;
+        reception_excellent_pct: number | null;
+        attack_total: number | null;
+        attack_errors: number | null;
+        attack_blocked: number | null;
+        attack_kills: number | null;
+        attack_kill_pct: number | null;
+        attack_efficiency: number | null;
+        break_points: number | null;
+    }
+    | Array<{
+        points: number | null;
+        block_points: number | null;
+        plus_minus: number | null;
+        serve_total: number | null;
+        serve_aces: number | null;
+        serve_errors: number | null;
+        reception_total: number | null;
+        reception_errors: number | null;
+        reception_positive_pct: number | null;
+        reception_excellent_pct: number | null;
+        attack_total: number | null;
+        attack_errors: number | null;
+        attack_blocked: number | null;
+        attack_kills: number | null;
+        attack_kill_pct: number | null;
+        attack_efficiency: number | null;
+        break_points: number | null;
+    }>
+    | null;
     matches:
     | Array<AppearanceMatchRow>
     | AppearanceMatchRow
     | null;
 };
+
+type AppearanceStatsRow = {
+    points: number | null;
+    block_points: number | null;
+    plus_minus: number | null;
+    serve_total: number | null;
+    serve_aces: number | null;
+    serve_errors: number | null;
+    reception_total: number | null;
+    reception_errors: number | null;
+    reception_positive_pct: number | null;
+    reception_excellent_pct: number | null;
+    attack_total: number | null;
+    attack_errors: number | null;
+    attack_blocked: number | null;
+    attack_kills: number | null;
+    attack_kill_pct: number | null;
+    attack_efficiency: number | null;
+    break_points: number | null;
+};
+
+function normalizeRelations<T>(value: T | T[] | null): T[] {
+    if (Array.isArray(value)) {
+        return value.filter((item): item is T => Boolean(item));
+    }
+
+    return value ? [value] : [];
+}
+
+function hasFullStatistics(stats: AppearanceStatsRow): boolean {
+    const values: Array<number | null> = [
+        stats.points,
+        stats.block_points,
+        stats.plus_minus,
+        stats.serve_total,
+        stats.serve_aces,
+        stats.serve_errors,
+        stats.reception_total,
+        stats.reception_errors,
+        stats.reception_positive_pct,
+        stats.reception_excellent_pct,
+        stats.attack_total,
+        stats.attack_errors,
+        stats.attack_blocked,
+        stats.attack_kills,
+        stats.attack_kill_pct,
+        stats.attack_efficiency,
+        stats.break_points,
+    ];
+
+    return values.some((value) => typeof value === "number");
+}
 
 async function fetchPlayers(): Promise<PlayerListItem[]> {
     const playersResponse = await supabase
@@ -71,6 +163,25 @@ async function fetchPlayers(): Promise<PlayerListItem[]> {
                 player_id,
                 sets_played,
                 on_the_bench,
+                player_match_stats(
+                    points,
+                    block_points,
+                    plus_minus,
+                    serve_total,
+                    serve_aces,
+                    serve_errors,
+                    reception_total,
+                    reception_errors,
+                    reception_positive_pct,
+                    reception_excellent_pct,
+                    attack_total,
+                    attack_errors,
+                    attack_blocked,
+                    attack_kills,
+                    attack_kill_pct,
+                    attack_efficiency,
+                    break_points
+                ),
                 matches(
                     match_id,
                     match_date,
@@ -121,7 +232,6 @@ async function fetchPlayers(): Promise<PlayerListItem[]> {
             : a.matches;
         const isAM = Boolean(match?.am);
         const isVM = Boolean(match?.vm);
-        const isMAM = Boolean(match?.mam);
 
         const current = stats.get(a.player_id) ?? {
             amAppearances: 0,
@@ -137,16 +247,20 @@ async function fetchPlayers(): Promise<PlayerListItem[]> {
             allBench: 0,
         };
 
+        const statsRows = normalizeRelations(a.player_match_stats);
+        const hasFullStatsForAppearance = statsRows.some((row) => hasFullStatistics(row));
+        const wasPlayed = hasFullStatsForAppearance && (a.sets_played ?? 0) > 0;
+
         // Official (AM)
 
         if (isAM) {
             current.amAppearances += 1;
 
-            if ((a.sets_played ?? 0) > 0) {
+            if (wasPlayed) {
                 current.amGamesPlayed += 1;
             }
 
-            if (a.on_the_bench) {
+            if (hasFullStatsForAppearance && !wasPlayed) {
                 current.amBench += 1;
             }
         }
@@ -156,11 +270,11 @@ async function fetchPlayers(): Promise<PlayerListItem[]> {
         if (isVM) {
             current.vmAppearances += 1;
 
-            if ((a.sets_played ?? 0) > 0) {
+            if (wasPlayed) {
                 current.vmGamesPlayed += 1;
             }
 
-            if (a.on_the_bench) {
+            if (hasFullStatsForAppearance && !wasPlayed) {
                 current.vmBench += 1;
             }
         }
@@ -169,11 +283,11 @@ async function fetchPlayers(): Promise<PlayerListItem[]> {
 
         current.allAppearances += 1;
 
-        if ((a.sets_played ?? 0) > 0) {
+        if (wasPlayed) {
             current.allGamesPlayed += 1;
         }
 
-        if (a.on_the_bench) {
+        if (hasFullStatsForAppearance && !wasPlayed) {
             current.allBench += 1;
         }
 

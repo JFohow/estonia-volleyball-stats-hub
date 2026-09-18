@@ -244,6 +244,9 @@
         "selectedOpponents": "{{count}} selected opponents",
         "opponentRecordTitle": "Record vs {{opponent}}",
         "official_match": "Official Match",
+        "stats_full": "Match has full player statistics",
+        "stats_players_only": "Match has player list only",
+        "stats_none": "Match has no statistics",
         "match_with_additional_sets": "Match + Additional Sets"
     },
     "players": {

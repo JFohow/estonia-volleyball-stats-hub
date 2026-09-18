@@ -5,6 +5,7 @@ import type { Database } from "@/integrations/supabase/types";
 export type GameHighRow = {
   appearanceId: number;
   matchId: number;
+  matchSetCount: number;
   playerId: number;
   name: string;
   position: string | null;
@@ -258,6 +259,7 @@ async function fetchGameHighs(): Promise<GameHighRow[]> {
       rows.push({
         appearanceId: item.appearance_id,
         matchId: item.match_id,
+        matchSetCount: match.estonia_sets + match.opponent_sets,
         playerId: player.player_id,
         name: `${player.first_name} ${player.last_name}`,
         position: item.player_position_in_match ?? player.position ?? "Unknown",

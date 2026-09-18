@@ -520,6 +520,18 @@ function MatchRow({
       ? `/match/${match.match_id}/all`
       : `/match/${match.match_id}`;
   const detailLine = match.notes;
+  const statsIconClass =
+    match.statsCoverage === "full"
+      ? "text-emerald-600 hover:text-emerald-700"
+      : match.statsCoverage === "playersOnly"
+        ? "text-red-600 hover:text-red-700"
+        : "text-slate-500 hover:text-slate-500 opacity-70";
+  const statsTitle =
+    match.statsCoverage === "full"
+      ? t("matches.stats_full")
+      : match.statsCoverage === "playersOnly"
+        ? t("matches.stats_players_only")
+        : t("matches.stats_none");
 
   return (
     <li
@@ -574,8 +586,8 @@ function MatchRow({
       <div className="col-span-1 flex justify-center gap-1">
         <a
           href={`/match/${match.match_id}`}
-          title={t("matches.official_match")}
-          className="text-red-600 transition-colors hover:text-red-700"
+          title={statsTitle}
+          className={`transition-colors ${statsIconClass}`}
         >
           <FileText className="h-5 w-5" />
         </a>

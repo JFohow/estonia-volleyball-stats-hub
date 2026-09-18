@@ -19,6 +19,7 @@ import {
 import { useTranslation } from "react-i18next";
 
 type SortField = StatisticsField | "name" | "sets" | "setsStarted";
+type DisplayMode = "total" | "perGame";
 
 const columns: Array<{ field: StatisticsField; label: string }> = [
     { field: "points", label: "PTS" },
@@ -41,6 +42,37 @@ const columns: Array<{ field: StatisticsField; label: string }> = [
 ];
 
 const modes: StatisticsMode[] = ["official", "competitive", "nonCompetitive", "all"];
+const percentageFields = new Set<StatisticsField>([
+    "reception_positive_pct",
+    "reception_excellent_pct",
+    "attack_kill_pct",
+    "attack_efficiency",
+]);
+
+function getPerGameRawValue(group: ReturnType<typeof createGroup>, field: StatisticsField): number | null {
+    if (group.appearances <= 0) {
+        return null;
+    }
+
+    if (percentageFields.has(field)) {
+        return getDisplayValue(group, field);
+    }
+
+    return getDisplayValue(group, field) / group.appearances;
+}
+
+function formatPerGameDisplayValue(group: ReturnType<typeof createGroup>, field: StatisticsField): string {
+    const value = getPerGameRawValue(group, field);
+    if (value == null) {
+        return "—";
+    }
+
+    if (percentageFields.has(field)) {
+        return `${Math.round(value)}%`;
+    }
+
+    return Number.isInteger(value) ? String(value) : value.toFixed(1);
+}
 
 export const Route = createFileRoute("/statistics")({
     loader: ({ context }) => context.queryClient.ensureQueryData(statisticsOptions()),
@@ -60,6 +92,7 @@ function StatisticsPage() {
     const [selectedMatches, setSelectedMatches] = useState<string[]>([]);
     const [sortField, setSortField] = useState<SortField | "appearances">("appearances");
     const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+    const [displayMode, setDisplayMode] = useState<DisplayMode>("total");
 
     const positions = useMemo(() => ["ALL", "SET", "OPP", "OH", "MB", "LIB"], []);
 
@@ -219,7 +252,7 @@ function StatisticsPage() {
     }, [modeFilteredAppearances, selectedYear, selectedCompetition, selectedOpponent, selectedMatches, currentLanguage]);
 
     const rows = useMemo(() => {
-        const rowMap = new Map<number, PlayerStatisticsRow>();
+        const rowMap = new Map<number, { row: PlayerStatisticsRow; perGameGroup: ReturnType<typeof createGroup> }>();
         const hasActiveDetailFilters =
             !selectedYear.includes("all") ||
             !selectedCompetition.includes("all") ||
@@ -230,20 +263,24 @@ function StatisticsPage() {
             .filter((player) => selectedPosition === "ALL" || player.position === selectedPosition)
             .forEach((player) => {
                 rowMap.set(player.player_id, {
-                    playerId: player.player_id,
-                    name: `${player.first_name} ${player.last_name}`,
-                    position: player.position,
-                    official: createGroup(),
-                    competitive: createGroup(),
-                    nonCompetitive: createGroup(),
-                    all: createGroup(),
+                    row: {
+                        playerId: player.player_id,
+                        name: `${player.first_name} ${player.last_name}`,
+                        position: player.position,
+                        official: createGroup(),
+                        competitive: createGroup(),
+                        nonCompetitive: createGroup(),
+                        all: createGroup(),
+                    },
+                    perGameGroup: createGroup(),
                 });
             });
 
         filteredAppearances.forEach((appearance: StatisticsAppearanceRow) => {
-            const row = rowMap.get(appearance.player_id);
-            if (!row) return;
+            const entry = rowMap.get(appearance.player_id);
+            if (!entry) return;
 
+            const row = entry.row;
             row[mode].appearances += 1;
             const stats = pickAppearanceStats(appearance.player_match_stats, mode);
             const setsFromPositions = stats
@@ -267,38 +304,54 @@ function StatisticsPage() {
 
             addStats(row[mode], stats);
             row[mode].sets += setsFromPositions;
+
+            if (setsFromPositions > 0) {
+                entry.perGameGroup.appearances += 1;
+                entry.perGameGroup.sets += setsFromPositions;
+                entry.perGameGroup.setsStarted += appearanceSetsStarted;
+                addStats(entry.perGameGroup, stats);
+            }
         });
 
-        const copy = Array.from(rowMap.values()).filter((row) =>
+        const copy = Array.from(rowMap.values()).filter(({ row }) =>
             hasActiveDetailFilters ? row[mode].appearances > 0 : true
         );
 
         copy.sort((a, b) => {
+            const rowA = a.row;
+            const rowB = b.row;
+
             if (sortField === "name") {
-                const comp = a.name.localeCompare(b.name);
+                const comp = rowA.name.localeCompare(rowB.name);
                 return sortDirection === "asc" ? comp : -comp;
             }
 
             if (sortField === "appearances") {
-                const aValue = a[mode].appearances;
-                const bValue = b[mode].appearances;
+                const aValue = rowA[mode].appearances;
+                const bValue = rowB[mode].appearances;
                 return sortDirection === "asc" ? aValue - bValue : bValue - aValue;
             }
 
             if (sortField === "sets") {
-                const aValue = a[mode].sets;
-                const bValue = b[mode].sets;
+                const aValue = rowA[mode].sets;
+                const bValue = rowB[mode].sets;
                 return sortDirection === "asc" ? aValue - bValue : bValue - aValue;
             }
 
             if (sortField === "setsStarted") {
-                const aValue = a[mode].setsStarted;
-                const bValue = b[mode].setsStarted;
+                const aValue = rowA[mode].setsStarted;
+                const bValue = rowB[mode].setsStarted;
                 return sortDirection === "asc" ? aValue - bValue : bValue - aValue;
             }
 
-            const aValue = getDisplayValue(a[mode], sortField);
-            const bValue = getDisplayValue(b[mode], sortField);
+            const aValue =
+                displayMode === "total"
+                    ? getDisplayValue(rowA[mode], sortField)
+                    : (getPerGameRawValue(a.perGameGroup, sortField) ?? -1);
+            const bValue =
+                displayMode === "total"
+                    ? getDisplayValue(rowB[mode], sortField)
+                    : (getPerGameRawValue(b.perGameGroup, sortField) ?? -1);
             return sortDirection === "asc" ? aValue - bValue : bValue - aValue;
         });
 
@@ -307,6 +360,7 @@ function StatisticsPage() {
         data.players,
         filteredAppearances,
         mode,
+        displayMode,
         sortDirection,
         sortField,
         selectedCompetition,
@@ -329,6 +383,29 @@ function StatisticsPage() {
     return (
         <main className="mx-auto max-w-[1480px] px-4 py-8 sm:px-6 sm:py-10 lg:px-14">
             <div className="mb-6 rounded-2xl bg-estonia-dark p-6 text-white shadow-sm md:p-8">
+                <div className="mx-auto mb-5 grid w-full max-w-[520px] grid-cols-2 gap-2">
+                    <button
+                        type="button"
+                        onClick={() => setDisplayMode("total")}
+                        className={`h-10 w-full rounded-md border px-3 text-xs font-semibold uppercase tracking-[0.14em] transition ${displayMode === "total"
+                            ? "border-estonia-blue bg-estonia-blue text-white"
+                            : "border-white/30 bg-white/10 text-white/90 hover:bg-white/20"
+                            }`}
+                    >
+                        {t("totalTop.table.totals")}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setDisplayMode("perGame")}
+                        className={`h-10 w-full rounded-md border px-3 text-xs font-semibold uppercase tracking-[0.14em] transition ${displayMode === "perGame"
+                            ? "border-estonia-blue bg-estonia-blue text-white"
+                            : "border-white/30 bg-white/10 text-white/90 hover:bg-white/20"
+                            }`}
+                    >
+                        {t("totalTop.table.perGame")}
+                    </button>
+                </div>
+
                 <div className="grid gap-5 lg:grid-cols-2">
                     <div className="text-center">
                         <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/60">
@@ -421,6 +498,12 @@ function StatisticsPage() {
                 </div>
             </div>
 
+            <h2 className="mb-4 text-center text-sm italic text-slate-600">
+                {displayMode === "total"
+                    ? (currentLanguage === "et" ? "Total Statistics" : "Total Statistics")
+                    : (currentLanguage === "et" ? "Per Game Statistics" : "Per Game Statistics")}
+            </h2>
+
             <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
                 <table className="w-full min-w-[1200px] border-collapse">
                     <thead className="bg-slate-50">
@@ -512,8 +595,15 @@ function StatisticsPage() {
                     </thead>
 
                     <tbody className="divide-y divide-slate-100">
-                        {rows.map((row, idx) => (
-                            <PlayerStatisticsTableRow key={row.playerId} row={row} mode={mode} index={idx} />
+                        {rows.map(({ row, perGameGroup }, idx) => (
+                            <PlayerStatisticsTableRow
+                                key={row.playerId}
+                                row={row}
+                                perGameGroup={perGameGroup}
+                                mode={mode}
+                                displayMode={displayMode}
+                                index={idx}
+                            />
                         ))}
                     </tbody>
                 </table>
@@ -528,11 +618,15 @@ function StatisticsPage() {
 
 function PlayerStatisticsTableRow({
     row,
+    perGameGroup,
     mode,
+    displayMode,
     index,
 }: {
     row: PlayerStatisticsRow;
+    perGameGroup: ReturnType<typeof createGroup>;
     mode: StatisticsMode;
+    displayMode: DisplayMode;
     index: number;
 }) {
     const group = row[mode];
@@ -565,7 +659,9 @@ function PlayerStatisticsTableRow({
                         : "border-r border-slate-200"
                         }`}
                 >
-                    {formatDisplayValue(group, column.field)}
+                    {displayMode === "total"
+                        ? formatDisplayValue(group, column.field)
+                        : formatPerGameDisplayValue(perGameGroup, column.field)}
                 </td>
             ))}
         </tr>

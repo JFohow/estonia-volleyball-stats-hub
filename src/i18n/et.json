@@ -244,6 +244,9 @@
         "selectedOpponents": "{{count}} valitud vastast",
         "opponentRecordTitle": "Saldo vs {{opponent}}",
         "official_match": "Ametlik mäng",
+        "stats_full": "Mängul on täielik mängijate statistika",
+        "stats_players_only": "Mängul on ainult mängijate nimekiri",
+        "stats_none": "Mängul puudub statistika",
         "match_with_additional_sets": "Mäng koos lisageimidega"
     },
     "players": {

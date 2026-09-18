@@ -527,6 +527,13 @@ function TotalTopPage() {
                 return;
             }
 
+            const totalSetsInMatch = Math.min(Math.max(appearance.estoniaSets + appearance.opponentSets, 0), 6);
+            const setSummary = getSetSlotSummary(stats, totalSetsInMatch);
+
+            if (displayMode === "perGame" && setSummary.setsPlayed === 0) {
+                return;
+            }
+
             const bucket = groupedTotals.get(playerId) ?? {
                 totals: createEmptyTotals(),
                 receptionPositiveCount: 0,
@@ -539,8 +546,6 @@ function TotalTopPage() {
             };
 
             bucket.totals.appearances += 1;
-            const totalSetsInMatch = Math.min(Math.max(appearance.estoniaSets + appearance.opponentSets, 0), 6);
-            const setSummary = getSetSlotSummary(stats, totalSetsInMatch);
             bucket.totals.sets += setSummary.setsPlayed;
             bucket.totals.setsBench += setSummary.setsBench;
             bucket.totals.matchesNotPlayed += setSummary.matchNotPlayed;
@@ -649,6 +654,7 @@ function TotalTopPage() {
         return ranked;
     }, [
         data,
+        displayMode,
         filteredEntries,
         matchType,
         selectedPosition,
@@ -940,6 +946,12 @@ function TotalTopPage() {
                     ? "Estonian National Team All Time Tops"
                     : "Estonian National Team All Time Tops Per Match"}
             </h2>
+
+            {displayMode === "perGame" ? (
+                <p className="mb-4 text-center text-sm italic text-slate-600">
+                    Calculations are done base off matches, where player actually played, not sat on the bench.
+                </p>
+            ) : null}
 
             <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
                 <div className="min-w-[860px]">

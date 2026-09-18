@@ -152,6 +152,7 @@ function GameHighsPage() {
   const [matchType, setMatchType] = useState<"ALL" | "OFFICIAL" | "COMPETITIVE" | "NON_OFFICIAL">(
     "OFFICIAL",
   );
+  const [matchLengthFilter, setMatchLengthFilter] = useState<3 | 4 | 5>(5);
   const [selectedYear, setSelectedYear] = useState<string[]>(["all"]);
   const [selectedCompetition, setSelectedCompetition] = useState<string[]>(["all"]);
   const [selectedOpponent, setSelectedOpponent] = useState<string[]>(["all"]);
@@ -190,6 +191,10 @@ function GameHighsPage() {
         return;
       }
 
+      if (row.matchSetCount > matchLengthFilter) {
+        return;
+      }
+
       const existing = byAppearance.get(row.appearanceId);
       if (!existing) {
         byAppearance.set(row.appearanceId, row);
@@ -222,7 +227,7 @@ function GameHighsPage() {
     });
 
     return Array.from(byAppearance.values());
-  }, [data, matchType]);
+  }, [data, matchType, matchLengthFilter]);
 
   const viewFilteredRows = useMemo(() => {
     if (viewMode === "TEAM") {
@@ -1060,7 +1065,15 @@ function GameHighsPage() {
   useEffect(() => {
     setExpandedPlayerMetric(null);
     setExpandedTeamMetric(null);
-  }, [viewMode, selectedPosition, matchType, selectedYear, selectedCompetition, selectedOpponent]);
+  }, [
+    viewMode,
+    selectedPosition,
+    matchType,
+    matchLengthFilter,
+    selectedYear,
+    selectedCompetition,
+    selectedOpponent,
+  ]);
 
   return (
     <main className="mx-auto w-full max-w-[1400px] px-6 py-10 text-slate-900">
@@ -1090,7 +1103,7 @@ function GameHighsPage() {
           ))}
         </div>
 
-        <div className="grid gap-5 lg:grid-cols-2">
+        <div className="grid gap-5 lg:grid-cols-3">
           <div className="text-center">
             <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/60">
               {t("gameHighs.filters.matchType")}
@@ -1136,6 +1149,31 @@ function GameHighsPage() {
                     }`}
                 >
                   {position === "ALL" ? "ALL" : position}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="text-center">
+            <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/60">
+              {isEstonian ? "Mängu pikkus" : "Match length"}
+            </div>
+            <div className="mx-auto grid w-full max-w-[440px] grid-cols-3 gap-2">
+              {[
+                { value: 3 as const, label: isEstonian ? "3 geimi" : "3 Sets" },
+                { value: 4 as const, label: isEstonian ? "4 geimi" : "4 Sets" },
+                { value: 5 as const, label: isEstonian ? "5 geimi" : "5 Sets" },
+              ].map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setMatchLengthFilter(option.value)}
+                  className={`h-10 w-full rounded-md border px-3 text-xs font-semibold uppercase tracking-[0.16em] transition ${matchLengthFilter === option.value
+                    ? "border-estonia-blue bg-estonia-blue text-white"
+                    : "border-white/30 bg-white/10 text-white/90 hover:bg-white/20"
+                    }`}
+                >
+                  {option.label}
                 </button>
               ))}
             </div>
@@ -1329,7 +1367,7 @@ function GameHighsPage() {
                                       {t("gameHighs.table.position")}
                                     </th>
                                     <th className="px-2 py-2 text-center text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
-                                      {t("gameHighs.table.value")}
+                                      {getTopTenValueLabel(row.key)}
                                     </th>
                                     <th className="px-2 py-2 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
                                       {t("gameHighs.table.opponent")}
@@ -1548,7 +1586,7 @@ function GameHighsPage() {
                                       #
                                     </th>
                                     <th className="px-2 py-2 text-center text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
-                                      {t("gameHighs.table.value")}
+                                      {getTopTenValueLabel(row.key)}
                                     </th>
                                     <th className="px-2 py-2 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
                                       {t("gameHighs.table.opponent")}
@@ -1658,6 +1696,45 @@ function getCategoryValue(row: GameHighRow, category: GameHighCategory): number 
     default:
       return null;
   }
+}
+
+function getTopTenValueLabel(metric: string): string {
+  const labels: Record<string, string> = {
+    pointsPerGame: "PTS",
+    points: "PTS",
+    maxEstoniaSetPoints: "SET PTS",
+    breakPoints: "BP",
+    plusMinusBest: "+/-",
+    plusMinusWorst: "+/-",
+    plusMinus: "+/-",
+    blockPoints: "BLK",
+    serveTotal: "S TOT",
+    serveAces: "S ACE",
+    serveErrorsMost: "S ERR",
+    serveErrorsLeast: "S ERR",
+    serveErrors: "S ERR",
+    bestAceErrorRatio: "S ACE:S ERR",
+    receptionTotal: "R TOT",
+    receptionErrors: "R ERR",
+    receptionPositivePctBest: "R POS%",
+    receptionPositivePctWorst: "R POS%",
+    receptionPositivePct: "R POS%",
+    receptionExcellentPctBest: "R EXC%",
+    receptionExcellentPctWorst: "R EXC%",
+    receptionExcellentPct: "R EXC%",
+    attackTotal: "A TOT",
+    attackErrors: "A ERR",
+    attackBlocked: "A BLK",
+    attackKills: "A KIL",
+    attackKillPctBest: "A KIL%",
+    attackKillPctWorst: "A KIL%",
+    attackKillPct: "A KIL%",
+    attackEfficiencyBest: "A EFF%",
+    attackEfficiencyWorst: "A EFF%",
+    attackEfficiency: "A EFF%",
+  };
+
+  return labels[metric] ?? "VALUE";
 }
 
 function formatCategoryValue(value: number | null, category: GameHighCategory): string {
